@@ -11,6 +11,7 @@ pub struct TaskPolicy {
     internal: RwLock<HashSet<String>>,
     automatic: RwLock<HashSet<String>>,
     pending_starts: RwLock<HashSet<String>>,
+    known: RwLock<HashSet<String>>,
     worker: AtomicBool,
     deleted: std::sync::Mutex<HashSet<String>>,
 }
@@ -43,9 +44,24 @@ impl TaskPolicy {
             .expect("task deletion state poisoned")
             .clear();
         self.pending_starts.write().await.clear();
+        self.known.write().await.clear();
     }
     pub async fn expect_start(&self, gid: &str) {
+        self.known.write().await.insert(gid.into());
         self.pending_starts.write().await.insert(gid.into());
+    }
+    pub async fn remember_tasks(&self, gids: impl IntoIterator<Item = String>) {
+        self.known.write().await.extend(gids);
+    }
+    /// A start for a GID the app has never seen came from another aria2 RPC
+    /// client, such as a browser extension. It is queued like an in-app
+    /// submission. Resumes of known tasks are left alone.
+    pub async fn claim_external_start(&self, gid: &str) -> bool {
+        if !self.known.write().await.insert(gid.into()) {
+            return false;
+        }
+        self.pending_starts.write().await.insert(gid.into());
+        true
     }
     pub async fn take_start(&self, gid: &str) -> bool {
         self.pending_starts.write().await.remove(gid)
@@ -89,5 +105,45 @@ impl TaskPolicy {
             task.selection_managed = automatic.contains(&task.gid);
         }
         tasks
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::TaskPolicy;
+
+    #[tokio::test]
+    async fn an_unseen_start_is_queued_once() {
+        let policy = TaskPolicy::default();
+        assert!(policy.claim_external_start("external").await);
+        assert!(!policy.claim_external_start("external").await);
+        assert!(policy.take_start("external").await);
+        assert!(!policy.claim_external_start("external").await);
+        assert!(!policy.take_start("external").await);
+    }
+
+    #[tokio::test]
+    async fn app_submissions_are_not_claimed_again_after_they_notify() {
+        let policy = TaskPolicy::default();
+        policy.expect_start("submitted").await;
+        assert!(policy.take_start("submitted").await);
+        assert!(!policy.claim_external_start("submitted").await);
+        assert!(!policy.take_start("submitted").await);
+    }
+
+    #[tokio::test]
+    async fn tasks_that_existed_before_the_listener_connected_stay_silent() {
+        let policy = TaskPolicy::default();
+        policy.remember_tasks(["restored".to_string()]).await;
+        assert!(!policy.claim_external_start("restored").await);
+        assert!(!policy.take_start("restored").await);
+    }
+
+    #[tokio::test]
+    async fn an_engine_restart_forgets_known_tasks() {
+        let policy = TaskPolicy::default();
+        policy.remember_tasks(["old".to_string()]).await;
+        policy.clear_pending_starts().await;
+        assert!(policy.claim_external_start("old").await);
     }
 }

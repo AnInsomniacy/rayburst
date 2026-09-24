@@ -141,6 +141,16 @@ async fn event_loop(
             continue;
         }
 
+        // Starts seen from here on are only new if aria2 did not already hold
+        // the task. Without this baseline every resume would look new.
+        if let Err(error) = aria2.remember_existing_tasks().await {
+            log::warn!("aria2_events: failed to snapshot existing tasks: {error}");
+            if wait_for_retry(&mut stop_rx).await {
+                return;
+            }
+            continue;
+        }
+
         match monitor::reconcile_stopped_tasks(&app, &aria2).await {
             Ok(0) => {}
             Ok(count) => log::info!("aria2_events: reconciled {count} lifecycle records"),
@@ -210,6 +220,9 @@ async fn handle_native_event(
         return Ok(());
     }
     if event.kind == NativeEventKind::DownloadStart {
+        if aria2.tasks.claim_external_start(&event.gid).await {
+            log::info!("aria2_events: external task start queued gid={}", event.gid);
+        }
         super::tasks::notify_changed(app, &event.gid);
         return Ok(());
     }
