@@ -125,6 +125,17 @@ impl TaskService {
             .await)
     }
 
+    /// Records every task aria2 already holds, so their later starts are
+    /// treated as resumes rather than new external submissions.
+    pub async fn remember_existing_tasks(&self) -> Result<usize, AppError> {
+        let tasks = self.raw_task_snapshot(true).await?;
+        let count = tasks.len();
+        self.tasks
+            .remember_tasks(tasks.into_iter().map(|task| task.gid))
+            .await;
+        Ok(count)
+    }
+
     pub async fn hidden_tasks(&self) -> Result<Vec<Aria2Task>, AppError> {
         let gids = self.tasks.internal_ids().await;
         if gids.is_empty() {
