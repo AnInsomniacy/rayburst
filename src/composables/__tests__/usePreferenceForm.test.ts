@@ -47,12 +47,16 @@ vi.mock('vue-i18n', () => ({
 
 // ── Mock aria2 API ──────────────────────────────────────────────────
 const mockChangeGlobalOption = vi.fn().mockResolvedValue(undefined)
+const mockGetOption = vi
+  .fn()
+  .mockResolvedValue({ streamMaxConnections: '64', maxDownloadLimit: '0', maxUploadLimit: '0' })
 const mockChangeOption = vi.fn().mockResolvedValue(undefined)
 const mockFetchTaskList = vi.fn().mockResolvedValue([])
 const mockSaveSession = vi.fn().mockResolvedValue('OK')
 const mockIsEngineReady = vi.fn().mockReturnValue(true)
 vi.mock('@/api/aria2', () => ({
   changeGlobalOption: (...args: unknown[]) => mockChangeGlobalOption(...args),
+  getOption: (...args: unknown[]) => mockGetOption(...args),
   changeOption: (...args: unknown[]) => mockChangeOption(...args),
   fetchTaskList: (...args: unknown[]) => mockFetchTaskList(...args),
   saveSession: (...args: unknown[]) => mockSaveSession(...args),
@@ -123,6 +127,12 @@ describe('usePreferenceForm', () => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
     mockIsEngineReady.mockReturnValue(true)
+    mockFetchTaskList.mockReset().mockResolvedValue([])
+    mockChangeOption.mockReset().mockResolvedValue(undefined)
+    mockSaveSession.mockReset().mockResolvedValue('OK')
+    mockGetOption
+      .mockReset()
+      .mockResolvedValue({ streamMaxConnections: '64', maxDownloadLimit: '0', maxUploadLimit: '0' })
   })
 
   it('initialises form with buildForm values and isDirty=false', () => {
@@ -408,6 +418,12 @@ describe('usePreferenceForm', () => {
     const store = usePreferenceStore()
     store.updateAndSave = vi.fn().mockResolvedValue(true)
     mockIsEngineReady.mockReturnValue(true)
+    mockFetchTaskList.mockReset().mockResolvedValue([])
+    mockChangeOption.mockReset().mockResolvedValue(undefined)
+    mockSaveSession.mockReset().mockResolvedValue('OK')
+    mockGetOption
+      .mockReset()
+      .mockResolvedValue({ streamMaxConnections: '64', maxDownloadLimit: '0', maxUploadLimit: '0' })
 
     const { result, unmount } = withSetup(() => usePreferenceForm(makeOptions()))
     const { form, handleSave } = result
@@ -427,6 +443,12 @@ describe('usePreferenceForm', () => {
     const store = usePreferenceStore()
     store.updateAndSave = vi.fn().mockResolvedValue(true)
     mockIsEngineReady.mockReturnValue(true)
+    mockFetchTaskList.mockReset().mockResolvedValue([])
+    mockChangeOption.mockReset().mockResolvedValue(undefined)
+    mockSaveSession.mockReset().mockResolvedValue('OK')
+    mockGetOption
+      .mockReset()
+      .mockResolvedValue({ streamMaxConnections: '64', maxDownloadLimit: '0', maxUploadLimit: '0' })
     mockChangeGlobalOption.mockRejectedValueOnce(new Error('bind failed'))
 
     const { result, unmount } = withSetup(() => usePreferenceForm(makeOptions()))

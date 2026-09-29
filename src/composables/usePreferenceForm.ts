@@ -12,11 +12,12 @@ import { invoke } from '@tauri-apps/api/core'
 import { usePreferenceStore } from '@/stores/preference'
 import { useAppMessage } from '@/composables/useAppMessage'
 import { filterHotReloadableKeys } from '@shared/utils/config'
-import { changeGlobalOption, changeOption, fetchTaskList, isEngineReady, saveSession } from '@/api/aria2'
+import { changeGlobalOption, isEngineReady } from '@/api/aria2'
 import { logger } from '@shared/logger'
-import type { AppConfig, Aria2EngineOptions } from '@shared/types'
+import type { AppConfig } from '@shared/types'
 import { validateAppConfigCandidate } from '@shared/configConstraints'
 import { buildSystemConfigFromAppConfig } from '@shared/utils/systemConfig'
+import { prepareTaskPreferenceOptions } from './taskPreferenceOptions'
 
 export interface UsePreferenceFormOptions<T extends Record<string, unknown>> {
   /** Build the initial form state from the current preference config. */
@@ -62,31 +63,6 @@ export interface UsePreferenceFormOptions<T extends Record<string, unknown>> {
    * `preferenceStore.updateAndSave`. Defaults to spreading the form as-is.
    */
   transformForStore?: (form: T) => Partial<AppConfig>
-}
-
-const TASK_PROPAGATABLE_KEYS = ['stream-max-connections', 'max-download-limit', 'max-upload-limit'] as const
-
-async function propagateOptionsToActiveTasks(options: Aria2EngineOptions): Promise<void> {
-  const taskOptionsToPropagate = Object.fromEntries(
-    Object.entries(options).filter(([key]) =>
-      TASK_PROPAGATABLE_KEYS.includes(key as (typeof TASK_PROPAGATABLE_KEYS)[number]),
-    ),
-  ) as Aria2EngineOptions
-
-  if (Object.keys(taskOptionsToPropagate).length === 0) return
-
-  const tasks = await fetchTaskList({ type: 'active' })
-  if (tasks.length > 0) {
-    await Promise.allSettled(
-      tasks.map((task) =>
-        changeOption({
-          gid: task.gid,
-          options: taskOptionsToPropagate,
-        }),
-      ),
-    )
-    await saveSession()
-  }
 }
 
 /**
@@ -158,6 +134,7 @@ export function usePreferenceForm<T extends Record<string, unknown>>(options: Us
     )
     const shouldHotReload = isEngineReady() && Object.keys(changedHotConfig).length > 0
     let hotReloadAttempted = false
+    let rollbackTaskOptions: (() => Promise<void>) | undefined
     let preferencesPersisted = false
     let systemConfigWriteAttempted = false
     const saveFeedback =
@@ -166,9 +143,11 @@ export function usePreferenceForm<T extends Record<string, unknown>>(options: Us
         : options.saveFeedback
     try {
       if (shouldHotReload) {
+        const taskOptions = await prepareTaskPreferenceOptions(changedHotConfig)
+        rollbackTaskOptions = taskOptions.rollback
         hotReloadAttempted = true
         await changeGlobalOption(changedHotConfig as Partial<AppConfig>)
-        await propagateOptionsToActiveTasks(changedHotConfig as Aria2EngineOptions)
+        await taskOptions.apply()
       }
 
       const saved = await preferenceStore.updateAndSave(storeData)
@@ -209,11 +188,16 @@ export function usePreferenceForm<T extends Record<string, unknown>>(options: Us
       if (hotReloadAttempted && Object.keys(rollbackHotConfig).length > 0) {
         try {
           await changeGlobalOption(rollbackHotConfig as Partial<AppConfig>)
-          await propagateOptionsToActiveTasks(rollbackHotConfig as Aria2EngineOptions)
         } catch (rollbackError) {
           rollbackFailed = true
           logger.error('PreferenceForm.rollback', rollbackError)
         }
+      }
+      try {
+        await rollbackTaskOptions?.()
+      } catch (rollbackError) {
+        rollbackFailed = true
+        logger.error('PreferenceForm.rollbackTasks', rollbackError)
       }
       if (!rollbackFailed) {
         Object.assign(form.value, options.buildForm())
