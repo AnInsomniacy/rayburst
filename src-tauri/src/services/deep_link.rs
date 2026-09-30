@@ -73,6 +73,12 @@ pub fn is_autostart_arg_launch(args: &[String]) -> bool {
         .any(|arg| arg == "--autostart" || arg.starts_with("--autostart="))
 }
 
+/// Returns true when argv requests silent download submission without focusing UI.
+pub fn is_silent_arg_launch(args: &[String]) -> bool {
+    args.iter()
+        .any(|arg| arg == "--silent" || arg.starts_with("--silent="))
+}
+
 /// Drain pending external inputs for the frontend boot path.
 pub fn take_pending_deep_links(state: &PendingDeepLinkState) -> PendingDeepLinksPayload {
     match state.0.lock() {
@@ -114,6 +120,10 @@ pub fn mark_frontend_unready(app: &AppHandle) {
 /// destroyed lightweight-mode window.
 pub fn route_external_inputs(app: &AppHandle, urls: Vec<String>, source: &'static str) {
     route_external_inputs_with_intent(app, urls, source, false);
+}
+
+pub fn route_silent_external_inputs(app: &AppHandle, urls: Vec<String>, source: &'static str) {
+    route_external_inputs_with_intent(app, urls, source, true);
 }
 
 fn route_external_inputs_with_intent(
@@ -210,7 +220,7 @@ fn is_frontend_ready(app: &AppHandle) -> bool {
 mod tests {
     use super::{
         append_unique_pending, filter_external_input_args, is_autostart_arg_launch,
-        take_pending_deep_links, PendingDeepLinkState,
+        is_silent_arg_launch, take_pending_deep_links, PendingDeepLinkState,
     };
 
     #[test]
@@ -249,6 +259,23 @@ mod tests {
         assert!(!is_autostart_arg_launch(&[
             "Rayburst.exe".to_string(),
             "--flag".to_string(),
+        ]));
+    }
+
+    #[test]
+    fn detects_silent_args_for_cli_launches() {
+        assert!(is_silent_arg_launch(&[
+            "motrix-next".to_string(),
+            "--silent".to_string(),
+            "https://example.com/file.zip".to_string(),
+        ]));
+        assert!(is_silent_arg_launch(&[
+            "motrix-next".to_string(),
+            "--silent=true".to_string(),
+        ]));
+        assert!(!is_silent_arg_launch(&[
+            "motrix-next".to_string(),
+            "https://example.com/file.zip".to_string(),
         ]));
     }
 
