@@ -73,6 +73,7 @@ rust-i18n = "4.2.1"
 fluent-langneg = { version = "0.14.2", features = ["cldr"] }
 
 [target.'cfg(windows)'.dependencies]
+tauri-winrt-notification = "0.7.2"
 windows-sys = { version = "0.59", features = [
     "Win32_NetworkManagement_IpHelper",
     "Win32_Networking_WinSock",
