@@ -155,6 +155,9 @@ and selected text.
 
 Start notifications belong to the native task lifecycle and honor `notifyOnStart`.
 Submitting metadata or displaying an in-app toast never duplicates an OS notification.
+On Windows, clicking a completion notification while Rayburst is running reveals
+the first selected file, or the first file when selection is absent. Start and error
+notifications do not reveal incomplete files.
 Authenticated readiness endpoints return `engine_starting` or `engine_unavailable`
 when the desktop is reachable but cannot provide engine services. Connect retains
 the desktop version and offers recovery instead of repeatedly activating the app.
