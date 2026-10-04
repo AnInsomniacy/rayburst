@@ -20,7 +20,7 @@
         "height": 680,
         "minWidth": 373,
         "minHeight": 240,
-        "transparent": true,
+        "transparent": false,
         "decorations": false,
         "visible": false,
         "center": true,

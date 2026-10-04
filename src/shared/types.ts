@@ -327,8 +327,8 @@ export interface SystemProxyInfo {
   isSocks: boolean
 }
 
-export type UpdateChannel = 'stable' | 'beta' | 'latest'
-export type ResolvedUpdateChannel = Exclude<UpdateChannel, 'latest'>
+export type UpdateChannel = 'stable' | 'beta'
+export type ResolvedUpdateChannel = UpdateChannel
 
 /** Clipboard auto-detection filter: controls which protocol families
  *  trigger the "new task" dialog when a URL is detected in the clipboard. */
@@ -679,8 +679,6 @@ export interface TauriUpdate {
   date: string | null
   channel: ResolvedUpdateChannel
   requestedChannel: UpdateChannel
-  /** Computed by Rust via the semver crate — true for cross-channel downgrades. */
-  isRollback: boolean
 }
 
 // ── Batch Add Task ──────────────────────────────────────────────────

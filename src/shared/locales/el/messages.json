@@ -38,7 +38,6 @@
     "engine-ready": "Η μηχανή Aria2 Next είναι έτοιμη",
     "engine-failed": "Αποτυχία εκκίνησης κινητήρα",
     "new-version-available": "Διαθέσιμη ενημέρωση",
-    "older-version-available": "Διαθέσιμη παλαιότερη έκδοση",
     "tray-new-task": "Νέα εργασία",
     "tray-resume-all": "Συνέχιση όλων",
     "tray-pause-all": "Παύση όλων",
@@ -222,7 +221,7 @@
     "proxy": "Proxy",
     "proxy-bypass": "Παράκαμψη proxy",
     "proxy-scope": "Εύρος proxy",
-    "proxy-bypass-input-tips": "Ένα όνομα κεντρικού υπολογιστή, τομέας, IP ή CIDR ανά γραμμή· * εξαιρεί όλους\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "Ένα όνομα κεντρικού υπολογιστή, τομέας, IP ή CIDR ανά γραμμή· * εξαιρεί όλους\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "Λήψεις",
     "proxy-scope-update-app": "Ενημερώσεις εφαρμογής",
     "proxy-scope-update-trackers": "Ενημερώσεις δεδομένων δικτύου",
@@ -327,7 +326,6 @@
     "update-channel": "Κανάλι ενημέρωσης",
     "update-channel-stable": "Σταθερό",
     "update-channel-beta": "Beta",
-    "update-channel-latest": "Νεότερη έκδοση από όλα τα κανάλια",
     "auto-check-update": "Αυτόματος έλεγχος ενημερώσεων",
     "last-check-update-time": "Τελευταίος έλεγχος",
     "not-saved": "Μη αποθηκευμένες αλλαγές",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "Λήψη και εμφάνιση εργασιών",
     "software-rendering": "Απόδοση WebKitGTK μέσω λογισμικού",
     "software-rendering-hint": "Μόνο για διάγνωση προβλημάτων γραφικών στο Linux.",
-    "software-rendering-restart-confirm": "Επανεκκινήστε για εφαρμογή της αλλαγής απόδοσης."
+    "software-rendering-restart-confirm": "Επανεκκινήστε για εφαρμογή της αλλαγής απόδοσης.",
+    "install-extension": "Εγκατάσταση"
   },
   "task": {
     "scope-all": "Όλα",

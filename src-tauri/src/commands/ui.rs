@@ -14,31 +14,26 @@ use tauri::Manager;
 /// - **Windows**: no-op (Windows system tray has no title API)
 #[tauri::command]
 pub fn update_tray_title(app: AppHandle, title: String) -> Result<(), AppError> {
-    if let Some(tray) = app.tray_by_id("rayburst") {
-        tray.set_title(Some(&title))
-            .map_err(|e| AppError::Io(e.to_string()))?;
-        // Re-apply the dedicated tray icon after set_title so macOS keeps the
-        // template mask without rendering the full-colour window icon.
-        #[cfg(target_os = "macos")]
-        {
-            let _ = crate::tray::refresh_tray_icon(&tray);
-        }
-    }
-    Ok(())
+    crate::tray::set_title(&app, &title).map_err(|error| AppError::Io(error.to_string()))
 }
 
 /// Updates localized labels on tray menu items by their IDs.
 #[tauri::command]
 pub fn update_tray_menu_labels(app: AppHandle, labels: Value) -> Result<(), AppError> {
     let state = app.state::<TrayMenuState>();
-    let items = state
-        .items
-        .lock()
-        .map_err(|e| AppError::Store(e.to_string()))?;
-    if let Some(obj) = labels.as_object() {
-        for (id, text) in obj {
-            if let Some(item) = items.get(id.as_str()) {
-                let _ = item.set_text(text.as_str().unwrap_or(id));
+    #[cfg(target_os = "linux")]
+    state.set_labels(&labels);
+    #[cfg(not(target_os = "linux"))]
+    {
+        let items = state
+            .items
+            .lock()
+            .map_err(|e| AppError::Store(e.to_string()))?;
+        if let Some(obj) = labels.as_object() {
+            for (id, text) in obj {
+                if let Some(item) = items.get(id.as_str()) {
+                    let _ = item.set_text(text.as_str().unwrap_or(id));
+                }
             }
         }
     }

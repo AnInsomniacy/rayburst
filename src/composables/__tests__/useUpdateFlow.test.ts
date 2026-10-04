@@ -39,27 +39,23 @@ describe('isActionDisabled', () => {
 
 describe('getActionLabel', () => {
   it('returns retry for error phase', () => {
-    expect(getActionLabel('error', false)).toBe('app.retry')
+    expect(getActionLabel('error')).toBe('app.retry')
   })
 
   it('returns cancel for downloading phase', () => {
-    expect(getActionLabel('downloading', false)).toBe('app.cancel')
+    expect(getActionLabel('downloading')).toBe('app.cancel')
   })
 
   it('returns restart-and-install for ready phase', () => {
-    expect(getActionLabel('ready', false)).toBe('preferences.restart-and-install')
-  })
-
-  it('returns download-update for rollback too (download/install are split)', () => {
-    expect(getActionLabel('available', true)).toBe('preferences.download-update')
+    expect(getActionLabel('ready')).toBe('preferences.restart-and-install')
   })
 
   it('returns download-update for normal upgrade', () => {
-    expect(getActionLabel('available', false)).toBe('preferences.download-update')
+    expect(getActionLabel('available')).toBe('preferences.download-update')
   })
 
   it('returns installing for installing phase', () => {
-    expect(getActionLabel('installing', false)).toBe('preferences.installing')
+    expect(getActionLabel('installing')).toBe('preferences.installing')
   })
 })
 

@@ -1,4 +1,4 @@
-//! Normalize user input for libcurl's native NO_PROXY matcher.
+//! Normalize host patterns and native libcurl host/IP/CIDR bypass rules.
 use crate::error::AppError;
 use serde_json::Value;
 
@@ -21,6 +21,14 @@ pub fn normalize(input: &str) -> Result<String, AppError> {
             address.to_string()
         } else if let Some(network) = ipv4_wildcard(entry) {
             network
+        } else if entry.contains('*')
+            && entry.len() <= 253
+            && entry.bytes().any(|ch| ch.is_ascii_alphabetic())
+            && entry
+                .bytes()
+                .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, b'-' | b'.' | b'*'))
+        {
+            entry.to_ascii_lowercase()
         } else if let Ok(url::Host::Domain(domain)) =
             url::Host::parse(entry.trim_start_matches('.'))
         {
@@ -61,7 +69,7 @@ fn ipv4_wildcard(entry: &str) -> Option<String> {
         .map(|network| network.to_string())
 }
 
-/// Import only equivalent native curl rules; report unsupported OS expressions.
+/// Import supported bypass rules; report unsupported OS expressions.
 pub fn import_system(input: &str) -> (String, Vec<String>) {
     let mut accepted = Vec::new();
     let mut unsupported = Vec::new();
@@ -83,7 +91,7 @@ pub fn import_system(input: &str) -> (String, Vec<String>) {
 
 fn invalid(entry: &str) -> AppError {
     AppError::InvalidInput(format!(
-        "Unsupported proxy bypass entry: {entry}. Use a host, domain, IP, CIDR network, or *; separate entries with newlines or commas."
+        "Unsupported proxy bypass entry: {entry}. Use a host, domain pattern, IP, CIDR network, or *; separate entries with newlines or commas."
     ))
 }
 
@@ -126,19 +134,19 @@ mod tests {
         );
         assert_eq!(
             import_system("<local>;127.*;*.local"),
-            (
-                "127.0.0.0/8".into(),
-                vec!["<local>".into(), "*.local".into()]
-            )
+            ("127.0.0.0/8,*.local".into(), vec!["<local>".into()])
         );
     }
 
     #[test]
-    fn rejects_rules_curl_cannot_interpret() {
+    fn rejects_invalid_bypass_rules() {
+        assert_eq!(
+            normalize("*.EXAMPLE.com;dlinks.*").unwrap(),
+            "*.example.com,dlinks.*"
+        );
         for value in [
             "<local>",
             "127.*.1",
-            "*.local",
             "https://example.com",
             "host:8080",
             "10.0.0.0/99",

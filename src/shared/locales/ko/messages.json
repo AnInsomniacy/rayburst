@@ -38,7 +38,6 @@
     "engine-ready": "Aria2 Next 엔진이 준비되었습니다",
     "engine-failed": "엔진 시작 실패",
     "new-version-available": "업데이트 가능",
-    "older-version-available": "이전 버전 사용 가능",
     "tray-new-task": "새 작업",
     "tray-resume-all": "모두 재개",
     "tray-pause-all": "모두 일시정지",
@@ -222,7 +221,7 @@
     "proxy": "프록시",
     "proxy-bypass": "프록시 우회",
     "proxy-scope": "프록시 범위",
-    "proxy-bypass-input-tips": "한 줄에 호스트, 도메인, IP 또는 CIDR 하나 입력. *는 모든 호스트 제외\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "한 줄에 호스트, 도메인, IP 또는 CIDR 하나 입력. *는 모든 호스트 제외\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "다운로드",
     "proxy-scope-update-app": "앱 업데이트",
     "proxy-scope-update-trackers": "네트워크 데이터 업데이트",
@@ -327,7 +326,6 @@
     "update-channel": "업데이트 채널",
     "update-channel-stable": "안정",
     "update-channel-beta": "베타",
-    "update-channel-latest": "모든 채널 최신 버전",
     "auto-check-update": "자동으로 업데이트 확인",
     "last-check-update-time": "마지막 확인",
     "not-saved": "저장되지 않은 변경",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "다운로드하고 작업 표시",
     "software-rendering": "WebKitGTK 소프트웨어 렌더링",
     "software-rendering-hint": "Linux 그래픽 문제 진단에만 사용하세요.",
-    "software-rendering-restart-confirm": "렌더링 변경을 적용하려면 다시 시작하세요."
+    "software-rendering-restart-confirm": "렌더링 변경을 적용하려면 다시 시작하세요.",
+    "install-extension": "설치"
   },
   "task": {
     "scope-all": "전체",

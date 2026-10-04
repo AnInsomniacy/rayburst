@@ -1,16 +1,23 @@
+#[cfg(not(target_os = "linux"))]
 use std::collections::HashMap;
 use std::sync::Mutex;
+#[cfg(not(target_os = "linux"))]
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Manager, WebviewWindowBuilder,
 };
+use tauri::{AppHandle, Manager, WebviewWindowBuilder};
+#[cfg(target_os = "linux")]
+mod linux;
+#[cfg(target_os = "linux")]
+pub use linux::{setup_tray, TrayMenuState};
 
 /// AppKit uses this alpha channel as a template; other platforms show its original color.
 pub const TRAY_ICON_BYTES: &[u8] = include_bytes!("../icons/64x64.png");
 
 /// Whether the current platform expects the tray icon to be rendered as an
 /// AppKit template image.
+#[cfg(not(target_os = "linux"))]
 pub const TRAY_ICON_IS_TEMPLATE: bool = cfg!(target_os = "macos");
 
 /// Creates a `tauri::image::Image` from the embedded tray icon bytes.
@@ -28,7 +35,7 @@ pub fn tray_icon_image() -> tauri::image::Image<'static> {
 /// monochrome mask correctly on light, dark, and highlighted menu bar states.
 /// Any path that re-sets the icon must restore that flag immediately afterward,
 /// otherwise AppKit treats the bitmap as a normal white image.
-#[cfg(any(target_os = "macos", target_os = "linux"))]
+#[cfg(target_os = "macos")]
 pub fn refresh_tray_icon(tray: &tauri::tray::TrayIcon<tauri::Wry>) -> tauri::Result<()> {
     let icon = tray_icon_image();
     tray.set_icon_with_as_template(Some(icon), TRAY_ICON_IS_TEMPLATE)
@@ -37,6 +44,7 @@ pub fn refresh_tray_icon(tray: &tauri::tray::TrayIcon<tauri::Wry>) -> tauri::Res
 /// Holds references to tray menu items for dynamic label updates (i18n).
 /// Used by the `update_tray_menu_labels` command to set localized text
 /// at runtime without rebuilding the menu.
+#[cfg(not(target_os = "linux"))]
 pub struct TrayMenuState {
     pub items: Mutex<HashMap<String, MenuItem<tauri::Wry>>>,
 }
@@ -149,9 +157,10 @@ fn activate_main_window(window: &tauri::WebviewWindow, source: &'static str) {
     log::info!("window:activate-done source={source}");
 }
 
+#[cfg(not(target_os = "linux"))]
 pub fn setup_tray(app: &AppHandle) -> Result<TrayMenuState, Box<dyn std::error::Error>> {
     // Create MenuItem references for TrayMenuState (used by update_tray_menu_labels).
-    // All three platforms use the same native menu — no platform-specific branching.
+    // Windows and macOS use Tauri menus; Linux exports the same actions over SNI.
     let show_item = MenuItem::with_id(app, "show", "Show Rayburst", true, None::<&str>)?;
     let new_task_item = MenuItem::with_id(app, "tray-new-task", "New Task", true, None::<&str>)?;
     let resume_all_item =
@@ -204,106 +213,82 @@ pub fn setup_tray(app: &AppHandle) -> Result<TrayMenuState, Box<dyn std::error::
             }
         })
         .on_menu_event(|app, event| {
-            let id = event.id.as_ref();
-            match id {
-                "show" => {
-                    log::info!("tray:menu-show — showing main window");
-                    request_main_window(app, "tray-menu-show", true);
-                }
-                "tray-pause-all" => {
-                    log::info!("tray:pause-all — calling aria2 directly");
-                    let app = app.clone();
-                    tauri::async_runtime::spawn(async move {
-                        if let Some(aria2) =
-                            app.try_state::<crate::services::tasks::TaskServiceState>()
-                        {
-                            if let Err(e) = aria2.0.force_pause_all().await {
-                                log::warn!("tray:pause-all failed: {e}");
-                            }
-                        }
-                    });
-                }
-                "tray-resume-all" => {
-                    log::info!("tray:resume-all — calling aria2 directly");
-                    let app = app.clone();
-                    tauri::async_runtime::spawn(async move {
-                        if let Some(aria2) =
-                            app.try_state::<crate::services::tasks::TaskServiceState>()
-                        {
-                            match aria2.0.resume_eligible().await {
-                                Ok(result) => log::info!(
-                                    "tray:resume-all resumed={} blocked={}",
-                                    result.resumed,
-                                    result.blocked
-                                ),
-                                Err(e) => log::warn!("tray:resume-all failed: {e}"),
-                            }
-                        }
-                    });
-                }
-                "tray-quit" => {
-                    // Handle quit directly — do NOT emit to frontend.
-                    // In lightweight mode the WebView is destroyed (window.destroy()),
-                    // so app.emit() would silently fail. app.exit(0) triggers the
-                    // RunEvent::Exit handler for full cleanup (save session,
-                    // stop engine, unmap UPnP). issue #194.
-                    log::info!("tray:quit — exiting app");
-                    app.exit(0);
-                }
-                "tray-new-task" => {
-                    log::info!("tray:new-task — dispatching frontend action");
-                    crate::services::frontend_action::dispatch_frontend_action(
-                        app,
-                        crate::services::frontend_action::FrontendActionChannel::TrayMenuAction,
-                        crate::services::frontend_action::FrontendActionKind::NewTask,
-                        "tray-new-task",
-                    );
-                }
-                _ => {}
-            }
+            dispatch_menu_action(app, event.id.as_ref());
         })
         .build(app)?;
-
-    // ── Linux: deferred icon re-set ──────────────────────────────────
-    //
-    // On Linux, the tray-icon crate uses the SNI D-Bus protocol via
-    // libappindicator.  The icon is written to a temp PNG file under
-    // $XDG_RUNTIME_DIR/tray-icon/ and registered with the session's
-    // StatusNotifierWatcher.  When the app is launched at login by the
-    // OS autostart mechanism, KDE Plasma Shell's StatusNotifierHost may
-    // not be fully initialised — the SNI registration succeeds at the
-    // D-Bus level but the host either misses the initial NewIcon signal
-    // or fails to read the icon pixmap, resulting in a black square.
-    //
-    // Work around this by re-setting the icon after a short delay.
-    // set_icon() overwrites the same temp PNG and calls
-    // AppIndicator::set_icon_full(), which emits a fresh NewIcon signal.
-    // The now-ready host receives it and re-reads the file correctly.
-    //
-    // This is the same pattern as the macOS set_title workaround in
-    // stat.rs (L479-485) and aligns with the Electron community standard
-    // of "sleep && relaunch" — but implemented non-blockingly inside the
-    // app so no user-side .desktop file changes are needed.
-    //
-    // The call is idempotent: on manual launches where the host is
-    // already ready, this is a harmless no-op.  Issue #242.
-    #[cfg(target_os = "linux")]
-    {
-        let app_handle = app.clone();
-        tauri::async_runtime::spawn(async move {
-            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-            if let Some(tray) = app_handle.tray_by_id("rayburst") {
-                let _ = refresh_tray_icon(&tray);
-                log::info!(
-                    "tray:linux-deferred-icon-refresh — re-set icon after 3 s startup delay"
-                );
-            }
-        });
-    }
 
     Ok(TrayMenuState {
         items: Mutex::new(items_map),
     })
+}
+
+pub fn dispatch_menu_action(app: &AppHandle, id: &str) {
+    match id {
+        "show" => {
+            log::info!("tray:menu-show — showing main window");
+            request_main_window(app, "tray-menu-show", true);
+        }
+        "tray-pause-all" => {
+            log::info!("tray:pause-all — calling aria2 directly");
+            let app = app.clone();
+            tauri::async_runtime::spawn(async move {
+                if let Some(aria2) = app.try_state::<crate::services::tasks::TaskServiceState>() {
+                    if let Err(e) = aria2.0.force_pause_all().await {
+                        log::warn!("tray:pause-all failed: {e}");
+                    }
+                }
+            });
+        }
+        "tray-resume-all" => {
+            log::info!("tray:resume-all — calling aria2 directly");
+            let app = app.clone();
+            tauri::async_runtime::spawn(async move {
+                if let Some(aria2) = app.try_state::<crate::services::tasks::TaskServiceState>() {
+                    match aria2.0.resume_eligible().await {
+                        Ok(result) => log::info!(
+                            "tray:resume-all resumed={} blocked={}",
+                            result.resumed,
+                            result.blocked
+                        ),
+                        Err(e) => log::warn!("tray:resume-all failed: {e}"),
+                    }
+                }
+            });
+        }
+        "tray-quit" => {
+            // Handle quit directly — do NOT emit to frontend.
+            // In lightweight mode the WebView is destroyed (window.destroy()),
+            // so app.emit() would silently fail. app.exit(0) triggers the
+            // RunEvent::Exit handler for full cleanup (save session,
+            // stop engine, unmap UPnP). issue #194.
+            log::info!("tray:quit — exiting app");
+            app.exit(0);
+        }
+        "tray-new-task" => {
+            log::info!("tray:new-task — dispatching frontend action");
+            crate::services::frontend_action::dispatch_frontend_action(
+                app,
+                crate::services::frontend_action::FrontendActionChannel::TrayMenuAction,
+                crate::services::frontend_action::FrontendActionKind::NewTask,
+                "tray-new-task",
+            );
+        }
+        _ => {}
+    }
+}
+
+pub fn set_title(app: &AppHandle, title: &str) -> tauri::Result<()> {
+    #[cfg(target_os = "linux")]
+    if let Some(state) = app.try_state::<TrayMenuState>() {
+        state.set_title(title);
+    }
+    #[cfg(not(target_os = "linux"))]
+    if let Some(tray) = app.tray_by_id("rayburst") {
+        tray.set_title(Some(title))?;
+        #[cfg(target_os = "macos")]
+        refresh_tray_icon(&tray)?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]

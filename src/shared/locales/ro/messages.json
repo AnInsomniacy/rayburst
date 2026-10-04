@@ -38,7 +38,6 @@
     "engine-ready": "Motorul Aria2 Next este gata",
     "engine-failed": "Pornirea motorului a eșuat",
     "new-version-available": "Actualizare disponibilă",
-    "older-version-available": "Versiune mai veche disponibilă",
     "tray-new-task": "Sarcină nouă",
     "tray-resume-all": "Reia toate",
     "tray-pause-all": "Pune pe pauză toate",
@@ -222,7 +221,7 @@
     "proxy": "Proxy",
     "proxy-bypass": "Excepție proxy",
     "proxy-scope": "Domeniu proxy",
-    "proxy-bypass-input-tips": "O gazdă, un domeniu, IP sau CIDR pe linie; * exclude toate gazdele\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "O gazdă, un domeniu, IP sau CIDR pe linie; * exclude toate gazdele\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "Descărcări",
     "proxy-scope-update-app": "Actualizări aplicație",
     "proxy-scope-update-trackers": "Actualizări de date de rețea",
@@ -327,7 +326,6 @@
     "update-channel": "Canal de actualizare",
     "update-channel-stable": "Stabil",
     "update-channel-beta": "Beta",
-    "update-channel-latest": "Cea mai nouă versiune din toate canalele",
     "auto-check-update": "Verifică automat actualizările",
     "last-check-update-time": "Ultima verificare",
     "not-saved": "Modificări nesalvate",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "Descarcă și afișează sarcinile",
     "software-rendering": "Randare software WebKitGTK",
     "software-rendering-hint": "Doar pentru diagnosticarea problemelor grafice pe Linux.",
-    "software-rendering-restart-confirm": "Repornește pentru a aplica modificarea randării."
+    "software-rendering-restart-confirm": "Repornește pentru a aplica modificarea randării.",
+    "install-extension": "Instalează"
   },
   "task": {
     "scope-all": "Toate",

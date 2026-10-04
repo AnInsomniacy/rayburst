@@ -38,7 +38,6 @@
     "engine-ready": "محرك Aria2 Next جاهز",
     "engine-failed": "فشل في بدء المحرك",
     "new-version-available": "تحديث متاح",
-    "older-version-available": "إصدار أقدم متاح",
     "tray-new-task": "مهمة جديدة",
     "tray-resume-all": "استئناف الكل",
     "tray-pause-all": "إيقاف الكل مؤقتاً",
@@ -222,7 +221,7 @@
     "proxy": "الوكيل",
     "proxy-bypass": "تجاوز الوكيل",
     "proxy-scope": "نطاق الوكيل",
-    "proxy-bypass-input-tips": "مضيف أو نطاق أو IP أو CIDR في كل سطر؛ * يستثني جميع المضيفين\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "مضيف أو نطاق أو IP أو CIDR في كل سطر؛ * يستثني جميع المضيفين\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "التنزيلات",
     "proxy-scope-update-app": "تحديثات التطبيق",
     "proxy-scope-update-trackers": "تحديثات بيانات الشبكة",
@@ -327,7 +326,6 @@
     "update-channel": "قناة التحديث",
     "update-channel-stable": "مستقر",
     "update-channel-beta": "تجريبي",
-    "update-channel-latest": "أحدث إصدار عبر كل القنوات",
     "auto-check-update": "التحقق من التحديثات تلقائيًا",
     "last-check-update-time": "آخر فحص",
     "not-saved": "تغييرات غير محفوظة",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "التنزيل وإظهار المهام",
     "software-rendering": "العرض البرمجي لـ WebKitGTK",
     "software-rendering-hint": "يُستخدم فقط لاستكشاف مشاكل الرسوميات في Linux.",
-    "software-rendering-restart-confirm": "أعد التشغيل لتطبيق تغيير العرض."
+    "software-rendering-restart-confirm": "أعد التشغيل لتطبيق تغيير العرض.",
+    "install-extension": "تثبيت"
   },
   "task": {
     "scope-all": "الكل",

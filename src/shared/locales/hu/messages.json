@@ -38,7 +38,6 @@
     "engine-ready": "Az Aria2 Next motor készen áll",
     "engine-failed": "A motor indítása sikertelen",
     "new-version-available": "Frissítés elérhető",
-    "older-version-available": "Régebbi verzió elérhető",
     "tray-new-task": "Új feladat",
     "tray-resume-all": "Összes folytatása",
     "tray-pause-all": "Összes szüneteltetése",
@@ -222,7 +221,7 @@
     "proxy": "Proxy",
     "proxy-bypass": "Proxy kivétel",
     "proxy-scope": "Proxy hatóköre",
-    "proxy-bypass-input-tips": "Soronként egy gépnév, tartomány, IP vagy CIDR; * minden gépet kizár\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "Soronként egy gépnév, tartomány, IP vagy CIDR; * minden gépet kizár\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "Letöltések",
     "proxy-scope-update-app": "Alkalmazásfrissítések",
     "proxy-scope-update-trackers": "Hálózati adatok frissítése",
@@ -327,7 +326,6 @@
     "update-channel": "Frissítési csatorna",
     "update-channel-stable": "Stabil",
     "update-channel-beta": "Béta",
-    "update-channel-latest": "Legújabb verzió minden csatornán",
     "auto-check-update": "Automatikus frissítéskeresés",
     "last-check-update-time": "Utolsó ellenőrzés",
     "not-saved": "Mentetlen változtatások",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "Letöltés és feladatok megjelenítése",
     "software-rendering": "WebKitGTK szoftveres megjelenítés",
     "software-rendering-hint": "Csak Linux grafikai problémák diagnosztikájához.",
-    "software-rendering-restart-confirm": "A megjelenítési módosítás alkalmazásához indítsa újra."
+    "software-rendering-restart-confirm": "A megjelenítési módosítás alkalmazásához indítsa újra.",
+    "install-extension": "Telepítés"
   },
   "task": {
     "scope-all": "Összes",

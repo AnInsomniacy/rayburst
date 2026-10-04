@@ -1,8 +1,8 @@
 //! Linux WebKitGTK GPU rendering guard.
 //!
 //! WebKitGTK hardware rendering can crash on some GPU, driver, and Wayland
-//! compositor combinations. Use WebKitGTK defaults unless the user explicitly
-//! enables the software fallback. External environment overrides remain owned
+//! compositor combinations. Retain WebKitGTK defaults, with a scoped NVIDIA
+//! Wayland explicit-sync workaround and an opt-in software fallback. External environment overrides remain owned
 //! by the launching environment.
 
 #[cfg(target_os = "linux")]
@@ -62,6 +62,22 @@ fn disable_webkit_hardware_rendering_with_marker() {
 
 #[cfg(target_os = "linux")]
 pub fn pre_flight() {
+    // NVIDIA's EGL Wayland path can enable explicit sync before GTK supplies
+    // an acquire point. Keep acceleration and disable only that driver feature.
+    let wayland = std::env::var("GDK_BACKEND").map_or_else(
+        |_| std::env::var("XDG_SESSION_TYPE").as_deref() == Ok("wayland"),
+        |backend| backend == "wayland",
+    );
+    if wayland
+        && std::path::Path::new("/sys/module/nvidia").exists()
+        && std::env::var_os("__NV_DISABLE_EXPLICIT_SYNC").is_none()
+    {
+        // SAFETY: Called before Tauri and its worker threads are initialized.
+        unsafe {
+            std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
+        }
+        guard_log("gpu_guard: disabled NVIDIA Wayland explicit sync (WebKit #324551)");
+    }
     if std::env::var_os(SELF_SET_MARKER).is_some() {
         unsafe {
             std::env::remove_var(SELF_SET_MARKER);
@@ -144,6 +160,7 @@ pub async fn diagnostic_snapshot(app: &tauri::AppHandle) -> serde_json::Value {
             "WEBKIT_DISABLE_DMABUF_RENDERER": dmabuf,
             "WEBKIT_DISABLE_COMPOSITING_MODE": compositing,
             "WEBKIT_USE_SKIA_FOR_COMPOSITION": environment("WEBKIT_USE_SKIA_FOR_COMPOSITION"),
+            "__NV_DISABLE_EXPLICIT_SYNC": environment("__NV_DISABLE_EXPLICIT_SYNC"),
             "GDK_BACKEND": environment("GDK_BACKEND"),
             "XDG_SESSION_TYPE": environment("XDG_SESSION_TYPE"),
         },

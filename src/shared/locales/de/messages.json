@@ -38,7 +38,6 @@
     "engine-ready": "Aria2 Next-Engine ist bereit",
     "engine-failed": "Engine konnte nicht gestartet werden",
     "new-version-available": "Update verfügbar",
-    "older-version-available": "Ältere Version verfügbar",
     "tray-new-task": "Neue Aufgabe",
     "tray-resume-all": "Alle fortsetzen",
     "tray-pause-all": "Alle pausieren",
@@ -222,7 +221,7 @@
     "proxy": "Proxy",
     "proxy-bypass": "Proxy-Ausnahmen",
     "proxy-scope": "Proxy-Bereich",
-    "proxy-bypass-input-tips": "Ein Host, eine Domain, IP oder CIDR pro Zeile; * umgeht alle Hosts\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "Ein Host, eine Domain, IP oder CIDR pro Zeile; * umgeht alle Hosts\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "Downloads",
     "proxy-scope-update-app": "App-Updates",
     "proxy-scope-update-trackers": "Netzwerkdaten-Updates",
@@ -327,7 +326,6 @@
     "update-channel": "Update-Kanal",
     "update-channel-stable": "Stabil",
     "update-channel-beta": "Beta",
-    "update-channel-latest": "Neueste Version über alle Kanäle",
     "auto-check-update": "Automatisch nach Updates suchen",
     "last-check-update-time": "Letzte Prüfung",
     "not-saved": "Ungespeicherte Änderungen",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "Herunterladen und Aufgaben anzeigen",
     "software-rendering": "WebKitGTK-Softwarerendering",
     "software-rendering-hint": "Nur zur Diagnose von Grafikproblemen unter Linux.",
-    "software-rendering-restart-confirm": "Zum Anwenden der Renderingänderung neu starten."
+    "software-rendering-restart-confirm": "Zum Anwenden der Renderingänderung neu starten.",
+    "install-extension": "Installieren"
   },
   "task": {
     "scope-all": "Alle",

@@ -92,6 +92,7 @@ winreg = "0.56"
 libc = "0.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
+ksni = "=0.3.6"
 gio = "0.18.4"
 webkit2gtk = { version = "=2.0.2", features = ["v2_16"] }
 ashpd = { version = "0.13.13", default-features = false, features = ["tokio", "inhibit"] }

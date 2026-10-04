@@ -38,7 +38,6 @@
     "engine-ready": "Двигателят Aria2 Next е готов",
     "engine-failed": "Неуспешно стартиране на двигателя",
     "new-version-available": "Налична актуализация",
-    "older-version-available": "Налична е по-стара версия",
     "tray-new-task": "Нова задача",
     "tray-resume-all": "Подновяване на всички",
     "tray-pause-all": "Спиране на всички",
@@ -222,7 +221,7 @@
     "proxy": "Прокси",
     "proxy-bypass": "Изключения за прокси",
     "proxy-scope": "Обхват на прокси",
-    "proxy-bypass-input-tips": "Хост, домейн, IP или CIDR на ред; * изключва всички хостове\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "Хост, домейн, IP или CIDR на ред; * изключва всички хостове\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "Изтегляния",
     "proxy-scope-update-app": "Обновления на приложението",
     "proxy-scope-update-trackers": "Обновяване на мрежови данни",
@@ -327,7 +326,6 @@
     "update-channel": "Канал за обновяване",
     "update-channel-stable": "Стабилна",
     "update-channel-beta": "Бета",
-    "update-channel-latest": "Най-нова версия от всички канали",
     "auto-check-update": "Автоматично проверявай за обновления",
     "last-check-update-time": "Последна проверка",
     "not-saved": "Незапазени промени",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "Изтегляне и показване на задачите",
     "software-rendering": "Софтуерно изобразяване на WebKitGTK",
     "software-rendering-hint": "Само за диагностика на графични проблеми в Linux.",
-    "software-rendering-restart-confirm": "Рестартирайте, за да приложите промяната."
+    "software-rendering-restart-confirm": "Рестартирайте, за да приложите промяната.",
+    "install-extension": "Инсталиране"
   },
   "task": {
     "scope-all": "Всички",

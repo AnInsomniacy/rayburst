@@ -213,13 +213,16 @@ session through the existing supervisor.
 
 Proxy bypass entries are validated and normalized once in Rust for runtime config,
 global option updates and task options. libcurl performs host/IP/CIDR matching.
+Aria2 Next resolves domain globs such as `*.example.com` and `dlinks.*` against each
+request host before passing the result to libcurl. Redirects reevaluate that policy.
 Newlines, commas and system-list semicolons separate entries. Trailing numeric
 IPv4 wildcards become CIDR networks. System import reports unsupported expressions
 for review before saving; `<local>` is not treated as an alias for localhost.
 
 ## Extension behavior
 
-`extensionDownloadBehavior` selects `confirm`, `background`, or `show`. Native
+`extensionDownloadBehavior` defaults to `confirm`, allowing users to choose a
+download directory. Explicit `background` and `show` preferences remain available. Native
 dispatch applies that one policy; manual-task navigation stays independent. Closing
 a confirmation finalizes every owned request ID, including URLs removed from the form.
 
@@ -232,10 +235,15 @@ The native messaging launcher starts the paired executable outside the browser's
 Windows job with closed standard streams. macOS uses LaunchServices; Linux keeps a
 separate process group. Development builds do not register installed-app identities.
 
-Linux uses WebKitGTK defaults. `softwareRendering` explicitly enables a diagnostic
+Linux uses opaque window surfaces and a native StatusNotifierItem tray with direct
+activation, speed tooltips and watcher reconnection. NVIDIA Wayland sessions disable driver explicit
+sync for WebKit #324551 unless the environment already configures it. Other rendering
+settings retain WebKitGTK defaults. `softwareRendering` explicitly enables a diagnostic
 fallback; externally supplied rendering environment variables remain authoritative.
 Linux diagnostics report the runtime WebKitGTK version, the existing WebView's native
 hardware acceleration policy, and rendering overrides. A policy is not proof of GPU
 use. An unavailable WebView or policy read failure is reported without creating a window.
-Updates retain Tauri's selected Update object and verified bytes. Cancellation can
+Update policies are Stable and Beta (stable plus prerelease candidates). Only a
+higher SemVer precedence is eligible; switching channels never offers a downgrade.
+A later check supersedes an earlier pending result. Updates retain Tauri's selected Update object and verified bytes. Cancellation can
 retry that selection, and installation needs no second metadata request.

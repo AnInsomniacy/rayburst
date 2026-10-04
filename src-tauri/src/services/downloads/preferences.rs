@@ -25,9 +25,9 @@ pub(super) struct Preferences {
 #[derive(Default, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub(super) enum ExtensionDownloadBehavior {
+    #[default]
     Confirm,
     Background,
-    #[default]
     Show,
 }
 #[derive(Deserialize)]

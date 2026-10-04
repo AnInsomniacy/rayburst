@@ -41,7 +41,7 @@ Rayburst can make the following automatic network connections. They can be disab
 | **Data received** | Version metadata, release notes, signatures, and update package when the user downloads an update |
 | **Disable**       | Settings → General → uncheck "Check for updates automatically"                                    |
 
-Local and release builds use the configured update endpoint and public signing key. Update checks follow the selected Stable, Beta, or Latest Across Channels policy. If a proxy is configured for app updates, update checks use that proxy.
+Local and release builds use the configured update endpoint and public signing key. Update checks follow the selected Stable or Beta policy. Beta includes stable releases; neither policy offers a downgrade. If a proxy is configured for app updates, update checks use that proxy.
 
 ### 2. BT Tracker List Sync
 

@@ -53,7 +53,7 @@ pub async fn dispatch(app: &AppHandle, request: AddRequest) -> Result<AddRespons
     {
         return Err(AppError::InvalidInput("Invalid download request ID".into()));
     }
-    let url = request.final_url.as_deref().unwrap_or(&request.url);
+    let url = request.url.as_str();
     let parsed = url::Url::parse(url).ok();
     let engine_link = ["ed2k://", "thunder://"]
         .iter()

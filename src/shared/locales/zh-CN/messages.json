@@ -38,7 +38,6 @@
     "engine-ready": "Aria2 Next 引擎已就绪",
     "engine-failed": "引擎启动失败",
     "new-version-available": "版本更新可用",
-    "older-version-available": "可切换到旧版本",
     "tray-new-task": "新建任务",
     "tray-resume-all": "全部恢复",
     "tray-pause-all": "全部暂停",
@@ -222,7 +221,7 @@
     "proxy": "代理",
     "proxy-bypass": "代理排除",
     "proxy-scope": "代理范围",
-    "proxy-bypass-input-tips": "每行一个主机名、域名、IP 或 CIDR；* 表示全部直连\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "每行一个主机名、域名、IP 或 CIDR；* 表示全部直连\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "下载",
     "proxy-scope-update-app": "应用更新",
     "proxy-scope-update-trackers": "网络数据更新",
@@ -327,7 +326,6 @@
     "update-channel": "更新通道",
     "update-channel-stable": "正式版",
     "update-channel-beta": "测试版",
-    "update-channel-latest": "全通道最新版",
     "auto-check-update": "自动检查更新",
     "last-check-update-time": "上次检查时间",
     "not-saved": "设置未保存",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "下载并显示任务",
     "software-rendering": "WebKitGTK 软件渲染",
     "software-rendering-hint": "仅用于排查 Linux 图形问题。",
-    "software-rendering-restart-confirm": "重启以应用渲染设置。"
+    "software-rendering-restart-confirm": "重启以应用渲染设置。",
+    "install-extension": "安装"
   },
   "task": {
     "scope-all": "全部",

@@ -38,7 +38,6 @@
     "engine-ready": "เอนจิน Aria2 Next พร้อมแล้ว",
     "engine-failed": "ไม่สามารถเริ่มเอนจินได้",
     "new-version-available": "มีอัปเดต",
-    "older-version-available": "มีเวอร์ชันเก่าให้ใช้งาน",
     "tray-new-task": "งานใหม่",
     "tray-resume-all": "ดำเนินการต่อทั้งหมด",
     "tray-pause-all": "หยุดชั่วคราวทั้งหมด",
@@ -222,7 +221,7 @@
     "proxy": "พร็อกซี",
     "proxy-bypass": "ข้ามพร็อกซี",
     "proxy-scope": "ขอบเขตพร็อกซี",
-    "proxy-bypass-input-tips": "หนึ่งโฮสต์ โดเมน IP หรือ CIDR ต่อบรรทัด; * ข้ามพร็อกซีสำหรับทุกโฮสต์\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "หนึ่งโฮสต์ โดเมน IP หรือ CIDR ต่อบรรทัด; * ข้ามพร็อกซีสำหรับทุกโฮสต์\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "ดาวน์โหลด",
     "proxy-scope-update-app": "อัปเดตแอป",
     "proxy-scope-update-trackers": "การอัปเดตข้อมูลเครือข่าย",
@@ -327,7 +326,6 @@
     "update-channel": "ช่องทางอัปเดต",
     "update-channel-stable": "เสถียร",
     "update-channel-beta": "เบต้า",
-    "update-channel-latest": "ล่าสุดจากทุกช่องทาง",
     "auto-check-update": "ตรวจสอบอัปเดตอัตโนมัติ",
     "last-check-update-time": "ตรวจสอบล่าสุด",
     "not-saved": "ยังไม่ได้บันทึก",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "ดาวน์โหลดและแสดงงาน",
     "software-rendering": "การเรนเดอร์ด้วยซอฟต์แวร์ WebKitGTK",
     "software-rendering-hint": "ใช้เพื่อวินิจฉัยปัญหากราฟิกบน Linux เท่านั้น",
-    "software-rendering-restart-confirm": "เริ่มใหม่เพื่อใช้การเปลี่ยนแปลงการเรนเดอร์"
+    "software-rendering-restart-confirm": "เริ่มใหม่เพื่อใช้การเปลี่ยนแปลงการเรนเดอร์",
+    "install-extension": "ติดตั้ง"
   },
   "task": {
     "scope-all": "ทั้งหมด",

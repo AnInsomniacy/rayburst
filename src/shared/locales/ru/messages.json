@@ -38,7 +38,6 @@
     "engine-ready": "Движок Aria2 Next готов",
     "engine-failed": "Не удалось запустить движок",
     "new-version-available": "Доступно обновление",
-    "older-version-available": "Доступна более старая версия",
     "tray-new-task": "Новая задача",
     "tray-resume-all": "Возобновить все",
     "tray-pause-all": "Приостановить все",
@@ -222,7 +221,7 @@
     "proxy": "Прокси",
     "proxy-bypass": "Исключения прокси",
     "proxy-scope": "Область прокси",
-    "proxy-bypass-input-tips": "Один хост, домен, IP или CIDR на строку; * исключает все хосты\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "Один хост, домен, IP или CIDR на строку; * исключает все хосты\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "Загрузки",
     "proxy-scope-update-app": "Обновления приложения",
     "proxy-scope-update-trackers": "Обновление сетевых данных",
@@ -327,7 +326,6 @@
     "update-channel": "Канал обновлений",
     "update-channel-stable": "Стабильная",
     "update-channel-beta": "Бета",
-    "update-channel-latest": "Новейшая версия из всех каналов",
     "auto-check-update": "Автоматически проверять обновления",
     "last-check-update-time": "Последняя проверка",
     "not-saved": "Несохранённые изменения",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "Загружать и показывать задачи",
     "software-rendering": "Программный рендеринг WebKitGTK",
     "software-rendering-hint": "Только для диагностики графических проблем в Linux.",
-    "software-rendering-restart-confirm": "Перезапустите приложение для применения изменения."
+    "software-rendering-restart-confirm": "Перезапустите приложение для применения изменения.",
+    "install-extension": "Установить"
   },
   "task": {
     "scope-all": "Все",

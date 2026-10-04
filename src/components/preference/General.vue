@@ -353,7 +353,6 @@ onMounted(async () => {
           >
             <NRadioButton value="stable">{{ t('preferences.update-channel-stable') }}</NRadioButton>
             <NRadioButton value="beta">{{ t('preferences.update-channel-beta') }}</NRadioButton>
-            <NRadioButton value="latest">{{ t('preferences.update-channel-latest') }}</NRadioButton>
           </NRadioGroup>
         </NFormItem>
         <NFormItem :label="t('preferences.last-check-update-time')">

@@ -38,7 +38,6 @@
     "engine-ready": "Aria2 Next 引擎已就緒",
     "engine-failed": "引擎啟動失敗",
     "new-version-available": "版本更新可用",
-    "older-version-available": "可切換到舊版本",
     "tray-new-task": "新增任務",
     "tray-resume-all": "全部恢復",
     "tray-pause-all": "全部暫停",
@@ -222,7 +221,7 @@
     "proxy": "代理",
     "proxy-bypass": "代理排除",
     "proxy-scope": "代理範圍",
-    "proxy-bypass-input-tips": "每行一個主機名稱、網域、IP 或 CIDR；* 表示全部直連\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "每行一個主機名稱、網域、IP 或 CIDR；* 表示全部直連\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "下載",
     "proxy-scope-update-app": "應用程式更新",
     "proxy-scope-update-trackers": "網路資料更新",
@@ -327,7 +326,6 @@
     "update-channel": "更新通道",
     "update-channel-stable": "正式版",
     "update-channel-beta": "測試版",
-    "update-channel-latest": "全通道最新版",
     "auto-check-update": "自動檢查更新",
     "last-check-update-time": "上次檢查時間",
     "not-saved": "設定未儲存",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "下載並顯示工作",
     "software-rendering": "WebKitGTK 軟體算繪",
     "software-rendering-hint": "僅用於排查 Linux 圖形問題。",
-    "software-rendering-restart-confirm": "重新啟動以套用算繪設定。"
+    "software-rendering-restart-confirm": "重新啟動以套用算繪設定。",
+    "install-extension": "安裝"
   },
   "task": {
     "scope-all": "全部",

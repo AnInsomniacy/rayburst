@@ -38,7 +38,6 @@
     "engine-ready": "Aria2 Next-motoren er klar",
     "engine-failed": "Kunne ikke starte motoren",
     "new-version-available": "Oppdatering tilgjengelig",
-    "older-version-available": "Eldre versjon tilgjengelig",
     "tray-new-task": "Ny oppgave",
     "tray-resume-all": "Gjenoppta alle",
     "tray-pause-all": "Pause alle",
@@ -222,7 +221,7 @@
     "proxy": "Proxy",
     "proxy-bypass": "Proxy-unntak",
     "proxy-scope": "Proxy-omfang",
-    "proxy-bypass-input-tips": "Én vert, ett domene, IP eller CIDR per linje; * unntar alle verter\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "Én vert, ett domene, IP eller CIDR per linje; * unntar alle verter\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "Nedlastinger",
     "proxy-scope-update-app": "App-oppdateringer",
     "proxy-scope-update-trackers": "Oppdatering av nettverksdata",
@@ -327,7 +326,6 @@
     "update-channel": "Oppdateringskanal",
     "update-channel-stable": "Stabil",
     "update-channel-beta": "Beta",
-    "update-channel-latest": "Nyeste på alle kanaler",
     "auto-check-update": "Se etter oppdateringer automatisk",
     "last-check-update-time": "Sist sjekket",
     "not-saved": "Ulagrede endringer",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "Last ned og vis oppgaver",
     "software-rendering": "WebKitGTK-programvaregjengivelse",
     "software-rendering-hint": "Kun for feilsøking av grafikkproblemer i Linux.",
-    "software-rendering-restart-confirm": "Start på nytt for å bruke endringen."
+    "software-rendering-restart-confirm": "Start på nytt for å bruke endringen.",
+    "install-extension": "Installer"
   },
   "task": {
     "scope-all": "Alle",

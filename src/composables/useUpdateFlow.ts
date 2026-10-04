@@ -18,8 +18,8 @@ export function isActionDisabled(phase: UpdatePhase): boolean {
   return phase === 'checking' || phase === 'up-to-date' || phase === 'installing'
 }
 
-/** Determines the action button label key based on phase and rollback status. */
-export function getActionLabel(phase: UpdatePhase, _rollback: boolean): string {
+/** Determines the action button label key based on phase. */
+export function getActionLabel(phase: UpdatePhase): string {
   if (phase === 'error') return 'app.retry'
   if (phase === 'downloading') return 'app.cancel'
   if (phase === 'ready') return 'preferences.restart-and-install'

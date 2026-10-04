@@ -2,7 +2,7 @@ use crate::error::AppError;
 use semver::Version;
 use serde::Serialize;
 use std::cmp::Ordering;
-use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering as AtomicOrdering};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_updater::UpdaterExt;
@@ -21,9 +21,6 @@ pub struct UpdateMetadata {
     pub date: Option<String>,
     pub channel: String,
     pub requested_channel: String,
-    /// True when the offered version is lower than the running version
-    /// (cross-channel switch, e.g. beta -> stable).
-    pub is_rollback: bool,
 }
 
 /// Progress event emitted to the frontend during update download.
@@ -81,6 +78,7 @@ pub struct DownloadedPackage {
 
 pub struct DownloadedUpdate {
     download: Mutex<()>,
+    check_generation: AtomicU64,
     selected: Mutex<Option<SelectedUpdate>>,
     package: Mutex<Option<DownloadedPackage>>,
 }
@@ -89,6 +87,7 @@ impl DownloadedUpdate {
     pub fn new() -> Self {
         Self {
             download: Mutex::new(()),
+            check_generation: AtomicU64::new(0),
             selected: Mutex::new(None),
             package: Mutex::new(None),
         }
@@ -121,14 +120,12 @@ impl ReleaseChannel {
 enum UpdatePolicy {
     Stable,
     Beta,
-    Latest,
 }
 
 impl UpdatePolicy {
     fn from_input(input: &str) -> Self {
         match input {
             "beta" => Self::Beta,
-            "latest" => Self::Latest,
             _ => Self::Stable,
         }
     }
@@ -137,7 +134,6 @@ impl UpdatePolicy {
         match self {
             Self::Stable => "stable",
             Self::Beta => "beta",
-            Self::Latest => "latest",
         }
     }
 }
@@ -173,8 +169,7 @@ fn endpoint_for_channel(channel: ReleaseChannel) -> String {
 fn candidate_channels_for_policy(policy: UpdatePolicy) -> Vec<ReleaseChannel> {
     match policy {
         UpdatePolicy::Stable => vec![ReleaseChannel::Stable],
-        UpdatePolicy::Beta => vec![ReleaseChannel::Beta],
-        UpdatePolicy::Latest => vec![ReleaseChannel::Stable, ReleaseChannel::Beta],
+        UpdatePolicy::Beta => vec![ReleaseChannel::Stable, ReleaseChannel::Beta],
     }
 }
 
@@ -184,12 +179,12 @@ fn parse_semver(version: &str) -> Option<Version> {
 
 fn compare_candidate_versions(a: &CandidateVersion, b: &CandidateVersion) -> Ordering {
     match (parse_semver(&a.version), parse_semver(&b.version)) {
-        (Some(a_version), Some(b_version)) => a_version.cmp(&b_version).then_with(|| {
-            release_channel_priority(a.channel).cmp(&release_channel_priority(b.channel))
-        }),
-        _ => a.version.cmp(&b.version).then_with(|| {
-            release_channel_priority(a.channel).cmp(&release_channel_priority(b.channel))
-        }),
+        (Some(a_version), Some(b_version)) => {
+            a_version.cmp_precedence(&b_version).then_with(|| {
+                release_channel_priority(a.channel).cmp(&release_channel_priority(b.channel))
+            })
+        }
+        _ => Ordering::Equal,
     }
 }
 
@@ -202,16 +197,7 @@ fn release_channel_priority(channel: ReleaseChannel) -> u8 {
 
 fn is_strict_semver_upgrade(current: &str, target: &str) -> bool {
     match (parse_semver(current), parse_semver(target)) {
-        (Some(current), Some(target)) => target > current,
-        _ => target != current,
-    }
-}
-
-/// True when the offered version is strictly lower than the running one.
-/// Unparseable versions are never flagged as rollbacks.
-fn is_semver_rollback(current: &str, target: &str) -> bool {
-    match (parse_semver(current), parse_semver(target)) {
-        (Some(current), Some(target)) => target < current,
+        (Some(current), Some(target)) => target.cmp_precedence(&current).is_gt(),
         _ => false,
     }
 }
@@ -293,10 +279,7 @@ fn build_updater(
         builder = builder.no_proxy();
     }
 
-    // Allow cross-channel switching (e.g. beta → stable, even if it is
-    // a semver "downgrade"). Any version != current is an update.
     builder
-        .version_comparator(|current, update| update.version.to_string() != current.to_string())
         .build()
         .map_err(|e| AppError::Updater(e.to_string()))
 }
@@ -322,20 +305,6 @@ async fn resolve_update(
     requested_policy: UpdatePolicy,
     proxy: &Option<String>,
 ) -> Result<Option<SelectedUpdate>, AppError> {
-    if requested_policy != UpdatePolicy::Latest {
-        let channel = candidate_channels_for_policy(requested_policy)
-            .into_iter()
-            .next()
-            .unwrap_or(ReleaseChannel::Stable);
-        return Ok(check_release_channel(app, channel, proxy)
-            .await?
-            .map(|update| SelectedUpdate {
-                channel,
-                requested_policy,
-                update,
-            }));
-    }
-
     let mut current_version: Option<String> = None;
     let mut updates: Vec<(CandidateVersion, tauri_plugin_updater::Update)> = Vec::new();
     for channel in candidate_channels_for_policy(requested_policy) {
@@ -386,6 +355,8 @@ pub async fn check_for_update(
         "updater:check channel={channel} proxy={}",
         redact_proxy_for_log(&proxy)
     );
+    let state = app.state::<Arc<DownloadedUpdate>>();
+    let generation = state.check_generation.fetch_add(1, AtomicOrdering::SeqCst) + 1;
     let requested_policy = UpdatePolicy::from_input(&channel);
     let selected = resolve_update(&app, requested_policy, &proxy).await?;
 
@@ -399,7 +370,6 @@ pub async fn check_for_update(
                 selected.requested_policy.as_str()
             );
             Some(UpdateMetadata {
-                is_rollback: is_semver_rollback(&u.current_version, &u.version),
                 version: u.version.clone(),
                 body: u.body.clone(),
                 date: u.date.map(|d| d.to_string()),
@@ -412,7 +382,13 @@ pub async fn check_for_update(
             None
         }
     };
-    *app.state::<Arc<DownloadedUpdate>>().selected.lock().await = selected;
+    let mut current = state.selected.lock().await;
+    if state.check_generation.load(AtomicOrdering::SeqCst) != generation {
+        return Err(AppError::Conflict(
+            "A newer update check superseded this result".into(),
+        ));
+    }
+    *current = selected;
     Ok(metadata)
 }
 
@@ -641,38 +617,15 @@ mod tests {
     }
 
     #[test]
-    fn semver_rollback_detects_downgrades_only() {
-        assert!(is_semver_rollback("2.0.0", "1.9.9"));
-        assert!(is_semver_rollback("2.0.0", "2.0.0-beta.1"));
-        assert!(!is_semver_rollback("1.0.0", "2.0.0"));
-        assert!(!is_semver_rollback("2.0.0", "2.0.0"));
-        // Unparseable versions are never flagged as rollbacks.
-        assert!(!is_semver_rollback("", "1.0.0"));
-        assert!(!is_semver_rollback("2.0.0", "not-a-version"));
-    }
-
-    #[test]
-    fn latest_policy_checks_stable_and_beta_channels() {
+    fn preview_policy_checks_stable_and_beta_channels() {
         assert_eq!(
-            candidate_channels_for_policy(UpdatePolicy::Latest),
+            candidate_channels_for_policy(UpdatePolicy::Beta),
             vec![ReleaseChannel::Stable, ReleaseChannel::Beta]
         );
     }
 
     #[test]
-    fn stable_and_beta_policies_check_only_their_own_channel() {
-        assert_eq!(
-            candidate_channels_for_policy(UpdatePolicy::Stable),
-            vec![ReleaseChannel::Stable]
-        );
-        assert_eq!(
-            candidate_channels_for_policy(UpdatePolicy::Beta),
-            vec![ReleaseChannel::Beta]
-        );
-    }
-
-    #[test]
-    fn latest_policy_selects_highest_semver_candidate() {
+    fn preview_policy_selects_highest_semver_candidate() {
         let candidates = vec![
             CandidateVersion::new(ReleaseChannel::Stable, "3.8.7"),
             CandidateVersion::new(ReleaseChannel::Beta, "3.8.8-beta.1"),
@@ -685,7 +638,7 @@ mod tests {
     }
 
     #[test]
-    fn latest_policy_selects_stable_when_stable_is_newer_than_beta() {
+    fn preview_policy_selects_stable_when_stable_is_newer_than_beta() {
         let candidates = vec![
             CandidateVersion::new(ReleaseChannel::Stable, "3.8.8"),
             CandidateVersion::new(ReleaseChannel::Beta, "3.8.8-beta.4"),
@@ -698,13 +651,22 @@ mod tests {
     }
 
     #[test]
-    fn latest_policy_ignores_candidates_that_are_not_newer_than_current() {
+    fn preview_policy_ignores_candidates_that_are_not_newer_than_current() {
         let candidates = vec![
             CandidateVersion::new(ReleaseChannel::Stable, "3.8.6"),
             CandidateVersion::new(ReleaseChannel::Beta, "3.8.7-beta.4"),
         ];
 
         assert!(select_latest_candidate("3.8.7-beta.4", candidates).is_none());
+    }
+
+    #[test]
+    fn upgrade_comparison_ignores_build_metadata_and_rejects_invalid_versions() {
+        assert!(!is_strict_semver_upgrade("4.0.1-beta.3", "4.0.0"));
+        assert!(!is_strict_semver_upgrade("4.0.1+old", "4.0.1+new"));
+        assert!(!is_strict_semver_upgrade("4.0.1", "invalid"));
+        assert!(is_strict_semver_upgrade("4.0.1-beta.3", "4.0.1"));
+        assert!(is_strict_semver_upgrade("4.0.1", "4.0.2-beta.1"));
     }
 
     #[test]

@@ -38,7 +38,6 @@
     "engine-ready": "Aria2 Next motoru hazır",
     "engine-failed": "Motor başlatılamadı",
     "new-version-available": "Güncelleme mevcut",
-    "older-version-available": "Eski sürüm mevcut",
     "tray-new-task": "Yeni görev",
     "tray-resume-all": "Tümünü sürdür",
     "tray-pause-all": "Tümünü duraklat",
@@ -222,7 +221,7 @@
     "proxy": "Proxy",
     "proxy-bypass": "Proxy istisnası",
     "proxy-scope": "Proxy kapsamı",
-    "proxy-bypass-input-tips": "Her satıra bir sunucu, alan adı, IP veya CIDR; * tüm sunucular için vekili atlar\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "Her satıra bir sunucu, alan adı, IP veya CIDR; * tüm sunucular için vekili atlar\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "İndirmeler",
     "proxy-scope-update-app": "Uygulama güncellemeleri",
     "proxy-scope-update-trackers": "Ağ verisi güncellemeleri",
@@ -327,7 +326,6 @@
     "update-channel": "Güncelleme Kanalı",
     "update-channel-stable": "Kararlı",
     "update-channel-beta": "Beta",
-    "update-channel-latest": "Tüm kanallardaki en yeni sürüm",
     "auto-check-update": "Güncellemeleri otomatik kontrol et",
     "last-check-update-time": "Son kontrol",
     "not-saved": "Kaydedilmemiş değişiklikler",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "İndir ve görevleri göster",
     "software-rendering": "WebKitGTK yazılım ile işleme",
     "software-rendering-hint": "Yalnızca Linux grafik sorunlarını teşhis etmek için kullanın.",
-    "software-rendering-restart-confirm": "İşleme değişikliğini uygulamak için yeniden başlatın."
+    "software-rendering-restart-confirm": "İşleme değişikliğini uygulamak için yeniden başlatın.",
+    "install-extension": "Yükle"
   },
   "task": {
     "scope-all": "Tümü",

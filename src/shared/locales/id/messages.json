@@ -38,7 +38,6 @@
     "engine-ready": "Mesin Aria2 Next siap",
     "engine-failed": "Gagal memulai mesin",
     "new-version-available": "Pembaruan tersedia",
-    "older-version-available": "Versi lama tersedia",
     "tray-new-task": "Tugas baru",
     "tray-resume-all": "Lanjutkan semua",
     "tray-pause-all": "Jeda semua",
@@ -222,7 +221,7 @@
     "proxy": "Proxy",
     "proxy-bypass": "Lewati proxy",
     "proxy-scope": "Cakupan proxy",
-    "proxy-bypass-input-tips": "Satu host, domain, IP, atau CIDR per baris; * melewati proksi untuk semua host\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "Satu host, domain, IP, atau CIDR per baris; * melewati proksi untuk semua host\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "Unduhan",
     "proxy-scope-update-app": "Pembaruan aplikasi",
     "proxy-scope-update-trackers": "Pembaruan data jaringan",
@@ -327,7 +326,6 @@
     "update-channel": "Saluran Pembaruan",
     "update-channel-stable": "Stabil",
     "update-channel-beta": "Beta",
-    "update-channel-latest": "Terbaru di semua saluran",
     "auto-check-update": "Periksa pembaruan secara otomatis",
     "last-check-update-time": "Pemeriksaan terakhir",
     "not-saved": "Perubahan belum disimpan",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "Unduh dan tampilkan tugas",
     "software-rendering": "Perenderan perangkat lunak WebKitGTK",
     "software-rendering-hint": "Hanya untuk mendiagnosis masalah grafis Linux.",
-    "software-rendering-restart-confirm": "Mulai ulang untuk menerapkan perubahan perenderan."
+    "software-rendering-restart-confirm": "Mulai ulang untuk menerapkan perubahan perenderan.",
+    "install-extension": "Instal"
   },
   "task": {
     "scope-all": "Semua",

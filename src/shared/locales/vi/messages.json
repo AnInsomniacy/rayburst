@@ -38,7 +38,6 @@
     "engine-ready": "Công cụ Aria2 Next đã sẵn sàng",
     "engine-failed": "Không thể khởi động engine",
     "new-version-available": "Có bản cập nhật",
-    "older-version-available": "Có phiên bản cũ hơn",
     "tray-new-task": "Tác vụ mới",
     "tray-resume-all": "Tiếp tục tất cả",
     "tray-pause-all": "Tạm dừng tất cả",
@@ -222,7 +221,7 @@
     "proxy": "Proxy",
     "proxy-bypass": "Bỏ qua proxy",
     "proxy-scope": "Phạm vi proxy",
-    "proxy-bypass-input-tips": "Mỗi dòng một máy chủ, tên miền, IP hoặc CIDR; * bỏ qua proxy cho mọi máy chủ\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "Mỗi dòng một máy chủ, tên miền, IP hoặc CIDR; * bỏ qua proxy cho mọi máy chủ\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "Tải xuống",
     "proxy-scope-update-app": "Cập nhật ứng dụng",
     "proxy-scope-update-trackers": "Cập nhật dữ liệu mạng",
@@ -327,7 +326,6 @@
     "update-channel": "Kênh cập nhật",
     "update-channel-stable": "Ổn định",
     "update-channel-beta": "Beta",
-    "update-channel-latest": "Mới nhất trên mọi kênh",
     "auto-check-update": "Tự động kiểm tra cập nhật",
     "last-check-update-time": "Lần kiểm tra cuối",
     "not-saved": "Thay đổi chưa lưu",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "Tải xuống và hiển thị tác vụ",
     "software-rendering": "Kết xuất bằng phần mềm WebKitGTK",
     "software-rendering-hint": "Chỉ dùng để chẩn đoán sự cố đồ họa trên Linux.",
-    "software-rendering-restart-confirm": "Khởi động lại để áp dụng thay đổi kết xuất."
+    "software-rendering-restart-confirm": "Khởi động lại để áp dụng thay đổi kết xuất.",
+    "install-extension": "Cài đặt"
   },
   "task": {
     "scope-all": "Tất cả",

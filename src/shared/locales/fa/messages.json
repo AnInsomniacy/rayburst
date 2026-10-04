@@ -38,7 +38,6 @@
     "engine-ready": "موتور Aria2 Next آماده است",
     "engine-failed": "خطا در راه‌اندازی موتور",
     "new-version-available": "به‌روزرسانی موجود است",
-    "older-version-available": "نسخه قدیمی‌تر موجود است",
     "tray-new-task": "وظیفه جدید",
     "tray-resume-all": "ادامه همه",
     "tray-pause-all": "توقف همه",
@@ -222,7 +221,7 @@
     "proxy": "پروکسی",
     "proxy-bypass": "دور زدن پروکسی",
     "proxy-scope": "محدوده پروکسی",
-    "proxy-bypass-input-tips": "در هر خط یک میزبان، دامنه، IP یا CIDR؛ * همهٔ میزبان‌ها را مستثنا می‌کند\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "در هر خط یک میزبان، دامنه، IP یا CIDR؛ * همهٔ میزبان‌ها را مستثنا می‌کند\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "دانلودها",
     "proxy-scope-update-app": "به‌روزرسانی برنامه",
     "proxy-scope-update-trackers": "به‌روزرسانی داده‌های شبکه",
@@ -327,7 +326,6 @@
     "update-channel": "کانال به‌روزرسانی",
     "update-channel-stable": "پایدار",
     "update-channel-beta": "بتا",
-    "update-channel-latest": "جدیدترین نسخه در همه کانال‌ها",
     "auto-check-update": "بررسی خودکار به‌روزرسانی‌ها",
     "last-check-update-time": "آخرین بررسی",
     "not-saved": "تغییرات ذخیره نشده",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "دانلود و نمایش کارها",
     "software-rendering": "رندر نرم‌افزاری WebKitGTK",
     "software-rendering-hint": "فقط برای عیب‌یابی مشکلات گرافیکی Linux استفاده شود.",
-    "software-rendering-restart-confirm": "برای اعمال تغییر رندر، برنامه را دوباره راه‌اندازی کنید."
+    "software-rendering-restart-confirm": "برای اعمال تغییر رندر، برنامه را دوباره راه‌اندازی کنید.",
+    "install-extension": "نصب"
   },
   "task": {
     "scope-all": "همه",

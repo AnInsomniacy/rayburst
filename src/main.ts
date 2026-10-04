@@ -476,7 +476,10 @@ if (import.meta.env.PROD) {
     })
   }
 
-  void bootstrapMainWindow().catch((e) => {
+  void bootstrapMainWindow().catch(async (e) => {
     logger.error('main.bootstrap', e)
+    // A failed hydration must not leave a permanently hidden desktop process.
+    const { message } = await import('@tauri-apps/plugin-dialog')
+    await message(getErrorMessage(e), { title: 'Rayburst', kind: 'error' })
   })
 } // end: main window initialization

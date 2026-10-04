@@ -38,7 +38,6 @@
     "engine-ready": "Le moteur Aria2 Next est prêt",
     "engine-failed": "Échec du démarrage du moteur",
     "new-version-available": "Mise à jour disponible",
-    "older-version-available": "Ancienne version disponible",
     "tray-new-task": "Nouvelle tâche",
     "tray-resume-all": "Tout reprendre",
     "tray-pause-all": "Tout mettre en pause",
@@ -222,7 +221,7 @@
     "proxy": "Proxy",
     "proxy-bypass": "Contournement du proxy",
     "proxy-scope": "Portée du proxy",
-    "proxy-bypass-input-tips": "Un hôte, domaine, IP ou CIDR par ligne ; * exclut tous les hôtes\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "Un hôte, domaine, IP ou CIDR par ligne ; * exclut tous les hôtes\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "Téléchargements",
     "proxy-scope-update-app": "Mises à jour de l'application",
     "proxy-scope-update-trackers": "Mises à jour des données réseau",
@@ -327,7 +326,6 @@
     "update-channel": "Canal de mise à jour",
     "update-channel-stable": "Stable",
     "update-channel-beta": "Bêta",
-    "update-channel-latest": "Dernière version tous canaux",
     "auto-check-update": "Vérifier automatiquement les mises à jour",
     "last-check-update-time": "Dernière vérification",
     "not-saved": "Modifications non enregistrées",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "Télécharger et afficher les tâches",
     "software-rendering": "Rendu logiciel de WebKitGTK",
     "software-rendering-hint": "Uniquement pour diagnostiquer les problèmes graphiques sous Linux.",
-    "software-rendering-restart-confirm": "Redémarrez pour appliquer le changement de rendu."
+    "software-rendering-restart-confirm": "Redémarrez pour appliquer le changement de rendu.",
+    "install-extension": "Installer"
   },
   "task": {
     "scope-all": "Toutes",

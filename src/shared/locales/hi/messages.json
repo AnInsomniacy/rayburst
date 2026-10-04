@@ -38,7 +38,6 @@
     "engine-ready": "Aria2 Next इंजन तैयार है",
     "engine-failed": "इंजन शुरू नहीं हो सका",
     "new-version-available": "अपडेट उपलब्ध है",
-    "older-version-available": "पुराना संस्करण उपलब्ध है",
     "tray-new-task": "नया कार्य",
     "tray-resume-all": "सब फिर शुरू करें",
     "tray-pause-all": "सब रोकें",
@@ -222,7 +221,7 @@
     "proxy": "Proxy",
     "proxy-bypass": "Proxy bypass",
     "proxy-scope": "Proxy दायरा",
-    "proxy-bypass-input-tips": "हर पंक्ति में एक होस्ट, डोमेन, IP या CIDR; * सभी होस्ट के लिए प्रॉक्सी छोड़ता है\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "हर पंक्ति में एक होस्ट, डोमेन, IP या CIDR; * सभी होस्ट के लिए प्रॉक्सी छोड़ता है\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "डाउनलोड",
     "proxy-scope-update-app": "App updates",
     "proxy-scope-update-trackers": "नेटवर्क डेटा अपडेट",
@@ -327,7 +326,6 @@
     "update-channel": "Update channel",
     "update-channel-stable": "Stable",
     "update-channel-beta": "Beta",
-    "update-channel-latest": "सभी channels में latest",
     "auto-check-update": "Updates अपने आप जांचें",
     "last-check-update-time": "पिछली जांच",
     "not-saved": "बिना सहेजे बदलाव",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "डाउनलोड करें और कार्य दिखाएँ",
     "software-rendering": "WebKitGTK सॉफ़्टवेयर रेंडरिंग",
     "software-rendering-hint": "केवल Linux की ग्राफ़िक्स समस्याओं के निदान के लिए।",
-    "software-rendering-restart-confirm": "रेंडरिंग बदलाव लागू करने के लिए पुनः आरंभ करें।"
+    "software-rendering-restart-confirm": "रेंडरिंग बदलाव लागू करने के लिए पुनः आरंभ करें।",
+    "install-extension": "इंस्टॉल करें"
   },
   "task": {
     "scope-all": "सभी",

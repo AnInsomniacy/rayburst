@@ -109,3 +109,12 @@ pre,
 .animations-paused *::after {
   animation-play-state: paused !important;
 }
+
+/* WebView2 handles mouse, pen and touch through native non-client regions. */
+[data-tauri-drag-region] {
+  app-region: drag;
+}
+[data-tauri-drag-region='false'],
+[data-tauri-drag-region] :is(button, a, input, select, textarea, [role='button'], [tabindex]) {
+  app-region: no-drag;
+}

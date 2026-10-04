@@ -38,7 +38,6 @@
     "engine-ready": "De Aria2 Next-engine is gereed",
     "engine-failed": "Engine starten mislukt",
     "new-version-available": "Update beschikbaar",
-    "older-version-available": "Oudere versie beschikbaar",
     "tray-new-task": "Nieuwe taak",
     "tray-resume-all": "Alles hervatten",
     "tray-pause-all": "Alles pauzeren",
@@ -222,7 +221,7 @@
     "proxy": "Proxy",
     "proxy-bypass": "Proxy-uitzondering",
     "proxy-scope": "Proxy-bereik",
-    "proxy-bypass-input-tips": "Eén host, domein, IP of CIDR per regel; * omzeilt de proxy voor alle hosts\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "Eén host, domein, IP of CIDR per regel; * omzeilt de proxy voor alle hosts\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "Downloads",
     "proxy-scope-update-app": "App-updates",
     "proxy-scope-update-trackers": "Updates van netwerkgegevens",
@@ -327,7 +326,6 @@
     "update-channel": "Updatekanaal",
     "update-channel-stable": "Stabiel",
     "update-channel-beta": "Bèta",
-    "update-channel-latest": "Nieuwste versie uit alle kanalen",
     "auto-check-update": "Automatisch controleren op updates",
     "last-check-update-time": "Laatst gecontroleerd",
     "not-saved": "Niet-opgeslagen wijzigingen",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "Downloaden en taken tonen",
     "software-rendering": "WebKitGTK-softwarerendering",
     "software-rendering-hint": "Alleen voor het onderzoeken van grafische problemen op Linux.",
-    "software-rendering-restart-confirm": "Herstart om de renderingwijziging toe te passen."
+    "software-rendering-restart-confirm": "Herstart om de renderingwijziging toe te passen.",
+    "install-extension": "Installeren"
   },
   "task": {
     "scope-all": "Alle",

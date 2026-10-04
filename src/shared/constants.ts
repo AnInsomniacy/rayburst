@@ -1,4 +1,5 @@
 /** @fileoverview Application-wide constants: themes, intervals, suffixes, limits. */
+import { version as appVersion } from '../../package.json'
 import { DEFAULT_TASK_MANUAL_ORDER, DEFAULT_TASK_SORT } from '@/composables/useTaskSort'
 import type { AppLogLevel, Aria2LogLevel } from '@shared/types'
 import type { I18nKey } from '@shared/i18nTypes'
@@ -91,7 +92,7 @@ export const ONE_DAY = ONE_HOUR * 24
 export const COMPLETED_RECORD_RETENTION_FOREVER = 0
 export const COMPLETED_RECORD_RETENTION_OPTIONS = [0, 1, 7, 180, 365] as const
 
-export const UPDATE_CHANNELS = ['stable', 'beta', 'latest'] as const
+export const UPDATE_CHANNELS = ['stable', 'beta'] as const
 
 /**
  * Factory default values for every AppConfig field.
@@ -281,7 +282,7 @@ export const DEFAULT_APP_CONFIG = {
   autoCheckUpdateInterval: 0, // 0 means every frontend startup, including lightweight restores
   /** Linux-only: keep WebKitGTK defaults; software fallback is explicitly opt-in. */
   softwareRendering: false,
-  updateChannel: 'stable' as const,
+  updateChannel: (appVersion.includes('-') ? 'beta' : 'stable') as 'stable' | 'beta',
   lastCheckUpdateTime: 0,
 
   // ── Network & Security ────────────────────────────────────────
@@ -327,7 +328,7 @@ export const DEFAULT_APP_CONFIG = {
     scope: ['download', 'bittorrent', 'update-app', 'update-trackers'],
   },
   clipboard: { enable: true, http: true, sftp: true, magnet: true, ed2k: true, thunder: true, btHash: true },
-  extensionDownloadBehavior: 'show' as const,
+  extensionDownloadBehavior: 'confirm' as const,
   userAgent:
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
   userAgentProfiles: [],

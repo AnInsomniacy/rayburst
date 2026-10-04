@@ -38,7 +38,6 @@
     "engine-ready": "Aria2 Next engine is ready",
     "engine-failed": "Engine failed to start",
     "new-version-available": "Update Available",
-    "older-version-available": "Older Version Available",
     "tray-new-task": "New Task",
     "tray-resume-all": "Resume All",
     "tray-pause-all": "Pause All",
@@ -222,7 +221,7 @@
     "proxy": "Proxy",
     "proxy-bypass": "Proxy bypass",
     "proxy-scope": "Proxy scope",
-    "proxy-bypass-input-tips": "One host, domain, IP or CIDR per line; * bypasses every host\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "One host pattern, IP or CIDR per line; * bypasses every host\nlocalhost, *.example.com, dlinks.*, 10.0.0.0/8, ::1",
     "proxy-scope-download": "Downloads",
     "proxy-scope-update-app": "App updates",
     "proxy-scope-update-trackers": "Network data updates",
@@ -327,7 +326,6 @@
     "update-channel": "Update Channel",
     "update-channel-stable": "Stable",
     "update-channel-beta": "Beta",
-    "update-channel-latest": "Latest Across Channels",
     "auto-check-update": "Check for updates automatically",
     "last-check-update-time": "Last checked",
     "not-saved": "Unsaved Changes",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "Download and show tasks",
     "software-rendering": "WebKitGTK software rendering",
     "software-rendering-hint": "Use only to troubleshoot Linux graphics problems.",
-    "software-rendering-restart-confirm": "Restart to apply the rendering change."
+    "software-rendering-restart-confirm": "Restart to apply the rendering change.",
+    "install-extension": "Install"
   },
   "task": {
     "scope-all": "All",

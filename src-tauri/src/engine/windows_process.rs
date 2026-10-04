@@ -218,10 +218,13 @@ fn terminate_process_at_path(
     // SAFETY: The full executable path was verified on this exact process
     // handle, avoiding PID-reuse and unrelated-process termination races.
     if unsafe { TerminateProcess(handle.0, 1) } == 0 {
-        return Err(format!(
-            "TerminateProcess failed for PID {pid}: {}",
-            std::io::Error::last_os_error()
-        ));
+        let error = std::io::Error::last_os_error();
+        // Exit can race the terminate call; Windows reports access denied for
+        // an already terminated process. The owned handle identifies that process.
+        if unsafe { WaitForSingleObject(handle.0, 0) } == WAIT_OBJECT_0 {
+            return Ok(false);
+        }
+        return Err(format!("TerminateProcess failed for PID {pid}: {error}"));
     }
     // SAFETY: handle remains owned and valid until this function returns.
     match unsafe { WaitForSingleObject(handle.0, PROCESS_EXIT_TIMEOUT_MS) } {

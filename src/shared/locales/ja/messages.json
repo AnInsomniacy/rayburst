@@ -38,7 +38,6 @@
     "engine-ready": "Aria2 Next エンジンの準備が完了しました",
     "engine-failed": "エンジンの起動に失敗しました",
     "new-version-available": "アップデートがあります",
-    "older-version-available": "旧バージョンが利用可能",
     "tray-new-task": "新規タスク",
     "tray-resume-all": "すべて再開",
     "tray-pause-all": "すべて一時停止",
@@ -222,7 +221,7 @@
     "proxy": "プロキシ",
     "proxy-bypass": "プロキシ除外",
     "proxy-scope": "プロキシ適用範囲",
-    "proxy-bypass-input-tips": "1 行にホスト・ドメイン・IP・CIDR を 1 つ入力。* は全ホストを除外\nlocalhost, example.com, 10.0.0.0/8, ::1",
+    "proxy-bypass-input-tips": "1 行にホスト・ドメイン・IP・CIDR を 1 つ入力。* は全ホストを除外\nlocalhost, example.com, 10.0.0.0/8, ::1\n*.example.com, dlinks.*",
     "proxy-scope-download": "ダウンロード",
     "proxy-scope-update-app": "アプリの更新",
     "proxy-scope-update-trackers": "ネットワークデータの更新",
@@ -327,7 +326,6 @@
     "update-channel": "更新チャンネル",
     "update-channel-stable": "安定版",
     "update-channel-beta": "ベータ版",
-    "update-channel-latest": "全チャンネル最新版",
     "auto-check-update": "自動的に更新を確認",
     "last-check-update-time": "最終確認日時",
     "not-saved": "未保存の変更",
@@ -597,7 +595,8 @@
     "extension-behavior-show": "ダウンロードしてタスクを表示",
     "software-rendering": "WebKitGTK ソフトウェアレンダリング",
     "software-rendering-hint": "Linux のグラフィックス問題の診断時のみ使用してください。",
-    "software-rendering-restart-confirm": "レンダリング設定を適用するには再起動してください。"
+    "software-rendering-restart-confirm": "レンダリング設定を適用するには再起動してください。",
+    "install-extension": "インストール"
   },
   "task": {
     "scope-all": "すべて",

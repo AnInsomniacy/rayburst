@@ -296,7 +296,7 @@ export const useAppStore = defineStore('app', () => {
     input: ExternalDownloadInput,
     items: BatchItem[],
   ): Pick<DeepLinkHandlingResult, 'autoSubmitted' | 'ignored'> {
-    const downloadUrl = input.finalUrl || input.url
+    const downloadUrl = input.url
     const kind = detectExternalInputKind(downloadUrl)
     const resolvedHint = input.filename?.trim() ?? ''
     const context = buildExternalContext(input)

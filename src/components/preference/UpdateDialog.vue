@@ -17,7 +17,6 @@ import {
   CheckmarkCircleOutline,
   CloseCircleOutline,
   ArrowUpCircleOutline,
-  ArrowDownCircleOutline,
   CloudDownloadOutline,
 } from '@vicons/ionicons5'
 import { usePreferenceStore } from '@/stores/preference'
@@ -76,23 +75,17 @@ const requestedChannel = ref<UpdateChannel>('stable')
 let progressUnlisten: UnlistenFn | null = null
 let operationId = 0
 const dialogClosable = computed(() => shouldAllowUpdateDialogClose(phase.value))
-const displayChannel = computed<UpdateChannel>(() =>
-  requestedChannel.value === 'latest' ? 'latest' : activeChannel.value,
-)
+const displayChannel = computed(() => activeChannel.value)
 const channelTagType = computed(() => {
   if (displayChannel.value === 'beta') return 'warning'
-  if (displayChannel.value === 'latest') return 'info'
   return 'success'
 })
 
 const progressPercent = computed(() => calcProgressPercent(downloadReceived.value, downloadTotal.value))
 
-// ── Version direction detection (authoritative comparison done in Rust) ──
-const isRollback = ref(false)
-
 // ── Action button state machine ──────────────────────────────────────
 const actionDisabled = computed(() => isActionDisabled(phase.value))
-const actionLabel = computed(() => getActionLabel(phase.value, isRollback.value))
+const actionLabel = computed(() => getActionLabel(phase.value))
 const actionType = computed(() => getActionType(phase.value))
 function handleActionClick() {
   const target = getActionTarget(phase.value)
@@ -137,7 +130,7 @@ async function open(channel?: string) {
       releaseNotes.value = update.body || ''
       activeChannel.value = update.channel
       requestedChannel.value = update.requestedChannel
-      isRollback.value = update.isRollback
+
       phase.value = 'available'
       logger.info(
         'Updater',
@@ -173,7 +166,7 @@ async function present(update: TauriUpdate) {
 
   version.value = update.version
   releaseNotes.value = update.body || ''
-  isRollback.value = update.isRollback
+
   phase.value = 'available'
 }
 
@@ -304,17 +297,13 @@ defineExpose({ open, present })
 
           <div v-else-if="phase === 'available'" key="available" class="update-panel update-panel--document">
             <div class="update-summary">
-              <div
-                class="update-status-icon"
-                :class="isRollback ? 'update-status-icon--warning' : 'update-status-icon--primary'"
-              >
+              <div class="update-status-icon update-status-icon--primary">
                 <NIcon :size="30">
-                  <ArrowDownCircleOutline v-if="isRollback" />
-                  <ArrowUpCircleOutline v-else />
+                  <ArrowUpCircleOutline />
                 </NIcon>
               </div>
               <div class="update-copy update-copy--left">
-                <h2>{{ isRollback ? t('app.older-version-available') : t('app.new-version-available') }}</h2>
+                <h2>{{ t('app.new-version-available') }}</h2>
                 <div class="update-version-flow">
                   <span>v{{ currentVersion }}</span>
                   <span class="update-version-arrow">→</span>

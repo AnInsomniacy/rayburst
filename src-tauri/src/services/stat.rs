@@ -540,22 +540,13 @@ async fn stat_loop(
                 }
             }
 
-            // ── Tray title (macOS menu bar / Linux appindicator label) ──
-            if let Some(tray) = app.tray_by_id("rayburst") {
-                let next_title =
-                    tray_title_for_speed(cfg.tray_speedometer, download_speed, upload_speed);
-                if tray_title_needs_update(&last_tray_title, &next_title) {
-                    let _ = tray.set_title(Some(&next_title));
-                    last_tray_title = Some(next_title);
-
-                    // Re-apply the macOS template icon only after title changes.
-                    // This avoids unnecessary NSStatusItem width recalculation on
-                    // every stat tick while preserving the existing tao workaround.
-                    #[cfg(target_os = "macos")]
-                    {
-                        let _ = crate::tray::refresh_tray_icon(&tray);
-                    }
+            let next_title =
+                tray_title_for_speed(cfg.tray_speedometer, download_speed, upload_speed);
+            if tray_title_needs_update(&last_tray_title, &next_title) {
+                if let Err(error) = crate::tray::set_title(&app, &next_title) {
+                    log::debug!("tray:title-update-failed error={error}");
                 }
+                last_tray_title = Some(next_title);
             }
 
             // ── Dock badge (macOS only) ──
