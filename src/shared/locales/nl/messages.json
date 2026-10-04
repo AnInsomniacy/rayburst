@@ -943,7 +943,11 @@
   },
   "extension": {
     "description": "Stuur browserdownloads naar Rayburst en ontdek media op het web.",
-    "install": "Installeren voor je browser",
-    "connection-settings": "Verbindingsinstellingen"
+    "install": "Installeer de officiële browserextensie",
+    "connection-settings": "Verbindingsinstellingen",
+    "add-to-browser": "Toevoegen aan {browser}",
+    "media-preview": "Vind en bekijk webmedia",
+    "browser-controls": "Beheer downloads vanuit je browser",
+    "download-packages": "Pakketten downloaden"
   }
 }

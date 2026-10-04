@@ -353,7 +353,7 @@ onMounted(async () => {
         <NFormItem :label="t('preferences.extension-download-behavior')">
           <NSelect
             v-model:value="form.extensionDownloadBehavior"
-            class="pref-control-md"
+            class="pref-control-auto"
             :options="[
               { value: 'confirm', label: t('preferences.extension-behavior-confirm') },
               { value: 'background', label: t('preferences.extension-behavior-background') },

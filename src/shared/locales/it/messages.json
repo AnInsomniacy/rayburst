@@ -943,7 +943,11 @@
   },
   "extension": {
     "description": "Invia i download del browser a Rayburst e scopri i contenuti multimediali sul web.",
-    "install": "Installa per il tuo browser",
-    "connection-settings": "Impostazioni di connessione"
+    "install": "Installa l’estensione ufficiale del browser",
+    "connection-settings": "Impostazioni di connessione",
+    "add-to-browser": "Aggiungi a {browser}",
+    "media-preview": "Trova e visualizza in anteprima i media del web",
+    "browser-controls": "Gestisci i download dal browser",
+    "download-packages": "Scarica i pacchetti"
   }
 }

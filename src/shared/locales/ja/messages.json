@@ -943,7 +943,11 @@
   },
   "extension": {
     "description": "ブラウザーのダウンロードを Rayburst に送り、ウェブ上のメディアを見つけます。",
-    "install": "ブラウザーにインストール",
-    "connection-settings": "接続設定"
+    "install": "公式ブラウザー拡張機能をインストール",
+    "connection-settings": "接続設定",
+    "add-to-browser": "{browser} に追加",
+    "media-preview": "ウェブメディアを検出・プレビュー",
+    "browser-controls": "ブラウザーからダウンロードを管理",
+    "download-packages": "パッケージをダウンロード"
   }
 }

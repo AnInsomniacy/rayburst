@@ -943,7 +943,11 @@
   },
   "extension": {
     "description": "브라우저 다운로드를 Rayburst로 보내고 웹 미디어를 찾아보세요.",
-    "install": "브라우저에 설치",
-    "connection-settings": "연결 설정"
+    "install": "공식 브라우저 확장 프로그램 설치",
+    "connection-settings": "연결 설정",
+    "add-to-browser": "{browser}에 추가",
+    "media-preview": "웹 미디어 검색 및 미리보기",
+    "browser-controls": "브라우저에서 다운로드 관리",
+    "download-packages": "패키지 다운로드"
   }
 }

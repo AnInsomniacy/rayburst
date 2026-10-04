@@ -943,7 +943,11 @@
   },
   "extension": {
     "description": "Send nettlesernedlastinger til Rayburst og finn medier på nettet.",
-    "install": "Installer for nettleseren din",
-    "connection-settings": "Tilkoblingsinnstillinger"
+    "install": "Installer den offisielle nettleserutvidelsen",
+    "connection-settings": "Tilkoblingsinnstillinger",
+    "add-to-browser": "Legg til i {browser}",
+    "media-preview": "Finn og forhåndsvis medier på nettet",
+    "browser-controls": "Administrer nedlastinger fra nettleseren",
+    "download-packages": "Last ned pakker"
   }
 }

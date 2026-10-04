@@ -943,7 +943,11 @@
   },
   "extension": {
     "description": "Kirim unduhan browser ke Rayburst dan temukan media web.",
-    "install": "Pasang untuk browser Anda",
-    "connection-settings": "Pengaturan koneksi"
+    "install": "Pasang ekstensi browser resmi",
+    "connection-settings": "Pengaturan koneksi",
+    "add-to-browser": "Tambahkan ke {browser}",
+    "media-preview": "Temukan dan pratinjau media web",
+    "browser-controls": "Kelola unduhan dari browser",
+    "download-packages": "Unduh paket"
   }
 }

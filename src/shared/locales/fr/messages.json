@@ -943,7 +943,11 @@
   },
   "extension": {
     "description": "Envoyez les téléchargements du navigateur vers Rayburst et découvrez les médias du Web.",
-    "install": "Installer pour votre navigateur",
-    "connection-settings": "Paramètres de connexion"
+    "install": "Installez l’extension officielle du navigateur",
+    "connection-settings": "Paramètres de connexion",
+    "add-to-browser": "Ajouter à {browser}",
+    "media-preview": "Trouvez et prévisualisez les médias du Web",
+    "browser-controls": "Gérez les téléchargements depuis le navigateur",
+    "download-packages": "Télécharger les paquets"
   }
 }

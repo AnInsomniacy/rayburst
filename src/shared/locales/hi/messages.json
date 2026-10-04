@@ -943,7 +943,11 @@
   },
   "extension": {
     "description": "ब्राउज़र के डाउनलोड Rayburst को भेजें और वेब मीडिया खोजें।",
-    "install": "अपने ब्राउज़र के लिए इंस्टॉल करें",
-    "connection-settings": "कनेक्शन सेटिंग्स"
+    "install": "आधिकारिक ब्राउज़र एक्सटेंशन इंस्टॉल करें",
+    "connection-settings": "कनेक्शन सेटिंग्स",
+    "add-to-browser": "{browser} में जोड़ें",
+    "media-preview": "वेब मीडिया खोजें और उसका पूर्वावलोकन करें",
+    "browser-controls": "ब्राउज़र से डाउनलोड प्रबंधित करें",
+    "download-packages": "पैकेज डाउनलोड करें"
   }
 }

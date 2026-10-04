@@ -942,8 +942,12 @@
     "extensions": "擴充功能"
   },
   "extension": {
-    "description": "接管瀏覽器下載，探索網頁媒體。",
-    "install": "安裝至你的瀏覽器",
-    "connection-settings": "連線設定"
+    "description": "接管下載，探索網頁媒體。",
+    "install": "安裝官方瀏覽器擴充功能",
+    "connection-settings": "連線設定",
+    "add-to-browser": "安裝至 {browser}",
+    "media-preview": "探索並預覽網頁媒體",
+    "browser-controls": "在瀏覽器中管理下載",
+    "download-packages": "下載安裝套件"
   }
 }

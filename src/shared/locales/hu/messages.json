@@ -943,7 +943,11 @@
   },
   "extension": {
     "description": "Küldje a böngésző letöltéseit a Rayburst alkalmazásba, és fedezzen fel médiatartalmakat a weben.",
-    "install": "Telepítés a böngészőhöz",
-    "connection-settings": "Kapcsolat beállításai"
+    "install": "A hivatalos böngészőbővítmény telepítése",
+    "connection-settings": "Kapcsolat beállításai",
+    "add-to-browser": "Hozzáadás ehhez: {browser}",
+    "media-preview": "Webes média keresése és előnézete",
+    "browser-controls": "Letöltések kezelése a böngészőből",
+    "download-packages": "Csomagok letöltése"
   }
 }

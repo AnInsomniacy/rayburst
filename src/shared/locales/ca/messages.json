@@ -943,7 +943,11 @@
   },
   "extension": {
     "description": "Envia les baixades del navegador a Rayburst i descobreix contingut multimèdia al web.",
-    "install": "Instal·la al teu navegador",
-    "connection-settings": "Configuració de la connexió"
+    "install": "Instal·la l’extensió oficial del navegador",
+    "connection-settings": "Configuració de la connexió",
+    "add-to-browser": "Afegeix a {browser}",
+    "media-preview": "Troba i previsualitza contingut multimèdia web",
+    "browser-controls": "Gestiona les baixades des del navegador",
+    "download-packages": "Baixa els paquets"
   }
 }

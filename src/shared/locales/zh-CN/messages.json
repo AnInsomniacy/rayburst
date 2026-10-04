@@ -942,8 +942,12 @@
     "extensions": "扩展"
   },
   "extension": {
-    "description": "接管浏览器下载，发现网页媒体。",
-    "install": "安装到你的浏览器",
-    "connection-settings": "连接设置"
+    "description": "接管下载，发现网页媒体。",
+    "install": "安装官方浏览器扩展",
+    "connection-settings": "连接设置",
+    "add-to-browser": "安装到 {browser}",
+    "media-preview": "发现并预览网页媒体",
+    "browser-controls": "在浏览器中管理下载",
+    "download-packages": "下载安装包"
   }
 }

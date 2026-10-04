@@ -943,7 +943,11 @@
   },
   "extension": {
     "description": "أرسل تنزيلات المتصفح إلى Rayburst واكتشف الوسائط على الويب.",
-    "install": "ثبّت الإضافة لمتصفحك",
-    "connection-settings": "إعدادات الاتصال"
+    "install": "ثبّت إضافة المتصفح الرسمية",
+    "connection-settings": "إعدادات الاتصال",
+    "add-to-browser": "إضافة إلى {browser}",
+    "media-preview": "اكتشف وسائط الويب وعاينها",
+    "browser-controls": "أدر التنزيلات من متصفحك",
+    "download-packages": "تنزيل الحزم"
   }
 }

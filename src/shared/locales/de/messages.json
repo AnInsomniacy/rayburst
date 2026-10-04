@@ -943,7 +943,11 @@
   },
   "extension": {
     "description": "Browser-Downloads an Rayburst senden und Medien im Web entdecken.",
-    "install": "Für deinen Browser installieren",
-    "connection-settings": "Verbindungseinstellungen"
+    "install": "Offizielle Browser-Erweiterung installieren",
+    "connection-settings": "Verbindungseinstellungen",
+    "add-to-browser": "Zu {browser} hinzufügen",
+    "media-preview": "Webmedien finden und ansehen",
+    "browser-controls": "Downloads im Browser verwalten",
+    "download-packages": "Pakete herunterladen"
   }
 }

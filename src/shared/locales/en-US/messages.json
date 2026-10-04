@@ -943,7 +943,11 @@
   },
   "extension": {
     "description": "Send browser downloads to Rayburst and discover web media.",
-    "install": "Install for your browser",
-    "connection-settings": "Connection settings"
+    "install": "Install the official browser extension",
+    "connection-settings": "Connection settings",
+    "add-to-browser": "Add to {browser}",
+    "media-preview": "Find and preview web media",
+    "browser-controls": "Manage downloads in your browser",
+    "download-packages": "Download packages"
   }
 }

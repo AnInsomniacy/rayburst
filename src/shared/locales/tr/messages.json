@@ -943,7 +943,11 @@
   },
   "extension": {
     "description": "Tarayıcı indirmelerini Rayburst'e gönderin ve web medyasını keşfedin.",
-    "install": "Tarayıcınıza yükleyin",
-    "connection-settings": "Bağlantı ayarları"
+    "install": "Resmî tarayıcı uzantısını yükleyin",
+    "connection-settings": "Bağlantı ayarları",
+    "add-to-browser": "{browser} tarayıcısına ekle",
+    "media-preview": "Web medyasını bulun ve önizleyin",
+    "browser-controls": "İndirmeleri tarayıcıdan yönetin",
+    "download-packages": "Paketleri indir"
   }
 }

@@ -943,7 +943,11 @@
   },
   "extension": {
     "description": "Gửi các lượt tải từ trình duyệt đến Rayburst và khám phá nội dung đa phương tiện trên web.",
-    "install": "Cài đặt cho trình duyệt của bạn",
-    "connection-settings": "Cài đặt kết nối"
+    "install": "Cài đặt tiện ích trình duyệt chính thức",
+    "connection-settings": "Cài đặt kết nối",
+    "add-to-browser": "Thêm vào {browser}",
+    "media-preview": "Tìm và xem trước nội dung đa phương tiện trên web",
+    "browser-controls": "Quản lý lượt tải từ trình duyệt",
+    "download-packages": "Tải gói cài đặt"
   }
 }

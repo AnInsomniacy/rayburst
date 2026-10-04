@@ -943,7 +943,11 @@
   },
   "extension": {
     "description": "Przesyłaj pobieranie z przeglądarki do Rayburst i odkrywaj multimedia w sieci.",
-    "install": "Zainstaluj w swojej przeglądarce",
-    "connection-settings": "Ustawienia połączenia"
+    "install": "Zainstaluj oficjalne rozszerzenie przeglądarki",
+    "connection-settings": "Ustawienia połączenia",
+    "add-to-browser": "Dodaj do {browser}",
+    "media-preview": "Wyszukuj multimedia w sieci i wyświetlaj podgląd",
+    "browser-controls": "Zarządzaj pobieraniem z przeglądarki",
+    "download-packages": "Pobierz pakiety"
   }
 }

@@ -943,7 +943,11 @@
   },
   "extension": {
     "description": "دانلودهای مرورگر را به Rayburst بفرستید و محتوای رسانه‌ای وب را پیدا کنید.",
-    "install": "نصب برای مرورگر شما",
-    "connection-settings": "تنظیمات اتصال"
+    "install": "افزونهٔ رسمی مرورگر را نصب کنید",
+    "connection-settings": "تنظیمات اتصال",
+    "add-to-browser": "افزودن به {browser}",
+    "media-preview": "یافتن و پیش‌نمایش محتوای رسانه‌ای وب",
+    "browser-controls": "مدیریت دانلودها از مرورگر",
+    "download-packages": "دانلود بسته‌ها"
   }
 }

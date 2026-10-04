@@ -943,7 +943,11 @@
   },
   "extension": {
     "description": "Trimite descărcările din browser către Rayburst și descoperă conținut media pe web.",
-    "install": "Instalează pentru browserul tău",
-    "connection-settings": "Setări de conexiune"
+    "install": "Instalează extensia oficială de browser",
+    "connection-settings": "Setări de conexiune",
+    "add-to-browser": "Adaugă în {browser}",
+    "media-preview": "Găsește și previzualizează conținut media web",
+    "browser-controls": "Gestionează descărcările din browser",
+    "download-packages": "Descarcă pachetele"
   }
 }
