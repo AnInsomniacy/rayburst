@@ -595,8 +595,7 @@
     "extension-behavior-show": "Tải xuống và hiển thị tác vụ",
     "software-rendering": "Kết xuất bằng phần mềm WebKitGTK",
     "software-rendering-hint": "Chỉ dùng để chẩn đoán sự cố đồ họa trên Linux.",
-    "software-rendering-restart-confirm": "Khởi động lại để áp dụng thay đổi kết xuất.",
-    "install-extension": "Cài đặt"
+    "software-rendering-restart-confirm": "Khởi động lại để áp dụng thay đổi kết xuất."
   },
   "task": {
     "scope-all": "Tất cả",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "Giới thiệu",
-    "settings": "Cài đặt"
+    "settings": "Cài đặt",
+    "extensions": "Tiện ích"
+  },
+  "extension": {
+    "description": "Gửi các lượt tải từ trình duyệt đến Rayburst và khám phá nội dung đa phương tiện trên web.",
+    "install": "Cài đặt cho trình duyệt của bạn",
+    "connection-settings": "Cài đặt kết nối"
   }
 }

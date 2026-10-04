@@ -595,8 +595,7 @@
     "extension-behavior-show": "Unduh dan tampilkan tugas",
     "software-rendering": "Perenderan perangkat lunak WebKitGTK",
     "software-rendering-hint": "Hanya untuk mendiagnosis masalah grafis Linux.",
-    "software-rendering-restart-confirm": "Mulai ulang untuk menerapkan perubahan perenderan.",
-    "install-extension": "Instal"
+    "software-rendering-restart-confirm": "Mulai ulang untuk menerapkan perubahan perenderan."
   },
   "task": {
     "scope-all": "Semua",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "Tentang",
-    "settings": "Pengaturan"
+    "settings": "Pengaturan",
+    "extensions": "Ekstensi"
+  },
+  "extension": {
+    "description": "Kirim unduhan browser ke Rayburst dan temukan media web.",
+    "install": "Pasang untuk browser Anda",
+    "connection-settings": "Pengaturan koneksi"
   }
 }

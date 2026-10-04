@@ -595,8 +595,7 @@
     "extension-behavior-show": "Last ned og vis oppgaver",
     "software-rendering": "WebKitGTK-programvaregjengivelse",
     "software-rendering-hint": "Kun for feilsøking av grafikkproblemer i Linux.",
-    "software-rendering-restart-confirm": "Start på nytt for å bruke endringen.",
-    "install-extension": "Installer"
+    "software-rendering-restart-confirm": "Start på nytt for å bruke endringen."
   },
   "task": {
     "scope-all": "Alle",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "Om",
-    "settings": "Innstillinger"
+    "settings": "Innstillinger",
+    "extensions": "Utvidelser"
+  },
+  "extension": {
+    "description": "Send nettlesernedlastinger til Rayburst og finn medier på nettet.",
+    "install": "Installer for nettleseren din",
+    "connection-settings": "Tilkoblingsinnstillinger"
   }
 }

@@ -595,8 +595,7 @@
     "extension-behavior-show": "دانلود و نمایش کارها",
     "software-rendering": "رندر نرم‌افزاری WebKitGTK",
     "software-rendering-hint": "فقط برای عیب‌یابی مشکلات گرافیکی Linux استفاده شود.",
-    "software-rendering-restart-confirm": "برای اعمال تغییر رندر، برنامه را دوباره راه‌اندازی کنید.",
-    "install-extension": "نصب"
+    "software-rendering-restart-confirm": "برای اعمال تغییر رندر، برنامه را دوباره راه‌اندازی کنید."
   },
   "task": {
     "scope-all": "همه",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "درباره",
-    "settings": "تنظیمات"
+    "settings": "تنظیمات",
+    "extensions": "افزونه‌ها"
+  },
+  "extension": {
+    "description": "دانلودهای مرورگر را به Rayburst بفرستید و محتوای رسانه‌ای وب را پیدا کنید.",
+    "install": "نصب برای مرورگر شما",
+    "connection-settings": "تنظیمات اتصال"
   }
 }

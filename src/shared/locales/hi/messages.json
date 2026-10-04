@@ -595,8 +595,7 @@
     "extension-behavior-show": "डाउनलोड करें और कार्य दिखाएँ",
     "software-rendering": "WebKitGTK सॉफ़्टवेयर रेंडरिंग",
     "software-rendering-hint": "केवल Linux की ग्राफ़िक्स समस्याओं के निदान के लिए।",
-    "software-rendering-restart-confirm": "रेंडरिंग बदलाव लागू करने के लिए पुनः आरंभ करें।",
-    "install-extension": "इंस्टॉल करें"
+    "software-rendering-restart-confirm": "रेंडरिंग बदलाव लागू करने के लिए पुनः आरंभ करें।"
   },
   "task": {
     "scope-all": "सभी",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "परिचय",
-    "settings": "सेटिंग्स"
+    "settings": "सेटिंग्स",
+    "extensions": "एक्सटेंशन"
+  },
+  "extension": {
+    "description": "ब्राउज़र के डाउनलोड Rayburst को भेजें और वेब मीडिया खोजें।",
+    "install": "अपने ब्राउज़र के लिए इंस्टॉल करें",
+    "connection-settings": "कनेक्शन सेटिंग्स"
   }
 }

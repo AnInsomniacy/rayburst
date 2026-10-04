@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
-import { reactive } from 'vue'
+import { defineComponent, reactive, ref } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import AppSidebar from '../AppSidebar.vue'
 import PreferenceView from '@/views/PreferenceView.vue'
+import ExtensionPanel from '@/components/extension/ExtensionPanel.vue'
 
 const preferences = reactive({ config: { sidebarTaskCounts: true } })
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }))
@@ -11,11 +12,15 @@ vi.mock('@/stores/task', () => ({
   useTaskStore: () => ({ taskCounts: { all: 8, progress: 3, failed: 1, completed: 4 } }),
 }))
 vi.mock('@/stores/preference', () => ({ usePreferenceStore: () => preferences }))
+vi.mock('@/composables/useAppMessage', () => ({ useAppMessage: () => ({ error: vi.fn() }) }))
 vi.mock('../SidebarCount.vue', () => ({
   default: { props: ['value'], template: '<span class="count">{{ value }}</span>' },
 }))
-vi.mock('@/components/common/MTooltip.vue', () => ({ default: { template: '<slot name="trigger" />' } }))
-vi.mock('naive-ui', () => ({
+vi.mock('@/components/common/MTooltip.vue', () => ({
+  default: { props: ['placement', 'disabled'], template: '<slot name="trigger" />' },
+}))
+vi.mock('naive-ui', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('naive-ui')>()),
   NIcon: { template: '<span><slot /></span>' },
   NTabs: { name: 'NTabs', props: ['value'], emits: ['update:value'], template: '<div><slot /></div>' },
   NTab: { props: ['name'], template: '<span><slot /></span>' },
@@ -34,6 +39,7 @@ async function setup(path: string) {
         children: [
           { path: 'general', name: 'preference-general', component: page },
           { path: 'network', name: 'preference-network', component: page },
+          { path: 'advanced', name: 'preference-advanced', component: page },
         ],
       },
     ],
@@ -45,6 +51,17 @@ async function setup(path: string) {
 
 beforeEach(() => {
   preferences.config.sidebarTaskCounts = true
+})
+
+const ExtensionHost = defineComponent({
+  components: { AppSidebar, ExtensionPanel },
+  setup() {
+    return { show: ref(false) }
+  },
+  template: `
+    <AppSidebar compact :extensions-open="show" @show-extensions="show = true" />
+    <ExtensionPanel :show="show" @close="show = false" />
+  `,
 })
 
 describe('unified navigation', () => {
@@ -81,9 +98,57 @@ describe('unified navigation', () => {
     const wrapper = mount(AppSidebar, { global: { plugins: [router] } })
     expect(wrapper.get('a.active').attributes('aria-label')).toBe('navigation.settings')
     expect(wrapper.get('a.active').attributes('aria-current')).toBe('page')
-    await wrapper.get('button').trigger('click')
+    await wrapper.get('button[aria-label="navigation.about"]').trigger('click')
     expect(wrapper.emitted('show-about')).toHaveLength(1)
     wrapper.unmount()
+  })
+
+  it('opens the extension panel from compact navigation and restores focus on Escape', async () => {
+    const router = await setup('/task/progress')
+    const wrapper = mount(ExtensionHost, {
+      attachTo: document.body,
+      global: { plugins: [router], stubs: { transition: false } },
+    })
+    const trigger = wrapper.get<HTMLButtonElement>('button[aria-label="navigation.extensions"]')
+    try {
+      trigger.element.focus()
+      await trigger.trigger('click')
+      await flushPromises()
+      const panel = document.querySelector<HTMLElement>('.extension-panel')
+      expect(panel?.getAttribute('role')).toBe('dialog')
+      expect(panel?.getAttribute('aria-modal')).toBe('true')
+      await vi.waitFor(() => expect(panel?.contains(document.activeElement)).toBe(true))
+      expect(trigger.attributes('aria-expanded')).toBe('true')
+      panel?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }))
+      await flushPromises()
+      expect(trigger.attributes('aria-expanded')).toBe('false')
+      await vi.waitFor(() => expect(document.activeElement).toBe(trigger.element))
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('respects unsaved-change navigation guards when opening extension settings', async () => {
+    const router = await setup('/preference/network')
+    let allowNavigation = false
+    router.beforeEach(() => allowNavigation)
+    const wrapper = mount(ExtensionHost, { attachTo: document.body, global: { plugins: [router] } })
+    try {
+      const trigger = wrapper.get('button[aria-label="navigation.extensions"]')
+      for (const allowed of [false, true]) {
+        allowNavigation = allowed
+        await trigger.trigger('click')
+        await flushPromises()
+        const settings = document.querySelector<HTMLButtonElement>('.extension-settings')
+        expect(settings).not.toBeNull()
+        settings?.click()
+        await flushPromises()
+        expect(router.currentRoute.value.name).toBe(allowed ? 'preference-advanced' : 'preference-network')
+        expect(trigger.attributes('aria-expanded')).toBe('false')
+      }
+    } finally {
+      wrapper.unmount()
+    }
   })
 
   it('respects a cancelled route leave when returning to tasks', async () => {

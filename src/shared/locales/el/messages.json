@@ -595,8 +595,7 @@
     "extension-behavior-show": "Λήψη και εμφάνιση εργασιών",
     "software-rendering": "Απόδοση WebKitGTK μέσω λογισμικού",
     "software-rendering-hint": "Μόνο για διάγνωση προβλημάτων γραφικών στο Linux.",
-    "software-rendering-restart-confirm": "Επανεκκινήστε για εφαρμογή της αλλαγής απόδοσης.",
-    "install-extension": "Εγκατάσταση"
+    "software-rendering-restart-confirm": "Επανεκκινήστε για εφαρμογή της αλλαγής απόδοσης."
   },
   "task": {
     "scope-all": "Όλα",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "Σχετικά",
-    "settings": "Ρυθμίσεις"
+    "settings": "Ρυθμίσεις",
+    "extensions": "Επεκτάσεις"
+  },
+  "extension": {
+    "description": "Στείλτε τις λήψεις του προγράμματος περιήγησης στο Rayburst και ανακαλύψτε πολυμέσα στον ιστό.",
+    "install": "Εγκατάσταση για το πρόγραμμα περιήγησής σας",
+    "connection-settings": "Ρυθμίσεις σύνδεσης"
   }
 }

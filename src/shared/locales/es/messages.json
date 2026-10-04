@@ -595,8 +595,7 @@
     "extension-behavior-show": "Descargar y mostrar tareas",
     "software-rendering": "Renderizado por software de WebKitGTK",
     "software-rendering-hint": "Solo para diagnosticar problemas gráficos en Linux.",
-    "software-rendering-restart-confirm": "Reinicia para aplicar el cambio de renderizado.",
-    "install-extension": "Instalar"
+    "software-rendering-restart-confirm": "Reinicia para aplicar el cambio de renderizado."
   },
   "task": {
     "scope-all": "Todas",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "Acerca de",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "extensions": "Extensiones"
+  },
+  "extension": {
+    "description": "Envía las descargas del navegador a Rayburst y descubre contenido multimedia en la web.",
+    "install": "Instala en tu navegador",
+    "connection-settings": "Ajustes de conexión"
   }
 }

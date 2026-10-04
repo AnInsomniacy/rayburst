@@ -595,8 +595,7 @@
     "extension-behavior-show": "Downloaden en taken tonen",
     "software-rendering": "WebKitGTK-softwarerendering",
     "software-rendering-hint": "Alleen voor het onderzoeken van grafische problemen op Linux.",
-    "software-rendering-restart-confirm": "Herstart om de renderingwijziging toe te passen.",
-    "install-extension": "Installeren"
+    "software-rendering-restart-confirm": "Herstart om de renderingwijziging toe te passen."
   },
   "task": {
     "scope-all": "Alle",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "Over",
-    "settings": "Instellingen"
+    "settings": "Instellingen",
+    "extensions": "Extensies"
+  },
+  "extension": {
+    "description": "Stuur browserdownloads naar Rayburst en ontdek media op het web.",
+    "install": "Installeren voor je browser",
+    "connection-settings": "Verbindingsinstellingen"
   }
 }

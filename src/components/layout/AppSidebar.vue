@@ -5,15 +5,15 @@ import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import MTooltip from '@/components/common/MTooltip.vue'
 import { NIcon } from 'naive-ui'
-import { InformationCircleOutline, SettingsOutline } from '@vicons/ionicons5'
+import { ExtensionPuzzleOutline, InformationCircleOutline, SettingsOutline } from '@vicons/ionicons5'
 import { useTaskStore } from '@/stores/task'
 import { usePreferenceStore } from '@/stores/preference'
 import SidebarCount from './SidebarCount.vue'
 import { useTaskDestinations } from './navigation'
 
-defineProps<{ compact?: boolean }>()
+defineProps<{ compact?: boolean; extensionsOpen?: boolean }>()
 
-const emit = defineEmits<{ 'show-about': [] }>()
+const emit = defineEmits<{ 'show-about': []; 'show-extensions': [] }>()
 const { t } = useI18n()
 const route = useRoute()
 const taskDestinations = useTaskDestinations()
@@ -52,15 +52,6 @@ const isSettings = computed(() => route.matched.some((record) => record.name ===
     <div class="sidebar-bottom">
       <MTooltip placement="right" :disabled="!compact">
         <template #trigger>
-          <button type="button" class="sidebar-item" :aria-label="t('navigation.about')" @click="emit('show-about')">
-            <NIcon :size="18" aria-hidden="true"><InformationCircleOutline /></NIcon>
-            <span class="sidebar-label">{{ t('navigation.about') }}</span>
-          </button>
-        </template>
-        {{ t('navigation.about') }}
-      </MTooltip>
-      <MTooltip placement="right" :disabled="!compact">
-        <template #trigger>
           <RouterLink
             :to="{ name: 'preference-general' }"
             class="sidebar-item"
@@ -73,6 +64,32 @@ const isSettings = computed(() => route.matched.some((record) => record.name ===
           </RouterLink>
         </template>
         {{ t('navigation.settings') }}
+      </MTooltip>
+      <MTooltip placement="right" :disabled="!compact || extensionsOpen">
+        <template #trigger>
+          <button
+            type="button"
+            class="sidebar-item"
+            :class="{ active: extensionsOpen }"
+            :aria-label="t('navigation.extensions')"
+            :aria-expanded="!!extensionsOpen"
+            aria-haspopup="dialog"
+            @click="emit('show-extensions')"
+          >
+            <NIcon :size="18" aria-hidden="true"><ExtensionPuzzleOutline /></NIcon>
+            <span class="sidebar-label">{{ t('navigation.extensions') }}</span>
+          </button>
+        </template>
+        {{ t('navigation.extensions') }}
+      </MTooltip>
+      <MTooltip placement="right" :disabled="!compact">
+        <template #trigger>
+          <button type="button" class="sidebar-item" :aria-label="t('navigation.about')" @click="emit('show-about')">
+            <NIcon :size="18" aria-hidden="true"><InformationCircleOutline /></NIcon>
+            <span class="sidebar-label">{{ t('navigation.about') }}</span>
+          </button>
+        </template>
+        {{ t('navigation.about') }}
       </MTooltip>
     </div>
   </nav>

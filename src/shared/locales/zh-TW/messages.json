@@ -595,8 +595,7 @@
     "extension-behavior-show": "下載並顯示工作",
     "software-rendering": "WebKitGTK 軟體算繪",
     "software-rendering-hint": "僅用於排查 Linux 圖形問題。",
-    "software-rendering-restart-confirm": "重新啟動以套用算繪設定。",
-    "install-extension": "安裝"
+    "software-rendering-restart-confirm": "重新啟動以套用算繪設定。"
   },
   "task": {
     "scope-all": "全部",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "關於",
-    "settings": "設定"
+    "settings": "設定",
+    "extensions": "擴充功能"
+  },
+  "extension": {
+    "description": "接管瀏覽器下載，探索網頁媒體。",
+    "install": "安裝至你的瀏覽器",
+    "connection-settings": "連線設定"
   }
 }

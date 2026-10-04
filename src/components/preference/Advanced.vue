@@ -13,7 +13,6 @@ import { useHistoryStore } from '@/stores/history'
 import { useAdvancedActions } from '@/composables/useAdvancedActions'
 import { useEngineRestart } from '@/composables/useEngineRestart'
 import PreferenceAssociations from './PreferenceAssociations.vue'
-import ExtensionInstall from './ExtensionInstall.vue'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { appDataDir, appLogDir, join, tempDir } from '@tauri-apps/api/path'
 import { APP_LOG_LEVELS, ARIA2_LOG_LEVELS } from '@shared/constants'
@@ -351,7 +350,6 @@ onMounted(async () => {
     <div class="preference-form-scroll">
       <NForm label-placement="left" label-align="left" label-width="260px" size="small" class="form-preference">
         <NDivider title-placement="left">{{ t('preferences.extension-section') }}</NDivider>
-        <NFormItem label="Rayburst Connect"><ExtensionInstall /></NFormItem>
         <NFormItem :label="t('preferences.extension-download-behavior')">
           <NSelect
             v-model:value="form.extensionDownloadBehavior"

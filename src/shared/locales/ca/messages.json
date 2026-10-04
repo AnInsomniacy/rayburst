@@ -595,8 +595,7 @@
     "extension-behavior-show": "Baixa i mostra les tasques",
     "software-rendering": "Renderització per programari de WebKitGTK",
     "software-rendering-hint": "Només per diagnosticar problemes gràfics al Linux.",
-    "software-rendering-restart-confirm": "Reinicia per aplicar el canvi de renderització.",
-    "install-extension": "Instal·la"
+    "software-rendering-restart-confirm": "Reinicia per aplicar el canvi de renderització."
   },
   "task": {
     "scope-all": "Totes",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "Quant a",
-    "settings": "Configuració"
+    "settings": "Configuració",
+    "extensions": "Extensions"
+  },
+  "extension": {
+    "description": "Envia les baixades del navegador a Rayburst i descobreix contingut multimèdia al web.",
+    "install": "Instal·la al teu navegador",
+    "connection-settings": "Configuració de la connexió"
   }
 }

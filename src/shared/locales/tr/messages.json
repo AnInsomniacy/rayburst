@@ -595,8 +595,7 @@
     "extension-behavior-show": "İndir ve görevleri göster",
     "software-rendering": "WebKitGTK yazılım ile işleme",
     "software-rendering-hint": "Yalnızca Linux grafik sorunlarını teşhis etmek için kullanın.",
-    "software-rendering-restart-confirm": "İşleme değişikliğini uygulamak için yeniden başlatın.",
-    "install-extension": "Yükle"
+    "software-rendering-restart-confirm": "İşleme değişikliğini uygulamak için yeniden başlatın."
   },
   "task": {
     "scope-all": "Tümü",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "Hakkında",
-    "settings": "Ayarlar"
+    "settings": "Ayarlar",
+    "extensions": "Uzantılar"
+  },
+  "extension": {
+    "description": "Tarayıcı indirmelerini Rayburst'e gönderin ve web medyasını keşfedin.",
+    "install": "Tarayıcınıza yükleyin",
+    "connection-settings": "Bağlantı ayarları"
   }
 }

@@ -35,6 +35,7 @@ import Speedometer from '@/components/layout/Speedometer.vue'
 import WindowControls from '@/components/layout/WindowControls.vue'
 import EngineRecoveryDialog from '@/components/layout/EngineRecoveryDialog.vue'
 import AboutPanel from '@/components/about/AboutPanel.vue'
+import ExtensionPanel from '@/components/extension/ExtensionPanel.vue'
 import AddTask from '@/components/task/AddTask.vue'
 import UpdateDialog from '@/components/preference/UpdateDialog.vue'
 import TaskSelectionHost from '@/components/task/TaskSelectionHost.vue'
@@ -88,6 +89,7 @@ const pageTitle = computed(() =>
     : t('navigation.settings'),
 )
 const showAbout = ref(false)
+const showExtensions = ref(false)
 function openAbout() {
   showAbout.value = true
 }
@@ -763,7 +765,13 @@ onUnmounted(() => {
     <div class="sidebar-heading" data-tauri-drag-region>
       <h2 data-tauri-drag-region>{{ t('app.task-list') }}</h2>
     </div>
-    <AppSidebar :compact="compactNavigation" class="sidebar-slot" @show-about="openAbout" />
+    <AppSidebar
+      :compact="compactNavigation"
+      :extensions-open="showExtensions"
+      class="sidebar-slot"
+      @show-about="openAbout"
+      @show-extensions="showExtensions = true"
+    />
     <header class="page-header" data-tauri-drag-region>
       <div class="page-title-slot" data-tauri-drag-region>
         <Transition name="page-title" mode="out-in">
@@ -820,6 +828,7 @@ onUnmounted(() => {
       <Speedometer />
     </footer>
     <AboutPanel :show="showAbout" @close="showAbout = false" />
+    <ExtensionPanel :show="showExtensions" @close="showExtensions = false" />
     <AddTask
       :show="appStore.addTaskVisible"
       @close="appStore.hideAddTaskDialog()"
@@ -834,6 +843,7 @@ onUnmounted(() => {
         taskStore.taskDetailVisible ||
         taskStore.taskDetailClosing ||
         showAbout ||
+        showExtensions ||
         showExitDialog ||
         engineStore.isBusy
       "

@@ -595,8 +595,7 @@
     "extension-behavior-show": "다운로드하고 작업 표시",
     "software-rendering": "WebKitGTK 소프트웨어 렌더링",
     "software-rendering-hint": "Linux 그래픽 문제 진단에만 사용하세요.",
-    "software-rendering-restart-confirm": "렌더링 변경을 적용하려면 다시 시작하세요.",
-    "install-extension": "설치"
+    "software-rendering-restart-confirm": "렌더링 변경을 적용하려면 다시 시작하세요."
   },
   "task": {
     "scope-all": "전체",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "정보",
-    "settings": "설정"
+    "settings": "설정",
+    "extensions": "확장 프로그램"
+  },
+  "extension": {
+    "description": "브라우저 다운로드를 Rayburst로 보내고 웹 미디어를 찾아보세요.",
+    "install": "브라우저에 설치",
+    "connection-settings": "연결 설정"
   }
 }

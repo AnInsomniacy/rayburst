@@ -595,8 +595,7 @@
     "extension-behavior-show": "Завантажувати й показувати завдання",
     "software-rendering": "Програмний рендеринг WebKitGTK",
     "software-rendering-hint": "Лише для діагностики графічних проблем у Linux.",
-    "software-rendering-restart-confirm": "Перезапустіть для застосування зміни рендерингу.",
-    "install-extension": "Встановити"
+    "software-rendering-restart-confirm": "Перезапустіть для застосування зміни рендерингу."
   },
   "task": {
     "scope-all": "Усі",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "Про програму",
-    "settings": "Налаштування"
+    "settings": "Налаштування",
+    "extensions": "Розширення"
+  },
+  "extension": {
+    "description": "Передавайте завантаження з браузера до Rayburst і знаходьте медіафайли в інтернеті.",
+    "install": "Установити для вашого браузера",
+    "connection-settings": "Налаштування підключення"
   }
 }

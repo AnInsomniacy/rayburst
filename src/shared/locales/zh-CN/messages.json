@@ -595,8 +595,7 @@
     "extension-behavior-show": "下载并显示任务",
     "software-rendering": "WebKitGTK 软件渲染",
     "software-rendering-hint": "仅用于排查 Linux 图形问题。",
-    "software-rendering-restart-confirm": "重启以应用渲染设置。",
-    "install-extension": "安装"
+    "software-rendering-restart-confirm": "重启以应用渲染设置。"
   },
   "task": {
     "scope-all": "全部",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "关于",
-    "settings": "设置"
+    "settings": "设置",
+    "extensions": "扩展"
+  },
+  "extension": {
+    "description": "接管浏览器下载，发现网页媒体。",
+    "install": "安装到你的浏览器",
+    "connection-settings": "连接设置"
   }
 }

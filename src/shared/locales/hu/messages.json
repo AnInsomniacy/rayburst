@@ -595,8 +595,7 @@
     "extension-behavior-show": "Letöltés és feladatok megjelenítése",
     "software-rendering": "WebKitGTK szoftveres megjelenítés",
     "software-rendering-hint": "Csak Linux grafikai problémák diagnosztikájához.",
-    "software-rendering-restart-confirm": "A megjelenítési módosítás alkalmazásához indítsa újra.",
-    "install-extension": "Telepítés"
+    "software-rendering-restart-confirm": "A megjelenítési módosítás alkalmazásához indítsa újra."
   },
   "task": {
     "scope-all": "Összes",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "Névjegy",
-    "settings": "Beállítások"
+    "settings": "Beállítások",
+    "extensions": "Bővítmények"
+  },
+  "extension": {
+    "description": "Küldje a böngésző letöltéseit a Rayburst alkalmazásba, és fedezzen fel médiatartalmakat a weben.",
+    "install": "Telepítés a böngészőhöz",
+    "connection-settings": "Kapcsolat beállításai"
   }
 }

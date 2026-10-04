@@ -595,8 +595,7 @@
     "extension-behavior-show": "Descarcă și afișează sarcinile",
     "software-rendering": "Randare software WebKitGTK",
     "software-rendering-hint": "Doar pentru diagnosticarea problemelor grafice pe Linux.",
-    "software-rendering-restart-confirm": "Repornește pentru a aplica modificarea randării.",
-    "install-extension": "Instalează"
+    "software-rendering-restart-confirm": "Repornește pentru a aplica modificarea randării."
   },
   "task": {
     "scope-all": "Toate",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "Despre",
-    "settings": "Setări"
+    "settings": "Setări",
+    "extensions": "Extensii"
+  },
+  "extension": {
+    "description": "Trimite descărcările din browser către Rayburst și descoperă conținut media pe web.",
+    "install": "Instalează pentru browserul tău",
+    "connection-settings": "Setări de conexiune"
   }
 }

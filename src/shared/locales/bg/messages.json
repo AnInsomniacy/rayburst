@@ -595,8 +595,7 @@
     "extension-behavior-show": "Изтегляне и показване на задачите",
     "software-rendering": "Софтуерно изобразяване на WebKitGTK",
     "software-rendering-hint": "Само за диагностика на графични проблеми в Linux.",
-    "software-rendering-restart-confirm": "Рестартирайте, за да приложите промяната.",
-    "install-extension": "Инсталиране"
+    "software-rendering-restart-confirm": "Рестартирайте, за да приложите промяната."
   },
   "task": {
     "scope-all": "Всички",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "Относно",
-    "settings": "Настройки"
+    "settings": "Настройки",
+    "extensions": "Разширения"
+  },
+  "extension": {
+    "description": "Изпращайте изтеглянията от браузъра към Rayburst и откривайте медия в уеб.",
+    "install": "Инсталирайте за вашия браузър",
+    "connection-settings": "Настройки на връзката"
   }
 }

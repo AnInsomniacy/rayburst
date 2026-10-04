@@ -595,8 +595,7 @@
     "extension-behavior-show": "التنزيل وإظهار المهام",
     "software-rendering": "العرض البرمجي لـ WebKitGTK",
     "software-rendering-hint": "يُستخدم فقط لاستكشاف مشاكل الرسوميات في Linux.",
-    "software-rendering-restart-confirm": "أعد التشغيل لتطبيق تغيير العرض.",
-    "install-extension": "تثبيت"
+    "software-rendering-restart-confirm": "أعد التشغيل لتطبيق تغيير العرض."
   },
   "task": {
     "scope-all": "الكل",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "حول",
-    "settings": "الإعدادات"
+    "settings": "الإعدادات",
+    "extensions": "الإضافات"
+  },
+  "extension": {
+    "description": "أرسل تنزيلات المتصفح إلى Rayburst واكتشف الوسائط على الويب.",
+    "install": "ثبّت الإضافة لمتصفحك",
+    "connection-settings": "إعدادات الاتصال"
   }
 }

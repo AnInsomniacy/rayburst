@@ -595,8 +595,7 @@
     "extension-behavior-show": "ดาวน์โหลดและแสดงงาน",
     "software-rendering": "การเรนเดอร์ด้วยซอฟต์แวร์ WebKitGTK",
     "software-rendering-hint": "ใช้เพื่อวินิจฉัยปัญหากราฟิกบน Linux เท่านั้น",
-    "software-rendering-restart-confirm": "เริ่มใหม่เพื่อใช้การเปลี่ยนแปลงการเรนเดอร์",
-    "install-extension": "ติดตั้ง"
+    "software-rendering-restart-confirm": "เริ่มใหม่เพื่อใช้การเปลี่ยนแปลงการเรนเดอร์"
   },
   "task": {
     "scope-all": "ทั้งหมด",
@@ -939,6 +938,12 @@
   },
   "navigation": {
     "about": "เกี่ยวกับ",
-    "settings": "การตั้งค่า"
+    "settings": "การตั้งค่า",
+    "extensions": "ส่วนขยาย"
+  },
+  "extension": {
+    "description": "ส่งการดาวน์โหลดจากเบราว์เซอร์ไปยัง Rayburst และค้นหาสื่อบนเว็บ",
+    "install": "ติดตั้งสำหรับเบราว์เซอร์ของคุณ",
+    "connection-settings": "การตั้งค่าการเชื่อมต่อ"
   }
 }
