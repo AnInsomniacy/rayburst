@@ -20,6 +20,7 @@ pub(super) async fn prepare(
     }
     let database = app.state::<crate::database::DatabaseState>();
     apply_saved_credentials(&database.0, uris, options).await?;
+    crate::services::tasks::bittorrent::prepare(app, uris, options).await?;
     let mut automatic = false;
     if uris
         .iter()

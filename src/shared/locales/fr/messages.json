@@ -867,7 +867,6 @@
     "no-active-tasks": "Aucune tâche active",
     "failed": "tâche(s) impossible(s) à ajouter",
     "file-load-failed": "Échec du chargement du fichier",
-    "magnet-select-fail": "Échec de la configuration du téléchargement",
     "magnet-task": "Tâche magnet",
     "magnet-start-download": "Démarrer le téléchargement",
     "magnet-choose-later": "Choisir plus tard",

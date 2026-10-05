@@ -210,6 +210,8 @@ pub struct Aria2MediaTrack {
 pub struct Aria2Task {
     #[serde(default)]
     pub selection_managed: bool,
+    #[serde(default)]
+    pub selection_prompt: bool,
     pub gid: String,
     pub status: String,
     pub total_length: String,

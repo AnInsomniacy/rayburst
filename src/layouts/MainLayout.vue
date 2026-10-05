@@ -22,7 +22,6 @@ import { ARIA2_ERROR_CODES } from '@shared/aria2ErrorCodes'
 import { useHistoryStore } from '@/stores/history'
 import { useDatabaseStore } from '@/stores/database'
 import { useDatabaseReset } from '@/composables/useDatabaseReset'
-import { useBtSelection } from '@/composables/useBtSelection'
 import aria2Api from '@/api/aria2'
 import { usePlatform } from '@/composables/usePlatform'
 import { throttledResizeHandler, cancelPendingResize } from '@/layouts/resizeThrottle'
@@ -55,7 +54,6 @@ const taskStore = useTaskStore()
 useIntervalFn(() => {
   if (engineStore.isReady) void taskStore.fetchList(false)
 }, TASK_REFRESH_INTERVAL)
-const btSelection = useBtSelection()
 const preferenceStore = usePreferenceStore()
 const navDialog = useDialog()
 const message = useAppMessage()
@@ -255,13 +253,7 @@ function stopStatListener() {
 // Native pause events refresh the same snapshot used by the selection queue.
 async function startAria2DownloadPauseListener() {
   stopAria2DownloadPauseListener()
-  unlistenAria2DownloadPause = await listen<{ gid: string }>('aria2-event:download-pause', async ({ payload }) => {
-    try {
-      await btSelection.classifyPending(payload.gid)
-    } catch (error) {
-      logger.error('BtSelection.classify', error)
-      message.error(t('task.magnet-select-fail'))
-    }
+  unlistenAria2DownloadPause = await listen('aria2-event:download-pause', async () => {
     await taskStore.fetchList()
   })
 }
@@ -597,6 +589,7 @@ onMounted(async () => {
   }
 
   unlistenTaskMonitor = [
+    await listen<string>('bt-selection:error', ({ payload }) => message.error(payload)),
     await listen<{ gid: string }>('tasks:changed', () => {
       void taskStore.fetchList()
     }),

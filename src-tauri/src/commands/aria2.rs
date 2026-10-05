@@ -20,17 +20,39 @@ const ED2K_SEARCH_TEMP_PREFIX: &str = "rayburst-ed2k-search-";
 /// Fetch task list by type.
 #[tauri::command]
 pub async fn aria2_fetch_task_list(
+    app: AppHandle,
     state: State<'_, TaskServiceState>,
     r#type: String,
     limit: Option<i64>,
 ) -> Result<Vec<Aria2Task>, AppError> {
-    let tasks = match r#type.as_str() {
+    let mut tasks = match r#type.as_str() {
         "all" => state.0.tell_task_snapshot(true).await,
         "active" => state.0.tell_task_snapshot(false).await,
         "waiting" => state.0.tell_waiting(0, limit.unwrap_or(1000)).await,
         _ => state.0.tell_stopped(0, limit.unwrap_or(1000)).await,
     }?;
+    crate::services::tasks::bittorrent::decorate(&app, &mut tasks).await?;
     Ok(state.0.tasks.visible_tasks(tasks).await)
+}
+
+#[tauri::command]
+pub async fn aria2_select_bt_files(
+    app: AppHandle,
+    state: State<'_, TaskServiceState>,
+    gid: String,
+    indices: Vec<u32>,
+) -> Result<(), AppError> {
+    crate::services::tasks::bittorrent::select(&app, &state.0, &gid, indices, false).await
+}
+
+#[tauri::command]
+pub async fn aria2_defer_bt_selection(
+    state: State<'_, TaskServiceState>,
+    history: State<'_, DatabaseState>,
+    gid: String,
+) -> Result<(), AppError> {
+    let _mutation = state.0.mutation.lock().await;
+    history.0.defer_bt_selection(&gid, true).await
 }
 
 /// Fetch only active tasks (no waiting).
@@ -487,6 +509,7 @@ async fn delete_task(
     history: &Database,
     gid: &str,
     delete_mode: Option<crate::commands::fs::FileDeletionMode>,
+    protected_roots: &HashSet<PathBuf>,
 ) -> Result<(), AppError> {
     use crate::services::tasks::files::{
         content_paths, delete_content, history_task, path_identity,
@@ -509,6 +532,22 @@ async fn delete_task(
         .as_ref()
         .map(|task| content_paths(&task.files, false))
         .unwrap_or_default();
+    let root = task
+        .as_ref()
+        .map(|task| PathBuf::from(&task.dir))
+        .unwrap_or_default();
+    let mut protected_directories: HashSet<_> = snapshot
+        .iter()
+        .filter(|task| task.gid != gid)
+        .map(|task| path_identity(Path::new(&task.dir)))
+        .chain(
+            records
+                .iter()
+                .filter(|record| record.gid != gid)
+                .filter_map(|record| record.dir.as_deref())
+                .map(|dir| path_identity(Path::new(dir))),
+        )
+        .collect();
     let protected_tasks = snapshot
         .iter()
         .chain(
@@ -522,6 +561,14 @@ async fn delete_task(
         .filter(|task| task.gid != gid)
         .flat_map(|task| content_paths(&task.files, false))
         .collect::<Vec<_>>();
+    protected_directories.extend(protected_roots.iter().cloned());
+    protected_directories.extend(
+        protected_tasks
+            .iter()
+            .filter_map(|path| path.parent())
+            .flat_map(Path::ancestors)
+            .map(path_identity),
+    );
     if delete_mode.is_some() && !records.iter().any(|record| record.gid == gid) {
         if let Some(task) = &task {
             let event = crate::services::monitor::TaskEvent::from_aria2(task);
@@ -536,13 +583,14 @@ async fn delete_task(
     }
     remove_engine_task(client, gid).await?;
     client.tasks.mark_deleted(gid);
+    history.remove_bt_selection(gid).await?;
     if let Some(mode) = delete_mode {
         tokio::task::spawn_blocking(move || {
             let protected = protected_tasks
                 .iter()
                 .map(|path| path_identity(path))
                 .collect();
-            delete_content(&paths, &protected, mode)
+            delete_content(&paths, &protected, &root, &protected_directories, mode)
         })
         .await
         .map_err(|error| AppError::Io(error.to_string()))??;
@@ -577,12 +625,33 @@ async fn finish_sharing_task(
 /// Delete a task regardless of whether it is live, transitioning, or stopped.
 #[tauri::command]
 pub async fn aria2_delete_task(
+    app: AppHandle,
     state: State<'_, TaskServiceState>,
     history: State<'_, DatabaseState>,
     gid: String,
     delete_mode: Option<crate::commands::fs::FileDeletionMode>,
 ) -> Result<(), AppError> {
-    delete_task(&state.0, &history.0, &gid, delete_mode).await
+    let protected = if delete_mode.is_some() {
+        protected_download_directories(&app)?
+    } else {
+        HashSet::new()
+    };
+    delete_task(&state.0, &history.0, &gid, delete_mode, &protected).await
+}
+
+fn protected_download_directories(app: &AppHandle) -> Result<HashSet<PathBuf>, AppError> {
+    use crate::services::{
+        downloads::{category, preferences},
+        tasks::files::path_identity,
+    };
+    let prefs = preferences::load(app)?;
+    let mut roots = HashSet::from([path_identity(Path::new(&prefs.dir))]);
+    for entry in &prefs.file_categories {
+        roots.insert(path_identity(Path::new(&category::directory(
+            &prefs.dir, entry,
+        )?)));
+    }
+    Ok(roots)
 }
 
 /// Inspect only engine/database-owned paths, never paths supplied by a card.
@@ -615,13 +684,26 @@ pub async fn task_file_states(
 /// Delete multiple tasks while preserving per-task history cleanup semantics.
 #[tauri::command]
 pub async fn aria2_batch_delete_tasks(
+    app: AppHandle,
     state: State<'_, TaskServiceState>,
     history: State<'_, DatabaseState>,
     tasks: Vec<BatchDeleteTaskTarget>,
 ) -> Result<BatchTaskOperationResult, AppError> {
     let mut result = BatchTaskOperationResult::default();
+    let protected = if tasks.iter().any(|target| target.delete_mode.is_some()) {
+        protected_download_directories(&app)?
+    } else {
+        HashSet::new()
+    };
     for target in tasks {
-        let operation = delete_task(&state.0, &history.0, &target.gid, target.delete_mode).await;
+        let operation = delete_task(
+            &state.0,
+            &history.0,
+            &target.gid,
+            target.delete_mode,
+            &protected,
+        )
+        .await;
         result.record(target.gid, operation);
     }
     log::info!(
@@ -665,31 +747,34 @@ pub async fn aria2_batch_finish_sharing(
 /// Forcefully pause a task by GID.
 #[tauri::command]
 pub async fn aria2_force_pause(
+    app: AppHandle,
     state: State<'_, TaskServiceState>,
     gid: String,
 ) -> Result<String, AppError> {
     log::debug!("aria2:force-pause gid={gid}");
-    state.0.force_pause(&gid).await
+    crate::services::tasks::bittorrent::pause(&app, &state.0, Some(&gid), true).await
 }
 
 /// Gracefully pause a task.
 #[tauri::command]
 pub async fn aria2_pause(
+    app: AppHandle,
     state: State<'_, TaskServiceState>,
     gid: String,
 ) -> Result<String, AppError> {
     log::debug!("aria2:pause gid={gid}");
-    state.0.pause(&gid).await
+    crate::services::tasks::bittorrent::pause(&app, &state.0, Some(&gid), false).await
 }
 
 /// Resume a paused task.
 #[tauri::command]
 pub async fn aria2_unpause(
+    app: AppHandle,
     state: State<'_, TaskServiceState>,
     gid: String,
 ) -> Result<String, AppError> {
     log::debug!("aria2:resume gid={gid}");
-    state.0.unpause(&gid).await
+    crate::services::tasks::bittorrent::resume(&app, &state.0, &gid).await
 }
 
 /// Save the current aria2 session to disk.
@@ -723,7 +808,10 @@ pub async fn aria2_purge_task_records(
 
 /// Forcefully pause every active engine task through the native RPC.
 #[tauri::command]
-pub async fn aria2_force_pause_all(state: State<'_, TaskServiceState>) -> Result<String, AppError> {
+pub async fn aria2_force_pause_all(
+    app: AppHandle,
+    state: State<'_, TaskServiceState>,
+) -> Result<String, AppError> {
     const SETTLE_ATTEMPTS: usize = 100;
     const SETTLE_DELAY: std::time::Duration = std::time::Duration::from_millis(50);
 
@@ -736,7 +824,7 @@ pub async fn aria2_force_pause_all(state: State<'_, TaskServiceState>) -> Result
         .collect::<HashSet<_>>();
 
     log::info!("aria2:pause-all count={}", targets.len());
-    let response = state.0.force_pause_all().await?;
+    let response = crate::services::tasks::bittorrent::pause(&app, &state.0, None, true).await?;
     for _ in 0..SETTLE_ATTEMPTS {
         let (active, waiting) =
             tokio::try_join!(state.0.tell_active(), state.0.tell_waiting(0, 1000))?;
@@ -757,9 +845,10 @@ pub async fn aria2_force_pause_all(state: State<'_, TaskServiceState>) -> Result
 /// Resume paused tasks while keeping unresolved magnet selections paused.
 #[tauri::command]
 pub async fn aria2_resume_eligible(
+    app: AppHandle,
     state: State<'_, TaskServiceState>,
 ) -> Result<crate::services::tasks::ResumeEligibleResult, AppError> {
-    let result = state.0.resume_eligible().await?;
+    let result = crate::services::tasks::bittorrent::resume_all(&app, &state.0).await?;
     log::info!(
         "aria2:resume-eligible resumed={} blocked={}",
         result.resumed,
@@ -830,9 +919,15 @@ mod tests {
         )
         .await
         .unwrap();
-        super::delete_task(&client, &db, "task", None)
-            .await
-            .unwrap();
+        super::delete_task(
+            &client,
+            &db,
+            "task",
+            None,
+            &std::collections::HashSet::new(),
+        )
+        .await
+        .unwrap();
         assert_eq!(state.load(Ordering::Relaxed), 2);
         assert!(db.get_record("task").await.unwrap().is_none());
         server.abort();

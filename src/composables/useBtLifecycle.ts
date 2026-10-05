@@ -1,4 +1,5 @@
 import type { Aria2Task } from '@shared/types'
+import { isPendingMagnetSelectionTask } from './useMagnetFlow'
 
 export type BtLifecycleState =
   | 'none'
@@ -17,7 +18,7 @@ export function getBtLifecycleState(task: Aria2Task): BtLifecycleState {
   if (!task.bittorrent) return 'none'
 
   if (task.bittorrent.state === 'error' || task.bittorrent.error) return 'error'
-  if (task.bittorrent.fileSelectionState === 'awaiting') return 'selection'
+  if (isPendingMagnetSelectionTask(task)) return 'selection'
   if (task.status === 'complete' || task.status === 'error' || task.status === 'removed') return 'terminal'
 
   switch (task.bittorrent.state) {
@@ -43,7 +44,7 @@ export function getBtLifecycleState(task: Aria2Task): BtLifecycleState {
 }
 
 export function isAwaitingBtFileSelection(task: Aria2Task): boolean {
-  return getBtLifecycleState(task) === 'selection'
+  return isPendingMagnetSelectionTask(task)
 }
 
 export function formatSharingDuration(

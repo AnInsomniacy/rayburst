@@ -867,7 +867,6 @@
     "no-active-tasks": "ไม่มีงานที่กำลังดำเนินการ",
     "failed": "งานไม่สามารถเพิ่มได้",
     "file-load-failed": "โหลดไฟล์ล้มเหลว",
-    "magnet-select-fail": "ไม่สามารถกำหนดค่าการดาวน์โหลด",
     "magnet-task": "งาน Magnet",
     "magnet-start-download": "เริ่มดาวน์โหลด",
     "magnet-choose-later": "เลือกภายหลัง",

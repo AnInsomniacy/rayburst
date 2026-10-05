@@ -867,7 +867,6 @@
     "no-active-tasks": "Ingen aktive oppgaver",
     "failed": "oppgave(r) kunne ikke legges til",
     "file-load-failed": "Filen kunne ikke lastes",
-    "magnet-select-fail": "Kunne ikke konfigurere nedlasting",
     "magnet-task": "Magnetoppgave",
     "magnet-start-download": "Start nedlasting",
     "magnet-choose-later": "Velg senere",

@@ -867,7 +867,6 @@
     "no-active-tasks": "لا توجد مهام نشطة",
     "failed": "مهمة (مهام) لم يتم إضافتها",
     "file-load-failed": "فشل تحميل الملف",
-    "magnet-select-fail": "فشل في تكوين التنزيل",
     "magnet-task": "مهمة مغناطيسية",
     "magnet-start-download": "بدء التنزيل",
     "magnet-choose-later": "اختر لاحقًا",

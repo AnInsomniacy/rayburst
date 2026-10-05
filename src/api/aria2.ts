@@ -81,6 +81,14 @@ export async function getFiles(params: { gid: string }): Promise<Aria2File[]> {
   return data.map((f) => changeKeysToCamelCase(f)) as unknown as Aria2File[]
 }
 
+export async function selectBtFiles(gid: string, indices: number[]): Promise<void> {
+  await invoke('aria2_select_bt_files', { gid, indices })
+}
+
+export async function deferBtSelection(gid: string): Promise<void> {
+  await invoke('aria2_defer_bt_selection', { gid })
+}
+
 export async function getBtTrackers(params: { gid: string }): Promise<Aria2BtTracker[]> {
   return invoke<Aria2BtTracker[]>('aria2_get_bt_trackers', { gid: params.gid })
 }

@@ -45,7 +45,7 @@ describe('resubmitTask', () => {
 
   it('retries an errored task with continuation and deduplicated mirrors', async () => {
     const api = createApi()
-    await resubmitTask(makeTask('error'), 'retry', api, history, 'prompt')
+    await resubmitTask(makeTask('error'), 'retry', api, history)
 
     expect(api.addUriAtomic).toHaveBeenCalledWith({
       uris: ['https://example.com/file.zip'],
@@ -61,7 +61,7 @@ describe('resubmitTask', () => {
 
   it('re-downloads a completed stream task as a fresh auto-renamed file', async () => {
     const api = createApi()
-    await resubmitTask(makeTask('complete'), 'redownload', api, history, 'prompt')
+    await resubmitTask(makeTask('complete'), 'redownload', api, history)
 
     expect(api.addUriAtomic.mock.calls[0][0].options).toMatchObject({
       continue: 'false',
@@ -74,7 +74,7 @@ describe('resubmitTask', () => {
     const api = createApi()
     api.fetchTaskItem.mockResolvedValue(makeTask('error', { gid: 'new-gid', errorMessage: 'rejected' }))
 
-    await expect(resubmitTask(makeTask('complete'), 'redownload', api, history, 'prompt')).rejects.toThrow('rejected')
+    await expect(resubmitTask(makeTask('complete'), 'redownload', api, history)).rejects.toThrow('rejected')
     expect(api.removeTask).toHaveBeenCalledWith({ gid: 'new-gid' })
     expect(api.removeTaskRecord).not.toHaveBeenCalled()
     expect(history.removeRecord).not.toHaveBeenCalled()

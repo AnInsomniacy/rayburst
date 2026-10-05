@@ -241,26 +241,6 @@ describe('resumeTask', () => {
     expect(api.getOption).not.toHaveBeenCalled()
     expect(api.resumeTask).not.toHaveBeenCalled()
   })
-
-  it('applies magnet file selection before resuming the paused task', async () => {
-    const calls: string[] = []
-    vi.mocked(api.changeOption).mockImplementation(async () => {
-      calls.push('select')
-    })
-    vi.mocked(api.resumeTask).mockImplementation(async () => {
-      calls.push('resume')
-      return 'OK'
-    })
-    const task = makeTask({ gid: 'magnet-download', status: TASK_STATUS.PAUSED })
-
-    await ops.applyMagnetFileSelection(task, '2-9', '/downloads/Videos')
-
-    expect(api.changeOption).toHaveBeenCalledWith({
-      gid: 'magnet-download',
-      options: { 'select-file': '2-9', dir: '/downloads/Videos' },
-    })
-    expect(calls).toEqual(['select', 'resume'])
-  })
 })
 
 // ═══════════════════════════════════════════════════════════════════

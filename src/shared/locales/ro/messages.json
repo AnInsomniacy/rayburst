@@ -867,7 +867,6 @@
     "no-active-tasks": "Nu există sarcini active",
     "failed": "sarcină(-ini) nu a/au putut fi adăugată(-e)",
     "file-load-failed": "Încărcarea fișierului a eșuat",
-    "magnet-select-fail": "Configurarea descărcării a eșuat",
     "magnet-task": "Sarcină magnet",
     "magnet-start-download": "Începe descărcarea",
     "magnet-choose-later": "Alege mai târziu",

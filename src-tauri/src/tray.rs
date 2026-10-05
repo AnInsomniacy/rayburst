@@ -233,7 +233,9 @@ pub fn dispatch_menu_action(app: &AppHandle, id: &str) {
             let app = app.clone();
             tauri::async_runtime::spawn(async move {
                 if let Some(aria2) = app.try_state::<crate::services::tasks::TaskServiceState>() {
-                    if let Err(e) = aria2.0.force_pause_all().await {
+                    if let Err(e) =
+                        crate::services::tasks::bittorrent::pause(&app, &aria2.0, None, true).await
+                    {
                         log::warn!("tray:pause-all failed: {e}");
                     }
                 }
@@ -244,7 +246,7 @@ pub fn dispatch_menu_action(app: &AppHandle, id: &str) {
             let app = app.clone();
             tauri::async_runtime::spawn(async move {
                 if let Some(aria2) = app.try_state::<crate::services::tasks::TaskServiceState>() {
-                    match aria2.0.resume_eligible().await {
+                    match crate::services::tasks::bittorrent::resume_all(&app, &aria2.0).await {
                         Ok(result) => log::info!(
                             "tray:resume-all resumed={} blocked={}",
                             result.resumed,

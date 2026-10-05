@@ -867,7 +867,6 @@
     "no-active-tasks": "진행 중인 작업이 없습니다",
     "failed": "개 작업을 추가할 수 없습니다",
     "file-load-failed": "파일 로드 실패",
-    "magnet-select-fail": "다운로드 구성에 실패했습니다",
     "magnet-task": "마그넷 작업",
     "magnet-start-download": "다운로드 시작",
     "magnet-choose-later": "나중에 선택",

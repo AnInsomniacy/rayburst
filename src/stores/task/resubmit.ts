@@ -9,7 +9,7 @@ import { checkTaskIsBT, getRestartDescriptors } from '@shared/utils'
 import { logger } from '@shared/logger'
 import { changeKeysToCamelCase } from '@shared/utils/config'
 import { engineOptionKeys } from '@shared/configKeys'
-import type { Aria2Task, MagnetFileSelectionPolicy } from '@shared/types'
+import type { Aria2Task } from '@shared/types'
 
 export type TaskResubmissionMode = 'retry' | 'redownload'
 
@@ -61,12 +61,7 @@ async function readResubmissionOptions(task: Aria2Task, api: TaskResubmissionApi
   return options
 }
 
-function applyModeOptions(
-  options: Record<string, string>,
-  mode: TaskResubmissionMode,
-  isBt: boolean,
-  magnetFileSelectionPolicy: MagnetFileSelectionPolicy,
-): void {
+function applyModeOptions(options: Record<string, string>, mode: TaskResubmissionMode, isBt: boolean): void {
   options.continue = mode === 'retry' || isBt ? 'true' : 'false'
   options.allowOverwrite = 'false'
   options.autoFileRenaming = mode === 'redownload' && !isBt ? 'true' : 'false'
@@ -74,7 +69,6 @@ function applyModeOptions(
   if (!isBt) return
   options.checkIntegrity = options.checkIntegrity ?? 'true'
   options.forceSave = options.forceSave ?? 'true'
-  options.pauseMetadata = magnetFileSelectionPolicy === 'download-all' ? 'false' : 'true'
 }
 
 async function assertSubmissionAccepted(api: TaskResubmissionApi, gid: string): Promise<void> {
@@ -118,8 +112,6 @@ export async function resubmitTask(
   mode: TaskResubmissionMode,
   api: TaskResubmissionApi,
   historyApi: TaskResubmissionHistoryApi,
-  magnetFileSelectionPolicy: MagnetFileSelectionPolicy,
-  registerPendingMagnet: (gid: string) => void | Promise<void> = () => undefined,
 ): Promise<string[]> {
   assertModeMatchesTask(task, mode)
 
@@ -128,7 +120,7 @@ export async function resubmitTask(
 
   const isBt = checkTaskIsBT(task)
   const options = await readResubmissionOptions(task, api)
-  applyModeOptions(options, mode, isBt, magnetFileSelectionPolicy)
+  applyModeOptions(options, mode, isBt)
   if (task.media) {
     if (mode !== 'redownload') throw new Error('Media retries require the native retry operation')
     const format = options.mediaFormat === 'mkv' ? 'mkv' : 'mp4'
@@ -151,7 +143,6 @@ export async function resubmitTask(
       const newGid = await api.addUriAtomic({ uris, options })
       createdGids.push(newGid)
       await assertSubmissionAccepted(api, newGid)
-      if (isBt && magnetFileSelectionPolicy !== 'download-all') await registerPendingMagnet(newGid)
     }
   } catch (error) {
     await rollbackSubmissions(api, createdGids)

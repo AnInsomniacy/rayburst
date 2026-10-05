@@ -867,7 +867,6 @@
     "no-active-tasks": "Nincsenek aktív feladatok",
     "failed": "feladat(ok) nem sikerült hozzáadni",
     "file-load-failed": "A fájl betöltése sikertelen",
-    "magnet-select-fail": "A letöltés konfigurálása sikertelen",
     "magnet-task": "Magnet feladat",
     "magnet-start-download": "Letöltés indítása",
     "magnet-choose-later": "Kiválasztás később",

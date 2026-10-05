@@ -867,7 +867,6 @@
     "no-active-tasks": "Tidak ada tugas aktif",
     "failed": "tugas tidak dapat ditambahkan",
     "file-load-failed": "Gagal memuat file",
-    "magnet-select-fail": "Gagal mengonfigurasi unduhan",
     "magnet-task": "Tugas Magnet",
     "magnet-start-download": "Mulai Unduhan",
     "magnet-choose-later": "Pilih nanti",

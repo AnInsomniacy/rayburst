@@ -751,6 +751,8 @@ pub fn run() {
             commands::aria2_change_global_option,
             commands::aria2_get_option,
             commands::aria2_change_option,
+            commands::aria2_select_bt_files,
+            commands::aria2_defer_bt_selection,
             commands::aria2_get_files,
             commands::aria2_add_uri,
             commands::resolve_file_category,

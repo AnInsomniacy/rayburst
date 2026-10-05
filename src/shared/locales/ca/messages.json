@@ -867,7 +867,6 @@
     "no-active-tasks": "No hi ha tasques actives",
     "failed": "tasques no afegides",
     "file-load-failed": "Error en carregar el fitxer",
-    "magnet-select-fail": "No s'ha pogut configurar la descàrrega",
     "magnet-task": "Tasca magnet",
     "magnet-start-download": "Iniciar descàrrega",
     "magnet-choose-later": "Tria més tard",

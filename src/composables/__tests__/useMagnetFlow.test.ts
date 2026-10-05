@@ -2,16 +2,13 @@
  *
  * Tests the pure logic extracted from the magnet flow:
  * - Detecting magnet URIs
- * - Building policy-specific aria2 options
  * - Parsing file selection from getFiles response
- * - Building select-file option string
  */
 import { describe, it, expect } from 'vitest'
 import type { Aria2File } from '@shared/types'
 
 // Dynamic import after module exists
-const { isMagnetUri, buildMagnetOptions, buildSelectFileOption, parseFilesForSelection } =
-  await import('@/composables/useMagnetFlow')
+const { isMagnetUri, parseFilesForSelection } = await import('@/composables/useMagnetFlow')
 
 describe('useMagnetFlow', () => {
   // ── isMagnetUri ─────────────────────────────────────────────────
@@ -35,32 +32,6 @@ describe('useMagnetFlow', () => {
 
     it('returns false for torrent file paths', () => {
       expect(isMagnetUri('/downloads/file.torrent')).toBe(false)
-    })
-  })
-
-  // ── buildMagnetOptions ──────────────────────────────────────────
-
-  describe('buildMagnetOptions', () => {
-    it('uses aria2 native continuation when every file should download', () => {
-      const options = buildMagnetOptions({ dir: '/downloads' }, 'download-all')
-      expect(options['pause-metadata']).toBe('false')
-    })
-
-    it('pauses metadata when download-all needs native file classification', () => {
-      const options = buildMagnetOptions({ dir: '/downloads' }, 'download-all', true)
-      expect(options['pause-metadata']).toBe('true')
-    })
-
-    it('pauses metadata for prompt and manual selection', () => {
-      const options = buildMagnetOptions({ dir: '/downloads', 'stream-max-connections': '8' }, 'prompt')
-      expect(options['pause-metadata']).toBe('true')
-      expect(buildMagnetOptions({}, 'manual')['pause-metadata']).toBe('true')
-    })
-
-    it('preserves existing options', () => {
-      const options = buildMagnetOptions({ dir: '/custom', 'stream-max-connections': '4' }, 'prompt')
-      expect(options.dir).toBe('/custom')
-      expect(options['stream-max-connections']).toBe('4')
     })
   })
 
@@ -146,26 +117,6 @@ describe('useMagnetFlow', () => {
       ]
       const items = parseFilesForSelection(mixedFiles)
       expect(items[0].name).toBe('movie.mkv')
-    })
-  })
-
-  // ── buildSelectFileOption ───────────────────────────────────────
-
-  describe('buildSelectFileOption', () => {
-    it('joins selected indices with commas', () => {
-      expect(buildSelectFileOption([1, 3, 5])).toBe('1,3,5')
-    })
-
-    it('returns single index as string', () => {
-      expect(buildSelectFileOption([2])).toBe('2')
-    })
-
-    it('sorts indices ascending', () => {
-      expect(buildSelectFileOption([5, 1, 3])).toBe('1,3,5')
-    })
-
-    it('returns empty string for empty selection', () => {
-      expect(buildSelectFileOption([])).toBe('')
     })
   })
 })

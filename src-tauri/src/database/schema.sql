@@ -22,6 +22,11 @@ CREATE INDEX IF NOT EXISTS idx_dh_completed ON download_history(completed_at);
 CREATE INDEX IF NOT EXISTS idx_dh_order
   ON download_history(COALESCE(added_at, completed_at) DESC, id DESC);
 CREATE TABLE IF NOT EXISTS task_birth (gid TEXT PRIMARY KEY, added_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS bt_selection (
+    gid TEXT PRIMARY KEY,
+    policy TEXT NOT NULL,
+    deferred INTEGER NOT NULL DEFAULT 0 CHECK(deferred IN (0, 1))
+);
 -- HTTP Basic Auth credentials scoped by normalized URL origin.
 CREATE TABLE IF NOT EXISTS http_auth_credentials (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,

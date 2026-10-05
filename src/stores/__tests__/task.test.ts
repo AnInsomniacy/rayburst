@@ -491,71 +491,25 @@ describe('TaskStore', () => {
     expect(mockApi.fetchTaskList).toHaveBeenCalled()
   })
 
-  it('addMagnetUri forces integrity checking for the follow-up BitTorrent download', async () => {
-    const gid = await store.addMagnetUri({ uri: 'magnet:?xt=urn:btih:abc123', options: { dir: '/dl' } })
-
-    expect(gid).toBe('gid3')
-    expect(mockApi.addUri).toHaveBeenCalledWith({
-      uris: ['magnet:?xt=urn:btih:abc123'],
-      outs: [],
-      options: { dir: '/dl', 'pause-metadata': 'true', 'check-integrity': 'true', 'force-save': 'true' },
-    })
+  it('prompts for native and restored magnets from snapshots without frontend registration', async () => {
     const { useTaskSelectionStore } = await import('@/stores/taskSelection')
-    const pending = [{ kind: 'bt' as const, gid: 'gid3' }]
-    useTaskSelectionStore().reconcile(pending, pending)
-    expect(useTaskSelectionStore().queue).toEqual(pending)
-  })
-
-  it('captures manual selection for a new magnet without automatic prompting', async () => {
-    const { useTaskSelectionStore } = await import('@/stores/taskSelection')
-    const { usePreferenceStore } = await import('@/stores/preference')
-    usePreferenceStore().updatePreference({ magnetFileSelectionPolicy: 'manual' })
-
-    await store.addMagnetUri({ uri: 'magnet:?xt=urn:btih:abc123', options: { dir: '/dl' } })
-
-    const pending = [{ kind: 'bt' as const, gid: 'gid3' }]
-    useTaskSelectionStore().reconcile(pending, pending)
-    expect(useTaskSelectionStore().queue).toEqual([])
-  })
-
-  it('lets aria2 download every magnet file without creating selection state', async () => {
-    const { useTaskSelectionStore } = await import('@/stores/taskSelection')
-    const { usePreferenceStore } = await import('@/stores/preference')
-    usePreferenceStore().updatePreference({ magnetFileSelectionPolicy: 'download-all' })
-
-    await store.addMagnetUri({ uri: 'magnet:?xt=urn:btih:abc123', options: { dir: '/dl' } })
-
-    expect(mockApi.addUri).toHaveBeenCalledWith({
-      uris: ['magnet:?xt=urn:btih:abc123'],
-      outs: [],
-      options: { dir: '/dl', 'pause-metadata': 'false', 'check-integrity': 'true', 'force-save': 'true' },
+    const selection = useTaskSelectionStore()
+    const waiting = makeMockTask('native-magnet', 'paused', {
+      bittorrent: { fileSelectionState: 'awaiting' },
+      selectionPrompt: true,
     })
-    expect(useTaskSelectionStore().pending).toEqual([])
-    expect(useTaskSelectionStore().queue).toEqual([])
-  })
-
-  it('pauses download-all magnets for native metadata classification', async () => {
-    const { useTaskSelectionStore } = await import('@/stores/taskSelection')
-    const { usePreferenceStore } = await import('@/stores/preference')
-    usePreferenceStore().updatePreference({ magnetFileSelectionPolicy: 'download-all' })
-
-    await store.addMagnetUri({
-      uri: 'magnet:?xt=urn:btih:abc123',
-      options: { dir: '/dl' },
-      fileCategory: {
-        enabled: true,
-        categories: [{ label: 'Videos', extensions: ['mkv'], directory: '/dl/Videos', directoryMode: 'absolute' }],
-      },
-    })
-
-    expect(mockApi.addUri).toHaveBeenCalledWith({
-      uris: ['magnet:?xt=urn:btih:abc123'],
-      outs: [],
-      options: { dir: '/dl', 'pause-metadata': 'true', 'check-integrity': 'true', 'force-save': 'true' },
-    })
-    const pending = [{ kind: 'bt' as const, gid: 'gid3' }]
-    useTaskSelectionStore().reconcile(pending, pending)
-    expect(useTaskSelectionStore().queue).toEqual([])
+    mockApi.fetchTaskList.mockResolvedValue([waiting])
+    await store.fetchList()
+    selection.present()
+    expect(selection.current).toEqual({ kind: 'bt', gid: waiting.gid })
+    selection.close()
+    selection.afterLeave()
+    await store.fetchList()
+    expect(selection.queue).toEqual([])
+    mockApi.fetchTaskList.mockResolvedValue([{ ...waiting, gid: 'manual', selectionPrompt: false }])
+    await store.fetchList()
+    expect(selection.pending).toEqual([{ kind: 'bt', gid: 'manual' }])
+    expect(selection.queue).toEqual([])
   })
 
   // ─── pauseAllTask / resumeAllTask ───────────────────────

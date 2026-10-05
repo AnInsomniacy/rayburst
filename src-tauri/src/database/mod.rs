@@ -2,16 +2,18 @@
 mod credentials;
 mod history;
 mod rename;
+mod selection;
 mod submissions;
 use crate::error::AppError;
 pub use credentials::HttpAuthCredential;
 pub use history::{HistoryPage, HistoryPageInput, HistoryRecord};
 use rusqlite::Connection;
+pub use selection::{MagnetSelectionPolicy, SelectionIntent};
 use std::{path::Path, sync::Arc};
 pub use submissions::SubmissionState;
 use tokio::sync::{MappedMutexGuard, Mutex, MutexGuard};
 
-pub const SCHEMA_VERSION: u32 = 5;
+pub const SCHEMA_VERSION: u32 = 6;
 // Connection is Send but not Sync; one owner serializes access and transactions.
 pub struct Database {
     conn: Mutex<Option<Connection>>,

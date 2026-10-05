@@ -1,4 +1,5 @@
 //! Application task queries, admission and native controls.
+pub mod bittorrent;
 pub mod files;
 mod policy;
 use crate::{
@@ -260,11 +261,7 @@ impl TaskService {
                 blocked += 1;
                 continue;
             }
-            let requires_file_selection = task
-                .bittorrent
-                .as_ref()
-                .and_then(|bt| bt.file_selection_state.as_deref())
-                == Some("awaiting");
+            let requires_file_selection = bittorrent::needs_selection(&task);
             if requires_file_selection
                 || task
                     .media

@@ -248,6 +248,7 @@ export interface Aria2Media {
 
 export interface Aria2Task {
   selectionManaged?: boolean
+  selectionPrompt?: boolean
   gid: string
   status: TaskStatus
   totalLength: string

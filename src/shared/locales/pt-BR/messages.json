@@ -867,7 +867,6 @@
     "no-active-tasks": "Nenhuma tarefa ativa",
     "failed": "tarefa(s) não pôde(puderam) ser adicionada(s)",
     "file-load-failed": "Falha ao carregar o arquivo",
-    "magnet-select-fail": "Falha ao configurar o download",
     "magnet-task": "Tarefa magnet",
     "magnet-start-download": "Iniciar download",
     "magnet-choose-later": "Escolher depois",

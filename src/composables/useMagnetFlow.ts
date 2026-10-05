@@ -2,33 +2,13 @@
  *
  * Extracted as pure functions for testability:
  * - Detect magnet URIs
- * - Build policy-specific aria2 options
  * - Parse aria2 file list into UI-friendly selection items
- * - Build the select-file option string
  */
-import type {
-  Aria2File,
-  Aria2EngineOptions,
-  Aria2Task,
-  BtFileSelectionItem,
-  MagnetFileSelectionPolicy,
-} from '@shared/types'
+import type { Aria2File, Aria2Task, BtFileSelectionItem } from '@shared/types'
 
 /** Check if a URI is a magnet link. */
 export function isMagnetUri(uri: string): boolean {
   return uri.toLowerCase().startsWith('magnet:')
-}
-
-/** Applies the native aria2 metadata pause required by the selected policy. */
-export function buildMagnetOptions(
-  baseOptions: Aria2EngineOptions,
-  policy: MagnetFileSelectionPolicy,
-  classifyFiles = false,
-): Aria2EngineOptions {
-  return {
-    ...baseOptions,
-    'pause-metadata': policy === 'download-all' && !classifyFiles ? 'false' : 'true',
-  }
 }
 
 /** Convert raw Aria2File array into UI-friendly selection items. */
@@ -46,12 +26,9 @@ export function parseFilesForSelection(files: Aria2File[]): BtFileSelectionItem[
     })
 }
 
-/** Build the aria2 select-file option string from selected indices. */
-export function buildSelectFileOption(indices: number[]): string {
-  if (indices.length === 0) return ''
-  return [...indices].sort((a, b) => a - b).join(',')
-}
-
 export function isPendingMagnetSelectionTask(task: Aria2Task): boolean {
-  return Boolean(task.bittorrent && task.bittorrent.fileSelectionState === 'awaiting')
+  return (
+    ['paused', 'waiting'].includes(task.status) &&
+    ['awaiting', 'ready'].includes(task.bittorrent?.fileSelectionState ?? '')
+  )
 }

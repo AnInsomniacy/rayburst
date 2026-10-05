@@ -867,7 +867,6 @@
     "no-active-tasks": "Keine aktiven Aufgaben",
     "failed": "Aufgabe(n) konnte(n) nicht hinzugefügt werden",
     "file-load-failed": "Datei konnte nicht geladen werden",
-    "magnet-select-fail": "Download konnte nicht konfiguriert werden",
     "magnet-task": "Magnet-Aufgabe",
     "magnet-start-download": "Download starten",
     "magnet-choose-later": "Später auswählen",

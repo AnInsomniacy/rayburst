@@ -867,7 +867,6 @@
     "no-active-tasks": "Aktif görev yok",
     "failed": "görev(ler) eklenemedi",
     "file-load-failed": "Dosya yüklenemedi",
-    "magnet-select-fail": "İndirme yapılandırılamadı",
     "magnet-task": "Magnet görevi",
     "magnet-start-download": "İndirmeyi Başlat",
     "magnet-choose-later": "Daha sonra seç",

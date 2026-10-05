@@ -867,7 +867,6 @@
     "no-active-tasks": "Нет активных задач",
     "failed": "задач(а/и) не удалось добавить",
     "file-load-failed": "Не удалось загрузить файл",
-    "magnet-select-fail": "Не удалось настроить загрузку",
     "magnet-task": "Магнет-задача",
     "magnet-start-download": "Начать загрузку",
     "magnet-choose-later": "Выбрать позже",

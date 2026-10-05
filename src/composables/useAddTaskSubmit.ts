@@ -343,7 +343,7 @@ export async function submitManualUris(
     }
   }
 
-  // Submit magnet URIs (normal mode — global pause-metadata controls pausing)
+  // Native submission applies the magnet selection policy.
   const result: ManualUriSubmitResult = {
     submittedTaskNames,
     magnetGids: [],
@@ -354,7 +354,6 @@ export async function submitManualUris(
       const gid = await taskStore.addMagnetUri({
         uri,
         options: baseOptions,
-        fileCategory,
         requestId: form.uriRequestContexts?.[uri]?.requestId,
       })
       result.magnetGids.push(gid)

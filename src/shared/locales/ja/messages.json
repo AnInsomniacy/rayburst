@@ -867,7 +867,6 @@
     "no-active-tasks": "進行中のタスクはありません",
     "failed": "件のタスクを追加できませんでした",
     "file-load-failed": "ファイルの読み込みに失敗しました",
-    "magnet-select-fail": "ダウンロードの設定に失敗しました",
     "magnet-task": "マグネットタスク",
     "magnet-start-download": "ダウンロード開始",
     "magnet-choose-later": "後で選択",

@@ -146,6 +146,18 @@ Other GIDs referencing the same path protect that file. No task operation infers
 ownership of a whole directory or removes another record by content hash. A failed
 file deletion retains its history record for retry.
 
+After deleting files, native cleanup removes empty parent directories below the
+task's save directory, deepest first. Download roots, category directories, shared
+paths and nonempty directories remain. Cleanup does not traverse directory links;
+permission failures retain the task record so cleanup can be retried.
+
+Magnet selection policy is applied at native submission for every entry point.
+SQLite retains the task's policy and Choose Later intent; the engine owns metadata
+and selection readiness. Snapshots restore pending prompts after window recreation,
+and the native monitor handles download-all classification without a WebView.
+File selection and resume share the task mutation boundary and preserve a saved
+selection when resume fails. User pause actions suspend automatic selection.
+
 `services/tasks/files.rs` watches selected completed files through `notify` and
 checks them periodically when native filesystem events are unavailable. Missing or
 inaccessible seeding files pause sharing even without a WebView; resuming an affected

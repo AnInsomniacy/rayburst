@@ -18,7 +18,6 @@ import type {
 } from '@shared/types'
 
 import { mergeHistoryIntoTasks, isMetadataTask } from '@/composables/useTaskLifecycle'
-import { buildMagnetOptions } from '@/composables/useMagnetFlow'
 import {
   registerAddedAt,
   getAddedAt,
@@ -216,7 +215,11 @@ export const useTaskStore = defineStore('task', () => {
       }
     }
     const selection = useTaskSelectionStore()
-    selection.reconcile(waiting, available)
+    selection.reconcile(
+      waiting,
+      available,
+      liveSnapshot.filter((task) => task.selectionPrompt).map((task) => task.gid),
+    )
     selection.forget(
       liveSnapshot.filter((task) => ['complete', 'removed'].includes(task.status)).map((task) => task.gid),
     )
@@ -458,24 +461,11 @@ export const useTaskStore = defineStore('task', () => {
    * aria2 either continues with every file or pauses for selection according
    * to the application-owned magnet selection policy.
    */
-  async function addMagnetUri(data: {
-    uri: string
-    requestId?: string
-    options: Aria2EngineOptions
-    fileCategory?: { enabled: boolean; categories: import('@shared/types').FileCategory[] }
-  }): Promise<string> {
-    const policy = preferenceStore.config.magnetFileSelectionPolicy
-    const classifyFiles = Boolean(data.fileCategory?.enabled && data.fileCategory.categories.length > 0)
-    const options = {
-      ...buildMagnetOptions(data.options, policy, classifyFiles),
-      'check-integrity': 'true',
-      'force-save': 'true',
-    }
-
+  async function addMagnetUri(data: { uri: string; requestId?: string; options: Aria2EngineOptions }): Promise<string> {
     const gids = await api.addUri({
       uris: [data.uri],
       outs: [],
-      options,
+      options: data.options,
       ...(data.requestId ? { contexts: { [data.uri]: { requestId: data.requestId } } } : {}),
     })
     const gid = gids[0]
@@ -485,10 +475,6 @@ export const useTaskStore = defineStore('task', () => {
     registerAddedAt(gid, now)
     const historyStore = useHistoryStore()
     historyStore.recordTaskBirth(gid, now).catch((e) => logger.debug('taskBirth.write', e))
-
-    if (policy !== 'download-all' || classifyFiles) {
-      useTaskSelectionStore().register(gid, policy === 'prompt')
-    }
 
     await fetchList()
     return gid
@@ -531,14 +517,11 @@ export const useTaskStore = defineStore('task', () => {
     if (existing) return existing
 
     const historyStore = useHistoryStore()
-    const policy = preferenceStore.config.magnetFileSelectionPolicy
     resubmittingGids.value = [...resubmittingGids.value, task.gid]
     const operation = (
       task.media && mode === 'retry'
         ? api.retryMedia(task.gid).then((gid) => [gid])
-        : resubmitTask(task, mode, api, historyStore, policy, async (gid) => {
-            useTaskSelectionStore().register(gid, policy === 'prompt')
-          })
+        : resubmitTask(task, mode, api, historyStore)
     )
       .then(async (gids) => {
         if (task.media) gids.forEach((gid) => useTaskSelectionStore().register(gid, true))
@@ -618,8 +601,6 @@ export const useTaskStore = defineStore('task', () => {
     finishSharing: (task: Aria2Task) => taskOps.finishSharing(task),
     finishSharingTasks: (gids: string[]) => taskOps.finishSharingTasks(gids),
     resumeTask: (task: Aria2Task) => taskOps.resumeTask(task),
-    applyMagnetFileSelection: (task: Aria2Task, selectFile: string, targetDir?: string) =>
-      taskOps.applyMagnetFileSelection(task, selectFile, targetDir),
     pauseAllTask: () => taskOps.pauseAllTask(),
     resumeAllTask: () => taskOps.resumeAllTask(),
     toggleTask: (task: Aria2Task) => taskOps.toggleTask(task),

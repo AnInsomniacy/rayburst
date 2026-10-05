@@ -867,7 +867,6 @@
     "no-active-tasks": "Δεν υπάρχουν ενεργές εργασίες",
     "failed": "εργασία(-ες) δεν μπόρεσε(-αν) να προστεθεί(-ούν)",
     "file-load-failed": "Αποτυχία φόρτωσης αρχείου",
-    "magnet-select-fail": "Αποτυχία διαμόρφωσης λήψης",
     "magnet-task": "Εργασία Magnet",
     "magnet-start-download": "Έναρξη λήψης",
     "magnet-choose-later": "Επιλογή αργότερα",

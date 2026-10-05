@@ -325,7 +325,7 @@ async fn handle_pause_all(
         }
     };
 
-    match aria2.0.force_pause_all().await {
+    match super::tasks::bittorrent::pause(&ctx.app, &aria2.0, None, true).await {
         Ok(_) => Ok(Json(ActionResponse {
             status: "ok".to_string(),
             error: None,
@@ -357,7 +357,7 @@ async fn handle_resume_all(
         }
     };
 
-    match aria2.0.resume_eligible().await {
+    match super::tasks::bittorrent::resume_all(&ctx.app, &aria2.0).await {
         Ok(result) => {
             log::info!(
                 "http_api: POST /resume-all resumed={} blocked={}",

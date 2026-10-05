@@ -182,6 +182,7 @@ impl Database {
         let transaction = conn.transaction()?;
         transaction.execute("DELETE FROM download_history WHERE gid = ?1", params![gid])?;
         transaction.execute("DELETE FROM task_birth WHERE gid = ?1", params![gid])?;
+        transaction.execute("DELETE FROM bt_selection WHERE gid = ?1", params![gid])?;
         transaction.commit()?;
         Ok(())
     }

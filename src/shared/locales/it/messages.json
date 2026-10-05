@@ -867,7 +867,6 @@
     "no-active-tasks": "Nessun download attivo",
     "failed": "attività non aggiunta/e",
     "file-load-failed": "Caricamento file non riuscito",
-    "magnet-select-fail": "Impossibile configurare il download",
     "magnet-task": "Attività magnet",
     "magnet-start-download": "Avvia download",
     "magnet-choose-later": "Scegli più tardi",

@@ -2,7 +2,7 @@
 pub mod category;
 pub mod contracts;
 mod native;
-mod preferences;
+pub(crate) mod preferences;
 
 use crate::database::SubmissionState;
 use crate::{database::DatabaseState, error::AppError, services::tasks::TaskServiceState};
@@ -198,6 +198,10 @@ pub async fn submit(
         None
     };
     let generation = engine.generation();
+    let selection_gid = options
+        .get("gid")
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_owned);
     let _mutation = engine.mutation.lock().await;
     let result = if let Some(id) = request_id {
         let gate = app.state::<SubmissionGate>();
@@ -208,6 +212,16 @@ pub async fn submit(
     };
     if let Ok(gid) = &result {
         super::tasks::notify_changed(app, gid);
+    } else if matches!(
+        result,
+        Err(AppError::Rpc { .. } | AppError::InvalidInput(_))
+    ) {
+        if let Some(gid) = selection_gid {
+            app.state::<DatabaseState>()
+                .0
+                .remove_bt_selection(&gid)
+                .await?;
+        }
     }
     drop(_mutation);
     native::finish(app.clone(), engine, automatic, generation).await;

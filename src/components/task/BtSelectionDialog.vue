@@ -4,7 +4,7 @@ import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NModal, NCard, NSpace, NButton, NAlert, NSpin } from 'naive-ui'
 import { useTaskStore } from '@/stores/task'
-import { useBtSelection } from '@/composables/useBtSelection'
+import { selectBtFiles, deferBtSelection } from '@/api/aria2'
 import { isPendingMagnetSelectionTask, parseFilesForSelection } from '@/composables/useMagnetFlow'
 import { getTaskName } from '@shared/utils/task'
 import { getErrorMessage } from '@shared/utils/errorMessage'
@@ -16,7 +16,6 @@ const props = defineProps<{ show: boolean; gid: string }>()
 const emit = defineEmits<{ close: []; afterLeave: [] }>()
 const { t } = useI18n()
 const tasks = useTaskStore()
-const { selectFiles } = useBtSelection()
 const task = ref<Aria2Task | null>(null)
 const files = ref<BtFileSelectionItem[]>([])
 const indices = ref<number[]>([])
@@ -43,7 +42,10 @@ async function load(gid: string) {
     if (request !== generation || !props.show) return
     files.value = parseFilesForSelection(result)
     if (!files.value.length) throw new Error('No torrent files are available')
-    indices.value = files.value.map((file) => file.index)
+    indices.value =
+      current.bittorrent?.fileSelectionState === 'ready'
+        ? result.filter((file) => file.selected === 'true').map((file) => Number(file.index))
+        : files.value.map((file) => file.index)
     ready.value = true
   } catch (cause) {
     if (request === generation && props.show) error.value = getErrorMessage(cause)
@@ -80,17 +82,29 @@ async function confirm() {
       emit('close')
       return
     }
-    await selectFiles(current, files.value, indices.value)
+    await selectBtFiles(gid, indices.value)
     if (request === generation) emit('close')
   } catch (cause) {
     if (request === generation) error.value = getErrorMessage(cause)
     logger.warn('BtSelection.confirm', getErrorMessage(cause))
   } finally {
     if (request === generation) submitting.value = false
+    void tasks.fetchList()
   }
 }
-function dismiss() {
-  if (!submitting.value) emit('close')
+async function dismiss() {
+  if (submitting.value) return
+  const request = generation
+  const gid = props.gid
+  submitting.value = true
+  try {
+    await deferBtSelection(gid)
+    if (request === generation) emit('close')
+  } catch (cause) {
+    if (request === generation) error.value = getErrorMessage(cause)
+  } finally {
+    if (request === generation) submitting.value = false
+  }
 }
 </script>
 

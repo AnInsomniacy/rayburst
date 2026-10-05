@@ -24,12 +24,15 @@ export const useTaskSelectionStore = defineStore('taskSelection', () => {
     if (!auto) deferred.value.delete(item.gid)
     if (item.gid !== current.value?.gid && !queue.value.some((entry) => entry.gid === item.gid)) queue.value.push(item)
   }
-  function reconcile(waiting: SelectionRequest[], available: SelectionRequest[]) {
+  function reconcile(waiting: SelectionRequest[], available: SelectionRequest[], promptGids: string[] = []) {
     pending.value = waiting
     const valid = new Set(available.map((item) => item.gid))
     queue.value = queue.value.filter((item) => valid.has(item.gid))
-    for (const item of waiting) if (automatic.value.has(item.gid)) request(item, true)
-    if (current.value && !valid.has(current.value.gid)) close()
+    const prompts = new Set(promptGids)
+    for (const item of waiting) {
+      if (item.kind === 'bt' ? prompts.has(item.gid) : automatic.value.has(item.gid)) request(item, true)
+    }
+    if (current.value && !valid.has(current.value.gid)) close(false)
   }
   function forget(gids: string[]) {
     const removed = new Set(gids)
@@ -39,7 +42,7 @@ export const useTaskSelectionStore = defineStore('taskSelection', () => {
     }
     pending.value = pending.value.filter((item) => !removed.has(item.gid))
     queue.value = queue.value.filter((item) => !removed.has(item.gid))
-    if (current.value && removed.has(current.value.gid)) close()
+    if (current.value && removed.has(current.value.gid)) close(false)
   }
   function present() {
     if (phase.value !== 'idle') return
@@ -49,9 +52,9 @@ export const useTaskSelectionStore = defineStore('taskSelection', () => {
       phase.value = 'open'
     }
   }
-  function close() {
+  function close(defer = true) {
     if (!current.value || phase.value !== 'open') return
-    deferred.value.add(current.value.gid)
+    if (defer) deferred.value.add(current.value.gid)
     automatic.value.delete(current.value.gid)
     phase.value = 'closing'
   }

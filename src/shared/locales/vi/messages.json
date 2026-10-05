@@ -867,7 +867,6 @@
     "no-active-tasks": "Không có tác vụ đang hoạt động",
     "failed": "tác vụ không thể thêm được",
     "file-load-failed": "Tải tệp thất bại",
-    "magnet-select-fail": "Không thể cấu hình tải xuống",
     "magnet-task": "Tác vụ magnet",
     "magnet-start-download": "Bắt đầu tải xuống",
     "magnet-choose-later": "Chọn sau",

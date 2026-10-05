@@ -11,13 +11,14 @@ use tauri_plugin_store::StoreExt;
 
 #[derive(Default, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
-pub(super) struct Preferences {
-    pub extension_download_behavior: ExtensionDownloadBehavior,
-    dir: String,
+pub(crate) struct Preferences {
+    pub(super) extension_download_behavior: ExtensionDownloadBehavior,
+    pub(crate) dir: String,
     remember_save_location: bool,
     last_save_location: String,
-    file_category_enabled: bool,
-    file_categories: Vec<Category>,
+    pub(crate) file_category_enabled: bool,
+    pub(crate) file_categories: Vec<Category>,
+    pub(crate) magnet_file_selection_policy: crate::database::MagnetSelectionPolicy,
     user_agent: String,
     user_agent_profiles: Vec<Profile>,
     user_agent_rules: Vec<Rule>,
@@ -44,7 +45,7 @@ struct Rule {
     override_plugin: bool,
 }
 
-pub(super) fn load(app: &AppHandle) -> Result<Preferences, AppError> {
+pub(crate) fn load(app: &AppHandle) -> Result<Preferences, AppError> {
     let value = app
         .store("config.json")
         .map_err(|error| AppError::Store(error.to_string()))?
@@ -102,7 +103,9 @@ pub(super) fn options(prefs: &Preferences, request: &AddRequest) -> Result<Value
             ));
         }
         options["dir"] = prefs.last_save_location.clone().into();
-    } else if prefs.file_category_enabled {
+    } else if prefs.file_category_enabled
+        && !url::Url::parse(&request.url).is_ok_and(|url| url.scheme() == "magnet")
+    {
         let name = request.filename.clone().unwrap_or_else(|| {
             url::Url::parse(urls[0])
                 .ok()

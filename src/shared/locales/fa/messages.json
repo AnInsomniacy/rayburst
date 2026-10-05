@@ -867,7 +867,6 @@
     "no-active-tasks": "هیچ وظیفه فعالی وجود ندارد",
     "failed": "وظیفه(ها) اضافه نشد",
     "file-load-failed": "بارگذاری فایل ناموفق بود",
-    "magnet-select-fail": "پیکربندی دانلود ناموفق بود",
     "magnet-task": "وظیفه مگنت",
     "magnet-start-download": "شروع دانلود",
     "magnet-choose-later": "انتخاب در آینده",

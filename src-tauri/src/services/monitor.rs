@@ -445,6 +445,15 @@ pub async fn process_lifecycle_task(
         return Ok(());
     }
     let payload = TaskEvent::from_aria2(task);
+    if matches!(
+        event_name,
+        events::TASK_COMPLETE | events::P2P_DOWNLOAD_COMPLETE | events::TASK_ERROR
+    ) {
+        app.state::<DatabaseState>()
+            .0
+            .remove_bt_selection(&task.gid)
+            .await?;
+    }
     if let Err(error) = persist_lifecycle_event(app, event_name, &payload).await {
         log::error!(
             "task_lifecycle:persist-failed gid={} error={error}",
@@ -692,6 +701,9 @@ async fn monitor_loop(
             }
         };
 
+        if let Err(error) = super::tasks::bittorrent::reconcile(&app, &aria2, &tasks).await {
+            log::warn!("bt_selection: reconciliation failed: {error}");
+        }
         match super::tasks::files::inspect(&aria2, tasks.clone(), false).await {
             Ok(states) => {
                 for task in &tasks {

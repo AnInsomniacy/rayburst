@@ -11,12 +11,12 @@ const mocks = vi.hoisted(() => ({
   getOption: vi.fn(),
   confirmMedia: vi.fn(),
   fetchList: vi.fn(),
-  selectFiles: vi.fn(),
+  selectBtFiles: vi.fn(),
+  deferBtSelection: vi.fn(),
   modalShows: vi.fn(),
 }))
 vi.mock('@/stores/task', () => ({ useTaskStore: () => mocks }))
 vi.mock('@/api/aria2', () => mocks)
-vi.mock('@/composables/useBtSelection', () => ({ useBtSelection: () => mocks }))
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (key: string) => key, locale: ref('en-US') }) }))
 import TaskSelectionHost from '../TaskSelectionHost.vue'
 import MediaSelectionDialog from '../MediaSelectionDialog.vue'
@@ -184,7 +184,7 @@ describe('shared task selection dialog', () => {
     const bt = {
       ...mediaTask('a'),
       media: undefined,
-      bittorrent: { state: 'paused' as const, fileSelectionState: 'awaiting' as const },
+      bittorrent: { state: 'paused' as const, fileSelectionState: 'awaiting' as 'awaiting' | 'ready' },
     }
     mocks.fetchTaskStatus.mockImplementation(async (gid: string) => (gid === 'a' ? bt : mediaTask(gid)))
     mocks.getFiles.mockResolvedValue([
@@ -200,9 +200,25 @@ describe('shared task selection dialog', () => {
       .findComponent(BtSelectionDialog)
       .findAll('button')
       .find((button) => button.text() === 'task.magnet-start-download')!
+    mocks.selectBtFiles.mockImplementationOnce(async () => {
+      bt.bittorrent.fileSelectionState = 'ready'
+      selection.reconcile(
+        [{ kind: 'bt', gid: 'a' }],
+        [
+          { kind: 'bt', gid: 'a' },
+          { kind: 'media', gid: 'b' },
+        ],
+        ['a'],
+      )
+      throw new Error('Resume failed')
+    })
     await start.trigger('click')
     await flushPromises()
-    expect(mocks.selectFiles).toHaveBeenCalledWith(bt, expect.any(Array), [1])
+    expect(selection.visible).toBe(true)
+    expect(wrapper.text()).toContain('Resume failed')
+    await start.trigger('click')
+    await flushPromises()
+    expect(mocks.selectBtFiles).toHaveBeenCalledWith('a', [1])
     expect(mocks.confirmMedia).not.toHaveBeenCalled()
     wrapper.findComponent(BtSelectionDialog).findComponent({ name: 'ModalTestStub' }).vm.$emit('afterLeave')
     await flushPromises()
