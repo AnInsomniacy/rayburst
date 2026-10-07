@@ -4,11 +4,13 @@
  * Retry resumes an interrupted payload. Re-download creates a fresh stream
  * download while preserving the original source and request options.
  */
+import { basename, dirname } from '@tauri-apps/api/path'
 import { TASK_STATUS } from '@shared/constants'
 import { checkTaskIsBT, getRestartDescriptors } from '@shared/utils'
 import { logger } from '@shared/logger'
 import { changeKeysToCamelCase } from '@shared/utils/config'
 import { engineOptionKeys } from '@shared/configKeys'
+import { getErrorMessage } from '@shared/utils/errorMessage'
 import type { Aria2Task } from '@shared/types'
 
 export type TaskResubmissionMode = 'retry' | 'redownload'
@@ -49,16 +51,28 @@ async function readResubmissionOptions(task: Aria2Task, api: TaskResubmissionApi
         ),
       )
     : {}
+  if (task.dir) options.dir = task.dir
   try {
     const original = await api.getOption({ gid: task.gid })
     for (const [key, value] of Object.entries(original)) {
       if (RESUBMITTABLE_KEYS.has(key) && value !== '') options[key] = value
     }
   } catch (error) {
-    logger.warn('taskResubmission', `getOption gid=${task.gid} failed, using dir-only fallback: ${error}`)
-    if (task.dir) options.dir = task.dir
+    logger.warn('taskResubmission', `getOption gid=${task.gid} failed, using saved task: ${getErrorMessage(error)}`)
   }
   return options
+}
+
+async function restoreOutputOptions(options: Record<string, string>, path?: string): Promise<Record<string, string>> {
+  const result = { ...options }
+  // Engine options contain the resolved path, while submissions require a filename.
+  delete result.out
+  if (path) {
+    const [dir, out] = await Promise.all([dirname(path), basename(path)])
+    if (dir && dir !== '.') result.dir = dir
+    result.out = out
+  }
+  return result
 }
 
 function applyModeOptions(options: Record<string, string>, mode: TaskResubmissionMode, isBt: boolean): void {
@@ -115,7 +129,7 @@ export async function resubmitTask(
 ): Promise<string[]> {
   assertModeMatchesTask(task, mode)
 
-  const descriptors = getRestartDescriptors(task, true)
+  const descriptors = getRestartDescriptors(task)
   if (descriptors.length === 0) throw new Error('Cannot resubmit: no download URIs found for this task')
 
   const isBt = checkTaskIsBT(task)
@@ -123,13 +137,6 @@ export async function resubmitTask(
   applyModeOptions(options, mode, isBt)
   if (task.media) {
     if (mode !== 'redownload') throw new Error('Media retries require the native retry operation')
-    const format = options.mediaFormat === 'mkv' ? 'mkv' : 'mp4'
-    const name =
-      task.files[0]?.path
-        .split(/[\\/]/)
-        .pop()
-        ?.replace(/\.[^.]*$/, '') || 'media'
-    options.out = `${name}.${format}`
     options.mediaPauseAfterProbe = 'true'
     // Representation IDs belong to one manifest inspection, never another task.
     for (const key of ['mediaVideo', 'mediaAudio', 'mediaSubtitles']) {
@@ -139,8 +146,16 @@ export async function resubmitTask(
 
   const createdGids: string[] = []
   try {
-    for (const uris of descriptors) {
-      const newGid = await api.addUriAtomic({ uris, options })
+    for (const { uris, path } of descriptors) {
+      const submissionOptions = isBt
+        ? options
+        : await restoreOutputOptions(options, path || (descriptors.length === 1 ? options.out : undefined))
+      if (task.media) {
+        const format = options.mediaFormat === 'mkv' ? 'mkv' : 'mp4'
+        const name = submissionOptions.out?.replace(/\.[^.]*$/, '') || 'media'
+        submissionOptions.out = `${name}.${format}`
+      }
+      const newGid = await api.addUriAtomic({ uris, options: submissionOptions })
       createdGids.push(newGid)
       await assertSubmissionAccepted(api, newGid)
     }

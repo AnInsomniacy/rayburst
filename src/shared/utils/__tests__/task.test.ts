@@ -598,8 +598,8 @@ describe('getRestartDescriptors', () => {
       bittorrent: { magnetLink: 'magnet:?xt=urn:btih:abc123&dn=test' },
       files: [],
     })
-    const result = getRestartDescriptors(task, true)
-    expect(result).toEqual([['magnet:?xt=urn:btih:abc123&dn=test']])
+    const result = getRestartDescriptors(task)
+    expect(result).toEqual([{ uris: ['magnet:?xt=urn:btih:abc123&dn=test'] }])
   })
 
   it('returns engine-provided ED2K group for ED2K tasks', () => {
@@ -607,7 +607,9 @@ describe('getRestartDescriptors', () => {
       ed2k: { ed2kLink: 'ed2k://|file|movie.mkv|42|31313131313131313131313131313131|/' },
       files: [createMockFile({ uris: [] })],
     })
-    expect(getRestartDescriptors(task)).toEqual([['ed2k://|file|movie.mkv|42|31313131313131313131313131313131|/']])
+    expect(getRestartDescriptors(task)).toEqual([
+      { uris: ['ed2k://|file|movie.mkv|42|31313131313131313131313131313131|/'], path: '/tmp/test.txt' },
+    ])
   })
 
   it('returns one group per file with all mirror URIs for HTTP tasks', () => {
@@ -628,8 +630,8 @@ describe('getRestartDescriptors', () => {
     })
     const result = getRestartDescriptors(task)
     expect(result).toHaveLength(2)
-    expect(result[0]).toEqual(['http://mirror1/a.zip', 'http://mirror2/a.zip'])
-    expect(result[1]).toEqual(['http://mirror1/b.zip'])
+    expect(result[0]).toEqual({ uris: ['http://mirror1/a.zip', 'http://mirror2/a.zip'], path: '/tmp/test.txt' })
+    expect(result[1]).toEqual({ uris: ['http://mirror1/b.zip'], path: '/tmp/b.zip' })
   })
 
   it('returns empty for task with no files and no BT info', () => {

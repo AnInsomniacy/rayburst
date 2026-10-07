@@ -71,12 +71,14 @@ const columns = computed(() => {
     {
       title: t('task.file-name') || 'Name',
       key: 'name',
+      minWidth: Math.max(240, calcColumnWidth({ title: t('task.file-name'), extraWidth: 26 })),
       render: (row: FileDetailRow) =>
         renderDetailCopyableText({
           value: row.name,
           label: t('task.file-name'),
           tooltip: props.tooltip,
           onCopy: props.onCopy,
+          ellipsis: true,
         }),
     },
     {
@@ -139,6 +141,10 @@ const columns = computed(() => {
   ]
   return props.terminal ? result.filter((column) => column.key !== 'priority') : result
 })
+
+const tableWidth = computed(() =>
+  columns.value.reduce((width, column) => width + (column.width ?? column.minWidth ?? 0), 0),
+)
 </script>
 
 <template>
@@ -146,6 +152,8 @@ const columns = computed(() => {
     :columns="columns"
     :data="rows"
     :row-key="(row: FileDetailRow) => row.idx"
+    :scroll-x="tableWidth"
+    table-layout="fixed"
     size="small"
     :bordered="true"
     :max-height="400"

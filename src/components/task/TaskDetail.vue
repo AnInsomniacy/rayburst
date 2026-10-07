@@ -893,6 +893,16 @@ async function onFileRenamed() {
   line-height: 1.45;
 }
 
+:deep(.detail-copyable-value--ellipsis) {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+:deep(.detail-copyable-value--ellipsis .detail-copyable-text) {
+  flex: 1;
+}
+
 :deep(.detail-copy-button) {
   flex: 0 0 auto;
   width: 22px;

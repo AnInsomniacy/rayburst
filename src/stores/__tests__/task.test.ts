@@ -9,6 +9,15 @@ vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn().mockResolvedValue(undefined),
 }))
 
+vi.mock('@tauri-apps/api/path', async (importOriginal) => {
+  const { posix } = await import('node:path')
+  return {
+    ...(await importOriginal<typeof import('@tauri-apps/api/path')>()),
+    basename: async (path: string) => posix.basename(path),
+    dirname: async (path: string) => posix.dirname(path),
+  }
+})
+
 // ── Mock history store (DB-primary architecture) ─────────────────────
 const mockHistoryFns = {
   init: vi.fn().mockResolvedValue(undefined),
@@ -785,7 +794,7 @@ describe('TaskStore', () => {
     expect(mockApi.addUriAtomic).toHaveBeenCalledTimes(1)
     expect(mockApi.addUriAtomic).toHaveBeenCalledWith({
       uris: ['http://example.com/file.zip'],
-      options: { dir: '/tmp', continue: 'true', allowOverwrite: 'false', autoFileRenaming: 'false' },
+      options: { dir: '/tmp', out: 'file.zip', continue: 'true', allowOverwrite: 'false', autoFileRenaming: 'false' },
     })
     expect(mockApi.removeTaskRecord).toHaveBeenCalledWith({ gid: 'stopped1' })
     expect(mockApi.fetchTaskList).toHaveBeenCalled()
@@ -820,11 +829,11 @@ describe('TaskStore', () => {
     expect(mockApi.addUriAtomic).toHaveBeenCalledTimes(2)
     expect(mockApi.addUriAtomic).toHaveBeenNthCalledWith(1, {
       uris: ['http://example.com/a.zip'],
-      options: { dir: '/tmp', continue: 'false', allowOverwrite: 'false', autoFileRenaming: 'true' },
+      options: { dir: '/tmp', out: 'a.zip', continue: 'false', allowOverwrite: 'false', autoFileRenaming: 'true' },
     })
     expect(mockApi.addUriAtomic).toHaveBeenNthCalledWith(2, {
       uris: ['http://example.com/b.zip'],
-      options: { dir: '/tmp', continue: 'false', allowOverwrite: 'false', autoFileRenaming: 'true' },
+      options: { dir: '/tmp', out: 'b.zip', continue: 'false', allowOverwrite: 'false', autoFileRenaming: 'true' },
     })
     expect(mockApi.removeTaskRecord).toHaveBeenCalledWith({ gid: 'stopped2' })
   })

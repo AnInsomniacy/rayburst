@@ -1,8 +1,8 @@
 /** @fileoverview Shared task detail tab rendering helpers. */
 import { h, type VNodeChild } from 'vue'
-import { NButton, NIcon } from 'naive-ui'
+import { NButton, NEllipsis, NIcon } from 'naive-ui'
 import { CopyOutline } from '@vicons/ionicons5'
-import MTooltip from '@/components/common/MTooltip.vue'
+import MTooltip, { TOOLTIP_DEFAULTS } from '@/components/common/MTooltip.vue'
 
 export function renderDetailLongText(value: string | number): VNodeChild {
   return h('span', { class: 'detail-long-text technical-text-wrap' }, String(value || '-'))
@@ -13,10 +13,17 @@ export function renderDetailCopyableText(options: {
   label: string
   tooltip: string
   onCopy: (value: string, label: string) => void
+  ellipsis?: boolean
 }): VNodeChild {
   const text = String(options.value || '-')
-  return h('span', { class: 'detail-copyable-value' }, [
-    h('span', { class: 'detail-copyable-text technical-text-wrap' }, text),
+  return h('span', { class: ['detail-copyable-value', { 'detail-copyable-value--ellipsis': options.ellipsis }] }, [
+    options.ellipsis
+      ? h(
+          NEllipsis,
+          { class: 'detail-copyable-text', tooltip: { delay: TOOLTIP_DEFAULTS.delay } },
+          { default: () => text },
+        )
+      : h('span', { class: 'detail-copyable-text technical-text-wrap' }, text),
     h(
       MTooltip,
       { placement: 'top' },
@@ -28,7 +35,8 @@ export function renderDetailCopyableText(options: {
               class: 'detail-copy-button',
               size: 'tiny',
               quaternary: true,
-              focusable: false,
+              focusable: options.ellipsis ?? false,
+              'aria-label': `${options.tooltip}: ${options.label}`,
               onClick: () => options.onCopy(text, options.label),
             },
             {

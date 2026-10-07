@@ -157,8 +157,8 @@ describe('historyRecordToTask', () => {
       ['https://tracker2.example/announce'],
     ])
     expect(task.bittorrent?.magnetLink).toBe('magnet:?xt=urn:btih:deadbeef1234567890abcdef&dn=My%20Torrent')
-    expect(getRestartDescriptors(task, true)).toEqual([
-      ['magnet:?xt=urn:btih:deadbeef1234567890abcdef&dn=My%20Torrent'],
+    expect(getRestartDescriptors(task)).toEqual([
+      { uris: ['magnet:?xt=urn:btih:deadbeef1234567890abcdef&dn=My%20Torrent'] },
     ])
   })
 
@@ -169,7 +169,7 @@ describe('historyRecordToTask', () => {
     )
 
     expect(task.ed2k?.ed2kLink).toBe(ed2kLink)
-    expect(getRestartDescriptors(task)).toEqual([[ed2kLink]])
+    expect(getRestartDescriptors(task)).toEqual([{ uris: [ed2kLink], path: task.files[0]?.path }])
   })
 
   it('handles missing/corrupt meta gracefully', () => {

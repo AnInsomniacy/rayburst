@@ -170,31 +170,24 @@ export const getTaskUris = (task: Aria2Task, _withTracker = false): string[] => 
   return uris
 }
 
-/**
- * Build restart descriptors: one URI group per file.
- *
- * Unlike getTaskUris() which flattens all URIs into a single list,
- * this returns grouped URIs so each file can be submitted to addUriAtomic()
- * with ALL its mirrors in a single call, preserving multi-source semantics.
- *
- * - BT: single group containing the magnet link
- * - ED2K: single group containing the file link
- * - Streams: one group per file, each containing all mirror URIs
- *
- * Each group maps to one addUriAtomic({ uris: [...mirrors] }) call.
- */
-export const getRestartDescriptors = (task: Aria2Task, _withTracker = false): string[][] => {
+export interface TaskRestartDescriptor {
+  uris: string[]
+  path?: string
+}
+
+/** Keeps each output path with its mirrors; torrents retain their root directory. */
+export const getRestartDescriptors = (task: Aria2Task): TaskRestartDescriptor[] => {
   const magnet = task.bittorrent?.magnetLink?.trim()
-  if (magnet) return [[magnet]]
+  if (magnet) return [{ uris: [magnet] }]
   const ed2kLink = task.ed2k?.ed2kLink?.trim()
-  if (ed2kLink) return [[ed2kLink]]
+  if (ed2kLink) return [{ uris: [ed2kLink], path: task.files[0]?.path }]
   const { files } = task
   if (!files || files.length === 0) return []
-  const descriptors: string[][] = []
+  const descriptors: TaskRestartDescriptor[] = []
   for (const file of files) {
     if (file.uris && file.uris.length > 0) {
       const uniqueUris = [...new Set(file.uris.map((entry) => entry.uri.trim()).filter(Boolean))]
-      if (uniqueUris.length > 0) descriptors.push(uniqueUris)
+      if (uniqueUris.length > 0) descriptors.push({ uris: uniqueUris, path: file.path })
     }
   }
   return descriptors
