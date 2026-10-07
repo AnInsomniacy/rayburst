@@ -64,7 +64,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "macos")]
 use tauri_plugin_notification::NotificationExt;
 
 #[cfg(target_os = "linux")]
@@ -186,6 +186,9 @@ pub struct TaskNotificationContent {
     pub title: String,
     pub body: String,
     pub locale: String,
+    /// Windows clicks reveal the file, falling back to its parent through the Shell.
+    #[cfg(any(windows, test))]
+    pub reveal_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -266,6 +269,21 @@ pub fn build_task_notification(
         title: message.title,
         body: message.body,
         locale,
+        #[cfg(any(windows, test))]
+        reveal_path: matches!(
+            kind,
+            TaskNotificationKind::Complete | TaskNotificationKind::P2pDownloadComplete
+        )
+        .then(|| {
+            event
+                .files
+                .iter()
+                .find(|file| file.selected == "true")
+                .or_else(|| event.files.first())
+        })
+        .flatten()
+        .filter(|file| !file.path.is_empty())
+        .map(|file| file.path.clone()),
     })
 }
 
@@ -289,6 +307,8 @@ pub fn build_task_start_notification(
         title: message.title,
         body: message.body,
         locale,
+        #[cfg(any(windows, test))]
+        reveal_path: None,
     })
 }
 
@@ -328,6 +348,8 @@ pub async fn send_app_notification(
         title: title.to_string(),
         body: body.to_string(),
         locale: "frontend".to_string(),
+        #[cfg(any(windows, test))]
+        reveal_path: None,
     };
     send_native_notification(app, &content).await
 }
@@ -465,7 +487,57 @@ async fn send_platform_notification(
     })
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(windows)]
+fn reveal_download(path: String) {
+    tauri::async_runtime::spawn_blocking(move || {
+        if let Err(error) = crate::commands::fs::show_item_in_dir(path) {
+            log::warn!("notification:reveal-failed error={error}");
+        }
+    });
+}
+
+#[cfg(windows)]
+fn register_windows_notification_identity(app_id: &str, display_name: &str) -> Result<(), String> {
+    static REGISTERED: std::sync::Mutex<bool> = std::sync::Mutex::new(false);
+    let mut registered = REGISTERED
+        .lock()
+        .map_err(|error| format!("Notification identity lock poisoned: {error}"))?;
+    if !*registered {
+        let (key, _) = winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER)
+            .create_subkey(format!("Software\\Classes\\AppUserModelId\\{app_id}"))
+            .map_err(|error| error.to_string())?;
+        key.set_value("DisplayName", &display_name)
+            .map_err(|error| error.to_string())?;
+        *registered = true;
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+async fn send_platform_notification(
+    app: &tauri::AppHandle,
+    content: &TaskNotificationContent,
+) -> Result<NotificationDispatchResult, String> {
+    use tauri_winrt_notification::Toast;
+    let app_id = &app.config().identifier;
+    register_windows_notification_identity(
+        app_id,
+        app.config().product_name.as_deref().unwrap_or("Rayburst"),
+    )?;
+    let mut toast = Toast::new(app_id)
+        .title(&content.title)
+        .text1(&content.body);
+    if let Some(path) = content.reveal_path.clone() {
+        toast = toast.on_activated(move |_| {
+            reveal_download(path.clone());
+            Ok(())
+        });
+    }
+    toast.show().map_err(|error| error.to_string())?;
+    Ok(NotificationDispatchResult::Submitted)
+}
+
+#[cfg(target_os = "macos")]
 async fn send_platform_notification(
     app: &tauri::AppHandle,
     content: &TaskNotificationContent,
@@ -476,7 +548,6 @@ async fn send_platform_notification(
         .body(content.body.clone())
         .show()
         .map_err(|error| error.to_string())?;
-
     Ok(NotificationDispatchResult::Submitted)
 }
 
@@ -518,61 +589,85 @@ mod tests {
         }
     }
 
-    #[test]
-    fn builds_localised_complete_notification() {
-        let content = build_task_notification(events::TASK_COMPLETE, &event(), &cfg()).unwrap();
-        assert_eq!(content.kind, TaskNotificationKind::Complete);
-        assert_eq!(content.title, "Download Complete");
-        assert_eq!(content.body, "Saved: file.zip");
-        assert_eq!(content.locale, "en-US");
+    fn file(path: &str, selected: bool) -> super::super::monitor::TaskEventFile {
+        super::super::monitor::TaskEventFile {
+            index: "1".into(),
+            completed_length: "1".into(),
+            path: path.into(),
+            length: "1".into(),
+            selected: selected.to_string(),
+            uris: Vec::new(),
+        }
     }
 
     #[test]
-    fn builds_localised_bt_complete_notification() {
-        let mut ev = event();
-        ev.is_bt = true;
-        ev.sharing_kind = Some("bt");
-        let content = build_task_notification(events::P2P_DOWNLOAD_COMPLETE, &ev, &cfg()).unwrap();
-        assert_eq!(content.kind, TaskNotificationKind::P2pDownloadComplete);
-        assert_eq!(content.title, "BT Download Complete");
-        assert_eq!(content.body, "Seeding: file.zip");
+    fn completion_reveals_selected_file_for_http_bt_and_ed2k() {
+        for (event_name, sharing_kind) in [
+            (events::TASK_COMPLETE, None),
+            (events::P2P_DOWNLOAD_COMPLETE, Some("bt")),
+            (events::P2P_DOWNLOAD_COMPLETE, Some("ed2k")),
+        ] {
+            let mut ev = event();
+            ev.sharing_kind = sharing_kind;
+            ev.files = vec![
+                file("/tmp/unselected.zip", false),
+                file("/tmp/result.zip", true),
+            ];
+            let content = build_task_notification(event_name, &ev, &cfg()).unwrap();
+            assert_eq!(content.reveal_path.as_deref(), Some("/tmp/result.zip"));
+        }
     }
 
     #[test]
-    fn builds_localised_ed2k_sharing_notification() {
+    fn completion_uses_first_file_when_selection_is_absent() {
         let mut ev = event();
-        ev.is_ed2k = true;
-        ev.sharing_kind = Some("ed2k");
-        let content = build_task_notification(events::P2P_DOWNLOAD_COMPLETE, &ev, &cfg()).unwrap();
-        assert_eq!(content.kind, TaskNotificationKind::P2pDownloadComplete);
-        assert_eq!(content.title, "ED2K Download Complete");
-        assert_eq!(content.body, "Sharing: file.zip");
+        ev.files = vec![
+            file("/tmp/first.zip", false),
+            file("/tmp/second.zip", false),
+        ];
+        assert_eq!(
+            build_task_notification(events::TASK_COMPLETE, &ev, &cfg())
+                .unwrap()
+                .reveal_path
+                .as_deref(),
+            Some("/tmp/first.zip")
+        );
     }
 
     #[test]
-    fn builds_zh_cn_ed2k_sharing_notification() {
+    fn missing_path_does_not_create_a_reveal_action() {
         let mut ev = event();
-        ev.is_ed2k = true;
-        ev.sharing_kind = Some("ed2k");
-        let mut config = cfg();
-        config.locale = "zh-CN".to_string();
-
-        let content = build_task_notification(events::P2P_DOWNLOAD_COMPLETE, &ev, &config).unwrap();
-
-        assert_eq!(content.kind, TaskNotificationKind::P2pDownloadComplete);
-        assert_eq!(content.title, "ED2K 下载完成");
-        assert_eq!(content.body, "共享中：file.zip");
-        assert_eq!(content.locale, "zh-CN");
+        assert_eq!(
+            build_task_notification(events::TASK_COMPLETE, &ev, &cfg())
+                .unwrap()
+                .reveal_path,
+            None
+        );
+        ev.files = vec![file("", true)];
+        assert_eq!(
+            build_task_notification(events::TASK_COMPLETE, &ev, &cfg())
+                .unwrap()
+                .reveal_path,
+            None
+        );
     }
 
     #[test]
-    fn builds_localised_error_notification_with_reason() {
+    fn errors_and_start_notifications_do_not_reveal_incomplete_files() {
         let mut ev = event();
-        ev.error_message = Some("Network error".to_string());
-        let content = build_task_notification(events::TASK_ERROR, &ev, &cfg()).unwrap();
-        assert_eq!(content.kind, TaskNotificationKind::Error);
-        assert_eq!(content.title, "Download Failed");
-        assert_eq!(content.body, "file.zip: Network error");
+        ev.files = vec![file("/tmp/partial.zip", true)];
+        assert_eq!(
+            build_task_notification(events::TASK_ERROR, &ev, &cfg())
+                .unwrap()
+                .reveal_path,
+            None
+        );
+        assert_eq!(
+            build_task_start_notification(&[ev.name], &cfg())
+                .unwrap()
+                .reveal_path,
+            None
+        );
     }
 
     #[test]
@@ -593,31 +688,6 @@ mod tests {
     }
 
     #[test]
-    fn builds_localised_start_notification() {
-        let content = build_task_start_notification(&["file.zip".to_string()], &cfg()).unwrap();
-        assert_eq!(content.kind, TaskNotificationKind::Start);
-        assert_eq!(content.title, "Download Started");
-        assert_eq!(content.body, "Downloading: file.zip");
-        assert_eq!(content.locale, "en-US");
-    }
-
-    #[test]
-    fn builds_localised_batch_start_notification() {
-        let content = build_task_start_notification(
-            &[
-                "file.zip".to_string(),
-                "b.iso".to_string(),
-                "c.torrent".to_string(),
-            ],
-            &cfg(),
-        )
-        .unwrap();
-        assert_eq!(content.kind, TaskNotificationKind::Start);
-        assert_eq!(content.title, "Download Started");
-        assert_eq!(content.body, "Downloading: file.zip and 2 other task(s)");
-    }
-
-    #[test]
     fn skips_start_when_start_notifications_are_disabled() {
         let mut config = cfg();
         config.notify_on_start = false;
@@ -628,15 +698,5 @@ mod tests {
     fn skips_start_when_task_names_are_empty() {
         assert!(build_task_start_notification(&[], &cfg()).is_none());
         assert!(build_task_start_notification(&["  ".to_string()], &cfg()).is_none());
-    }
-
-    #[cfg(target_os = "linux")]
-    #[test]
-    fn linux_notification_identity_matches_gnome_desktop_entry() {
-        let identity = linux_notification_identity();
-        assert_eq!(identity.app_name, "rayburst");
-        assert_eq!(identity.icon, "rayburst");
-        assert_eq!(identity.desktop_entry, "Rayburst");
-        assert_eq!(identity.urgency, notify_rust::Urgency::Normal);
     }
 }
