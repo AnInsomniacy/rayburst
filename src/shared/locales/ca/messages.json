@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "Cap programa",
     "post-download-arguments": "Arguments",
     "site-rules": "Regles per lloc",
-    "site-rules-hint": "Limita les connexions per servidor als llocs que prohibeixen les baixades paral·leles. example.com també inclou els seus subdominis; * coincideix amb qualsevol caràcter.",
+    "site-rules-hint": "Configuració de baixada per lloc: connexions per servidor per als llocs que prohibeixen baixades paral·leles i si s'usa el servidor intermediari. example.com també cobreix els subdominis; * coincideix amb qualsevol caràcter.",
     "site-rule-add": "Afegeix una regla",
     "site-rule-enabled": "Activada",
     "site-rule-connections": "Connexions per servidor",
@@ -607,7 +607,16 @@
     "system-title-bar": "Utilitza la barra de títol del sistema",
     "system-title-bar-hint": "Per a gestors de finestres que dibuixen la seva pròpia barra de títol. Amaga els botons de finestra de l'aplicació.",
     "show-tray-icon": "Mostra la icona a la safata",
-    "show-tray-icon-hint": "Si està amagada, tancar la finestra en segon pla la minimitza."
+    "show-tray-icon-hint": "Si està amagada, tancar la finestra en segon pla la minimitza.",
+    "extension-torrent-action": "Enllaços torrent",
+    "extension-torrent-action-hint": "Desar conserva el fitxer .torrent com qualsevol baixada; amb BitTorrent desactivat sempre es desa.",
+    "extension-torrent-open": "Obre el contingut del torrent",
+    "extension-torrent-save": "Desa el fitxer .torrent",
+    "site-rule-connections-default": "Per defecte",
+    "site-rule-proxy": "Servidor intermediari",
+    "site-rule-proxy-default": "Segons la configuració",
+    "site-rule-proxy-proxy": "Usa el servidor intermediari",
+    "site-rule-proxy-direct": "Connexió directa"
   },
   "task": {
     "scope-all": "Totes",

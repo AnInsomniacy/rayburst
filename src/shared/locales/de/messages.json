@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "Kein Programm",
     "post-download-arguments": "Argumente",
     "site-rules": "Website-Regeln",
-    "site-rules-hint": "Begrenzt die Verbindungen pro Server für Websites, die parallele Downloads sperren. example.com umfasst auch Subdomains; * steht für beliebige Zeichen.",
+    "site-rules-hint": "Download-Einstellungen pro Website: Verbindungen pro Server für Websites, die parallele Downloads verbieten, und ob der Proxyserver verwendet wird. example.com umfasst auch seine Subdomains; * passt auf beliebige Zeichen.",
     "site-rule-add": "Regel hinzufügen",
     "site-rule-enabled": "Aktiviert",
     "site-rule-connections": "Verbindungen pro Server",
@@ -607,7 +607,16 @@
     "system-title-bar": "System-Titelleiste verwenden",
     "system-title-bar-hint": "Für Fenstermanager, die ihre eigene Titelleiste zeichnen. Blendet die Fensterknöpfe der App aus.",
     "show-tray-icon": "Tray-Symbol anzeigen",
-    "show-tray-icon-hint": "Ausgeblendet wird das Fenster beim Schließen in den Hintergrund stattdessen minimiert."
+    "show-tray-icon-hint": "Ausgeblendet wird das Fenster beim Schließen in den Hintergrund stattdessen minimiert.",
+    "extension-torrent-action": "Torrent-Links",
+    "extension-torrent-action-hint": "Speichern behält die .torrent-Datei wie jeden anderen Download; bei ausgeschaltetem BitTorrent wird immer gespeichert.",
+    "extension-torrent-open": "Inhalt des Torrents öffnen",
+    "extension-torrent-save": ".torrent-Datei speichern",
+    "site-rule-connections-default": "Standard",
+    "site-rule-proxy": "Proxy",
+    "site-rule-proxy-default": "Proxy wie eingestellt",
+    "site-rule-proxy-proxy": "Proxy verwenden",
+    "site-rule-proxy-direct": "Direkt verbinden"
   },
   "task": {
     "scope-all": "Alle",

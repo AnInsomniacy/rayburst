@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "Nincs program",
     "post-download-arguments": "Argumentumok",
     "site-rules": "Webhelyszabályok",
-    "site-rules-hint": "Korlátozza a kiszolgálónkénti kapcsolatok számát a párhuzamos letöltést tiltó webhelyeknél. Az example.com az aldomainjeit is lefedi; a * bármely karakterre illeszkedik.",
+    "site-rules-hint": "Webhelyenkénti letöltési beállítások: kiszolgálónkénti kapcsolatok a párhuzamos letöltést tiltó webhelyekhez, és hogy használja-e a proxykiszolgálót. Az example.com az aldomaineket is lefedi; a * bármilyen karakterre illeszkedik.",
     "site-rule-add": "Szabály hozzáadása",
     "site-rule-enabled": "Engedélyezve",
     "site-rule-connections": "Kapcsolatok kiszolgálónként",
@@ -607,7 +607,16 @@
     "system-title-bar": "Rendszer címsorának használata",
     "system-title-bar-hint": "Saját címsort rajzoló ablakkezelőkhöz. Elrejti az alkalmazás ablakgombjait.",
     "show-tray-icon": "Tálcaikon megjelenítése",
-    "show-tray-icon-hint": "Elrejtve az ablak háttérbe zárása helyett kis méretre áll."
+    "show-tray-icon-hint": "Elrejtve az ablak háttérbe zárása helyett kis méretre áll.",
+    "extension-torrent-action": "Torrenthivatkozások",
+    "extension-torrent-action-hint": "Mentéskor a .torrent fájl megmarad, mint bármely letöltés; kikapcsolt BitTorrent mellett mindig mentődik.",
+    "extension-torrent-open": "A torrent tartalmának megnyitása",
+    "extension-torrent-save": "A .torrent fájl mentése",
+    "site-rule-connections-default": "Alapértelmezett",
+    "site-rule-proxy": "Proxy",
+    "site-rule-proxy-default": "Proxy a beállítás szerint",
+    "site-rule-proxy-proxy": "Proxy használata",
+    "site-rule-proxy-direct": "Közvetlen kapcsolat"
   },
   "task": {
     "scope-all": "Összes",

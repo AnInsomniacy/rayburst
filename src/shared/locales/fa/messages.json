@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "بدون برنامه",
     "post-download-arguments": "آرگومان‌ها",
     "site-rules": "قوانین سایت",
-    "site-rules-hint": "تعداد اتصال به هر سرور را برای سایت‌هایی که دانلود موازی را ممنوع می‌کنند محدود می‌کند. example.com زیردامنه‌هایش را هم شامل می‌شود؛ * با هر نویسه‌ای مطابقت دارد.",
+    "site-rules-hint": "تنظیمات دانلود برای هر سایت: تعداد اتصال به هر سرور برای سایت‌هایی که دانلود موازی را ممنوع می‌کنند، و استفاده یا عدم استفاده از سرور پروکسی. example.com زیردامنه‌هایش را هم شامل می‌شود؛ * با هر نویسه‌ای مطابقت دارد.",
     "site-rule-add": "افزودن قانون",
     "site-rule-enabled": "فعال",
     "site-rule-connections": "اتصال به هر سرور",
@@ -607,7 +607,16 @@
     "system-title-bar": "استفاده از نوار عنوان سیستم",
     "system-title-bar-hint": "برای مدیرهای پنجره‌ای که نوار عنوان خود را می‌کشند. دکمه‌های پنجره برنامه را پنهان می‌کند.",
     "show-tray-icon": "نمایش نماد سینی سیستم",
-    "show-tray-icon-hint": "وقتی پنهان است، بستن پنجره به پس‌زمینه به‌جای آن پنجره را کوچک می‌کند."
+    "show-tray-icon-hint": "وقتی پنهان است، بستن پنجره به پس‌زمینه به‌جای آن پنجره را کوچک می‌کند.",
+    "extension-torrent-action": "پیوندهای تورنت",
+    "extension-torrent-action-hint": "ذخیره، فایل ‎.torrent‎ را مانند هر دانلودی نگه می‌دارد؛ وقتی BitTorrent خاموش است همیشه ذخیره می‌شود.",
+    "extension-torrent-open": "باز کردن محتوای تورنت",
+    "extension-torrent-save": "ذخیره فایل ‎.torrent‎",
+    "site-rule-connections-default": "پیش‌فرض",
+    "site-rule-proxy": "پروکسی",
+    "site-rule-proxy-default": "پروکسی طبق تنظیمات",
+    "site-rule-proxy-proxy": "استفاده از پروکسی",
+    "site-rule-proxy-direct": "اتصال مستقیم"
   },
   "task": {
     "scope-all": "همه",

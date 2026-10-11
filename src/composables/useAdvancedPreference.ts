@@ -11,6 +11,7 @@ export interface AdvancedForm {
   extensionApiSecret: string
   allowRemoteAccess: boolean
   extensionDownloadBehavior: 'confirm' | 'background' | 'show'
+  extensionTorrentAction: AppConfig['extensionTorrentAction']
   logLevel: AppConfig['logLevel']
   aria2LogLevel: AppConfig['aria2LogLevel']
   tempFilesDir: string
@@ -33,6 +34,7 @@ export function buildAdvancedForm(config: AppConfig): AdvancedForm {
     extensionApiSecret: config.extensionApiSecret,
     allowRemoteAccess: config.allowRemoteAccess,
     extensionDownloadBehavior: config.extensionDownloadBehavior,
+    extensionTorrentAction: config.extensionTorrentAction,
     logLevel: config.logLevel,
     aria2LogLevel: config.aria2LogLevel,
     tempFilesDir: config.tempFilesDir,

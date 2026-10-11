@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "不執行程式",
     "post-download-arguments": "參數",
     "site-rules": "網站規則",
-    "site-rules-hint": "為禁止多執行緒下載的網站限制每伺服器連線數。example.com 同時符合其子網域；* 符合任意字元。",
+    "site-rules-hint": "依網站設定下載：為禁止平行下載的網站限制每伺服器連線數，以及是否使用代理伺服器。example.com 同時符合其子網域；* 符合任意字元。",
     "site-rule-add": "新增規則",
     "site-rule-enabled": "啟用",
     "site-rule-connections": "每伺服器連線數",
@@ -607,7 +607,16 @@
     "system-title-bar": "使用系統標題列",
     "system-title-bar-hint": "適用於自行繪製標題列的視窗管理員，會隱藏應用程式自帶的視窗按鈕。",
     "show-tray-icon": "顯示系統匣圖示",
-    "show-tray-icon-hint": "隱藏後，關閉視窗到背景時改為最小化視窗。"
+    "show-tray-icon-hint": "隱藏後，關閉視窗到背景時改為最小化視窗。",
+    "extension-torrent-action": "種子連結",
+    "extension-torrent-action-hint": "儲存時 .torrent 檔案會像一般下載一樣保留；關閉 BitTorrent 時一律儲存。",
+    "extension-torrent-open": "開啟種子內容",
+    "extension-torrent-save": "儲存 .torrent 檔案",
+    "site-rule-connections-default": "預設",
+    "site-rule-proxy": "代理",
+    "site-rule-proxy-default": "依代理設定",
+    "site-rule-proxy-proxy": "使用代理",
+    "site-rule-proxy-direct": "直接連線"
   },
   "task": {
     "scope-all": "全部",

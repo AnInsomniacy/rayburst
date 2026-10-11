@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "Niciun program",
     "post-download-arguments": "Argumente",
     "site-rules": "Reguli pentru site-uri",
-    "site-rules-hint": "Limitează conexiunile per server pentru site-urile care interzic descărcările paralele. example.com include și subdomeniile; * corespunde oricăror caractere.",
+    "site-rules-hint": "Setări de descărcare pe site: conexiuni per server pentru site-urile care interzic descărcările paralele și dacă se folosește serverul proxy. example.com acoperă și subdomeniile; * se potrivește cu orice caractere.",
     "site-rule-add": "Adaugă regulă",
     "site-rule-enabled": "Activată",
     "site-rule-connections": "Conexiuni per server",
@@ -607,7 +607,16 @@
     "system-title-bar": "Folosește bara de titlu a sistemului",
     "system-title-bar-hint": "Pentru managerii de ferestre care își desenează propria bară de titlu. Ascunde butoanele de fereastră ale aplicației.",
     "show-tray-icon": "Afișează pictograma în tavă",
-    "show-tray-icon-hint": "Când este ascunsă, închiderea ferestrei în fundal o minimizează."
+    "show-tray-icon-hint": "Când este ascunsă, închiderea ferestrei în fundal o minimizează.",
+    "extension-torrent-action": "Linkuri torrent",
+    "extension-torrent-action-hint": "Salvarea păstrează fișierul .torrent ca orice descărcare; cu BitTorrent dezactivat este salvat mereu.",
+    "extension-torrent-open": "Deschide conținutul torrentului",
+    "extension-torrent-save": "Salvează fișierul .torrent",
+    "site-rule-connections-default": "Implicit",
+    "site-rule-proxy": "Proxy",
+    "site-rule-proxy-default": "Proxy conform setărilor",
+    "site-rule-proxy-proxy": "Folosește proxy",
+    "site-rule-proxy-direct": "Conectare directă"
   },
   "task": {
     "scope-all": "Toate",

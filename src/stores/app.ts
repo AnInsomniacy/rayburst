@@ -269,11 +269,15 @@ export const useAppStore = defineStore('app', () => {
     items: BatchItem[],
   ): Pick<DeepLinkHandlingResult, 'autoSubmitted' | 'ignored'> {
     const downloadUrl = input.url
-    const kind = detectExternalInputKind(downloadUrl)
+    const preferenceStore = usePreferenceStore()
+    const detected = detectExternalInputKind(downloadUrl)
+    // A saved .torrent is an ordinary file; the engine does not follow it (#50).
+    const keepTorrentFile =
+      preferenceStore.config.extensionTorrentAction === 'save' || !preferenceStore.config.bittorrentEnabled
+    const kind = detected === 'torrent' && keepTorrentFile ? 'uri' : detected
     const resolvedHint = input.filename?.trim() ?? ''
     const context = buildExternalContext(input)
 
-    const preferenceStore = usePreferenceStore()
     const autoSubmit = preferenceStore.config.extensionDownloadBehavior !== 'confirm'
     logger.debug('ExternalInput.new', 'external_input_received', {
       url: summarizeExternalInput(downloadUrl),

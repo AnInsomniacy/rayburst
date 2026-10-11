@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "不运行程序",
     "post-download-arguments": "参数",
     "site-rules": "站点规则",
-    "site-rules-hint": "为禁止多线程下载的站点限制每服务器连接数。example.com 同时匹配其子域名；* 匹配任意字符。",
+    "site-rules-hint": "按站点设置下载：为禁止并行下载的站点限制每服务器连接数，以及是否使用代理服务器。example.com 同时匹配其子域名；* 匹配任意字符。",
     "site-rule-add": "添加规则",
     "site-rule-enabled": "启用",
     "site-rule-connections": "每服务器连接数",
@@ -607,7 +607,16 @@
     "system-title-bar": "使用系统标题栏",
     "system-title-bar-hint": "适用于自行绘制标题栏的窗口管理器，会隐藏应用自带的窗口按钮。",
     "show-tray-icon": "显示托盘图标",
-    "show-tray-icon-hint": "隐藏后，关闭窗口到后台时改为最小化窗口。"
+    "show-tray-icon-hint": "隐藏后，关闭窗口到后台时改为最小化窗口。",
+    "extension-torrent-action": "种子链接",
+    "extension-torrent-action-hint": "保存时 .torrent 文件会像普通下载一样保留；关闭 BitTorrent 时总是保存。",
+    "extension-torrent-open": "打开种子内容",
+    "extension-torrent-save": "保存 .torrent 文件",
+    "site-rule-connections-default": "默认",
+    "site-rule-proxy": "代理",
+    "site-rule-proxy-default": "按代理设置",
+    "site-rule-proxy-proxy": "使用代理",
+    "site-rule-proxy-direct": "直接连接"
   },
   "task": {
     "scope-all": "全部",

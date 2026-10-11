@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "Ingen program",
     "post-download-arguments": "Argumenter",
     "site-rules": "Nettstedsregler",
-    "site-rules-hint": "Begrenser tilkoblinger per server for nettsteder som forbyr parallelle nedlastinger. example.com dekker også underdomener; * samsvarer med alle tegn.",
+    "site-rules-hint": "Nedlastingsinnstillinger per nettsted: tilkoblinger per server for nettsteder som forbyr parallelle nedlastinger, og om proxyserveren skal brukes. example.com dekker også underdomener; * samsvarer med alle tegn.",
     "site-rule-add": "Legg til regel",
     "site-rule-enabled": "Aktivert",
     "site-rule-connections": "Tilkoblinger per server",
@@ -607,7 +607,16 @@
     "system-title-bar": "Bruk systemets tittellinje",
     "system-title-bar-hint": "For vindusbehandlere som tegner sin egen tittellinje. Skjuler appens vindusknapper.",
     "show-tray-icon": "Vis ikon i systemstatusfeltet",
-    "show-tray-icon-hint": "Når det er skjult, minimeres vinduet i stedet når det lukkes til bakgrunnen."
+    "show-tray-icon-hint": "Når det er skjult, minimeres vinduet i stedet når det lukkes til bakgrunnen.",
+    "extension-torrent-action": "Torrentlenker",
+    "extension-torrent-action-hint": "Lagring beholder .torrent-filen som en vanlig nedlasting; den lagres alltid når BitTorrent er av.",
+    "extension-torrent-open": "Åpne innholdet i torrenten",
+    "extension-torrent-save": "Lagre .torrent-filen",
+    "site-rule-connections-default": "Standard",
+    "site-rule-proxy": "Proxy",
+    "site-rule-proxy-default": "Proxy som innstilt",
+    "site-rule-proxy-proxy": "Bruk proxy",
+    "site-rule-proxy-direct": "Koble direkte"
   },
   "task": {
     "scope-all": "Alle",

@@ -161,6 +161,7 @@ pub fn build_router(ctx: Arc<ApiContext>) -> Router {
         .route("/tasks", get(handle_tasks))
         .route("/tasks/{gid}/pause", post(handle_task_pause))
         .route("/tasks/{gid}/resume", post(handle_task_resume))
+        .route("/tasks/{gid}/reveal", post(handle_task_reveal))
         .route("/pause-all", post(handle_pause_all))
         .route("/resume-all", post(handle_resume_all))
         .layer(axum::extract::DefaultBodyLimit::max(256 * 1024))
@@ -434,6 +435,47 @@ async fn handle_task_resume(
     axum::extract::Path(gid): axum::extract::Path<String>,
 ) -> Result<Json<ActionResponse>, (StatusCode, Json<serde_json::Value>)> {
     task_action(&ctx, &headers, &gid, true).await
+}
+
+/// POST /tasks/{gid}/reveal — shows the task's file, or its folder, on the desktop.
+async fn handle_task_reveal(
+    State(ctx): State<Arc<ApiContext>>,
+    headers: HeaderMap,
+    axum::extract::Path(gid): axum::extract::Path<String>,
+) -> Result<Json<ActionResponse>, (StatusCode, Json<serde_json::Value>)> {
+    validate_bearer_token(&headers, &read_api_secret(&ctx.app))
+        .map_err(|status| (status, Json(serde_json::Value::Null)))?;
+    let aria2 = ctx
+        .app
+        .try_state::<TaskServiceState>()
+        .ok_or_else(|| engine_unavailable(&ctx.app))?;
+    let result = match aria2.0.tell_status(&gid).await {
+        Ok(task) => {
+            let output = super::monitor::TaskEvent::from_aria2(&task).output_path();
+            let folder = std::path::PathBuf::from(&task.dir);
+            let target = [output, folder].into_iter().find(|path| path.exists());
+            match target {
+                Some(path) => tauri::async_runtime::spawn_blocking(move || {
+                    crate::commands::show_item_in_dir(path.to_string_lossy().into_owned())
+                })
+                .await
+                .map_err(|error| error.to_string())
+                .and_then(|result| result.map_err(|error| error.to_string())),
+                None => Err("The download is no longer on disk".to_string()),
+            }
+        }
+        Err(error) => Err(error.to_string()),
+    };
+    Ok(Json(match result {
+        Ok(()) => ActionResponse {
+            status: "ok".to_string(),
+            error: None,
+        },
+        Err(error) => ActionResponse {
+            status: "error".to_string(),
+            error: Some(error),
+        },
+    }))
 }
 
 async fn task_action(

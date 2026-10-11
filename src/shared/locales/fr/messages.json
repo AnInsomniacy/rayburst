@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "Aucun programme",
     "post-download-arguments": "Arguments",
     "site-rules": "Règles par site",
-    "site-rules-hint": "Limite les connexions par serveur pour les sites qui interdisent les téléchargements parallèles. example.com couvre aussi ses sous-domaines ; * correspond à n’importe quels caractères.",
+    "site-rules-hint": "Réglages de téléchargement par site : connexions par serveur pour les sites qui interdisent les téléchargements parallèles, et utilisation ou non du serveur proxy. example.com couvre aussi ses sous-domaines ; * correspond à n'importe quels caractères.",
     "site-rule-add": "Ajouter une règle",
     "site-rule-enabled": "Activée",
     "site-rule-connections": "Connexions par serveur",
@@ -607,7 +607,16 @@
     "system-title-bar": "Utiliser la barre de titre du système",
     "system-title-bar-hint": "Pour les gestionnaires de fenêtres qui dessinent leur propre barre de titre. Masque les boutons de fenêtre de l'application.",
     "show-tray-icon": "Afficher l'icône de la zone de notification",
-    "show-tray-icon-hint": "Masquée, fermer la fenêtre en arrière-plan la réduit à la place."
+    "show-tray-icon-hint": "Masquée, fermer la fenêtre en arrière-plan la réduit à la place.",
+    "extension-torrent-action": "Liens torrent",
+    "extension-torrent-action-hint": "L'enregistrement conserve le fichier .torrent comme tout téléchargement ; il est toujours enregistré quand BitTorrent est désactivé.",
+    "extension-torrent-open": "Ouvrir le contenu du torrent",
+    "extension-torrent-save": "Enregistrer le fichier .torrent",
+    "site-rule-connections-default": "Par défaut",
+    "site-rule-proxy": "Proxy",
+    "site-rule-proxy-default": "Proxy selon la configuration",
+    "site-rule-proxy-proxy": "Utiliser le proxy",
+    "site-rule-proxy-direct": "Connexion directe"
   },
   "task": {
     "scope-all": "Toutes",

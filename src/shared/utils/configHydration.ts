@@ -207,6 +207,13 @@ function normalizeScalarValues(config: Record<string, unknown>, repairs: string[
     DEFAULT_APP_CONFIG.extensionDownloadBehavior,
     repairs,
   )
+  repairEnum(
+    config,
+    'extensionTorrentAction',
+    ['open', 'save'] as const,
+    DEFAULT_APP_CONFIG.extensionTorrentAction,
+    repairs,
+  )
   repairEnum(config, 'logLevel', APP_LOG_LEVELS, DEFAULT_APP_CONFIG.logLevel, repairs)
   repairEnum(config, 'aria2LogLevel', ARIA2_LOG_LEVELS, DEFAULT_APP_CONFIG.aria2LogLevel, repairs)
   repairEnum(config, 'fileAllocation', FILE_ALLOCATION_OPTIONS, DEFAULT_APP_CONFIG.fileAllocation, repairs)

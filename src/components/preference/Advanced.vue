@@ -361,6 +361,22 @@ onMounted(async () => {
             ]"
           />
         </NFormItem>
+        <NFormItem>
+          <template #label>
+            <PreferenceHintLabel
+              :label="t('preferences.extension-torrent-action')"
+              :hint="t('preferences.extension-torrent-action-hint')"
+            />
+          </template>
+          <NSelect
+            v-model:value="form.extensionTorrentAction"
+            class="pref-control-auto"
+            :options="[
+              { value: 'open', label: t('preferences.extension-torrent-open') },
+              { value: 'save', label: t('preferences.extension-torrent-save') },
+            ]"
+          />
+        </NFormItem>
         <NFormItem
           :label="t('preferences.extension-api-port')"
           v-bind="configFieldProps('extensionApiPort', form.extensionApiPort)"

@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "Không chạy chương trình",
     "post-download-arguments": "Tham số",
     "site-rules": "Quy tắc trang web",
-    "site-rules-hint": "Giới hạn số kết nối mỗi máy chủ cho các trang cấm tải song song. example.com bao gồm cả tên miền con; * khớp với ký tự bất kỳ.",
+    "site-rules-hint": "Cài đặt tải xuống theo trang: số kết nối mỗi máy chủ cho các trang cấm tải song song, và có dùng máy chủ proxy hay không. example.com cũng bao gồm các tên miền con; * khớp với ký tự bất kỳ.",
     "site-rule-add": "Thêm quy tắc",
     "site-rule-enabled": "Bật",
     "site-rule-connections": "Kết nối mỗi máy chủ",
@@ -607,7 +607,16 @@
     "system-title-bar": "Dùng thanh tiêu đề hệ thống",
     "system-title-bar-hint": "Dành cho trình quản lý cửa sổ tự vẽ thanh tiêu đề. Ẩn các nút cửa sổ của ứng dụng.",
     "show-tray-icon": "Hiện biểu tượng khay",
-    "show-tray-icon-hint": "Khi ẩn, đóng cửa sổ xuống nền sẽ thu nhỏ cửa sổ thay vào đó."
+    "show-tray-icon-hint": "Khi ẩn, đóng cửa sổ xuống nền sẽ thu nhỏ cửa sổ thay vào đó.",
+    "extension-torrent-action": "Liên kết torrent",
+    "extension-torrent-action-hint": "Lưu sẽ giữ tệp .torrent như mọi lượt tải; khi BitTorrent tắt, tệp luôn được lưu.",
+    "extension-torrent-open": "Mở nội dung torrent",
+    "extension-torrent-save": "Lưu tệp .torrent",
+    "site-rule-connections-default": "Mặc định",
+    "site-rule-proxy": "Proxy",
+    "site-rule-proxy-default": "Proxy theo cài đặt",
+    "site-rule-proxy-proxy": "Dùng proxy",
+    "site-rule-proxy-direct": "Kết nối trực tiếp"
   },
   "task": {
     "scope-all": "Tất cả",

@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "कोई प्रोग्राम नहीं",
     "post-download-arguments": "आर्ग्युमेंट",
     "site-rules": "साइट नियम",
-    "site-rules-hint": "समानांतर डाउनलोड पर रोक लगाने वाली साइटों के लिए प्रति सर्वर कनेक्शन सीमित करता है। example.com उसके सबडोमेन भी शामिल करता है; * किसी भी अक्षर से मेल खाता है।",
+    "site-rules-hint": "साइट के अनुसार डाउनलोड सेटिंग: समानांतर डाउनलोड रोकने वाली साइटों के लिए प्रति सर्वर कनेक्शन, और प्रॉक्सी सर्वर का उपयोग करना है या नहीं। example.com में उसके सबडोमेन भी आते हैं; * किसी भी वर्ण से मेल खाता है।",
     "site-rule-add": "नियम जोड़ें",
     "site-rule-enabled": "सक्षम",
     "site-rule-connections": "प्रति सर्वर कनेक्शन",
@@ -607,7 +607,16 @@
     "system-title-bar": "सिस्टम टाइटल बार का उपयोग करें",
     "system-title-bar-hint": "उन विंडो मैनेजरों के लिए जो अपना टाइटल बार बनाते हैं। ऐप के विंडो बटन छिपाता है।",
     "show-tray-icon": "ट्रे आइकन दिखाएँ",
-    "show-tray-icon-hint": "छिपा होने पर, विंडो को बैकग्राउंड में बंद करने से वह इसके बजाय छोटी हो जाती है।"
+    "show-tray-icon-hint": "छिपा होने पर, विंडो को बैकग्राउंड में बंद करने से वह इसके बजाय छोटी हो जाती है।",
+    "extension-torrent-action": "टोरेंट लिंक",
+    "extension-torrent-action-hint": "सहेजने पर .torrent फ़ाइल किसी भी डाउनलोड की तरह रखी जाती है; BitTorrent बंद होने पर यह हमेशा सहेजी जाती है।",
+    "extension-torrent-open": "टोरेंट की सामग्री खोलें",
+    "extension-torrent-save": ".torrent फ़ाइल सहेजें",
+    "site-rule-connections-default": "डिफ़ॉल्ट",
+    "site-rule-proxy": "प्रॉक्सी",
+    "site-rule-proxy-default": "सेटिंग के अनुसार प्रॉक्सी",
+    "site-rule-proxy-proxy": "प्रॉक्सी का उपयोग करें",
+    "site-rule-proxy-direct": "सीधे कनेक्ट करें"
   },
   "task": {
     "scope-all": "सभी",

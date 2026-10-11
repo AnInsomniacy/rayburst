@@ -1,14 +1,26 @@
 <script setup lang="ts">
-/** @fileoverview Edits per-site connection limits: a host pattern and its connections per server. */
+/** @fileoverview Edits per-site rules: a host pattern, its connections per server and its proxy choice. */
 import { useI18n } from 'vue-i18n'
-import { NButton, NIcon, NInput, NInputNumber, NSwitch, NText } from 'naive-ui'
+import { computed } from 'vue'
+import { NButton, NIcon, NInput, NInputNumber, NSelect, NSwitch, NText } from 'naive-ui'
 import { AddOutline, TrashOutline } from '@vicons/ionicons5'
 import type { SiteRule } from '@shared/types'
-import { isValidSiteHostPattern, MAX_SITE_RULES, SITE_RULE_CONNECTION_RANGE } from '@shared/utils/siteRules'
+import {
+  isValidSiteHostPattern,
+  MAX_SITE_RULES,
+  SITE_RULE_CONNECTION_RANGE,
+  SITE_RULE_PROXY_MODES,
+} from '@shared/utils/siteRules'
 
 const props = defineProps<{ value: SiteRule[] }>()
 const emit = defineEmits<{ 'update:value': [value: SiteRule[]] }>()
 const { t } = useI18n()
+const proxyLabels: Record<SiteRule['proxy'], () => string> = {
+  default: () => t('preferences.site-rule-proxy-default'),
+  proxy: () => t('preferences.site-rule-proxy-proxy'),
+  direct: () => t('preferences.site-rule-proxy-direct'),
+}
+const proxyOptions = computed(() => SITE_RULE_PROXY_MODES.map((mode) => ({ value: mode, label: proxyLabels[mode]() })))
 
 function update(index: number, patch: Partial<SiteRule>) {
   emit(
@@ -20,7 +32,7 @@ function update(index: number, patch: Partial<SiteRule>) {
 function add() {
   emit('update:value', [
     ...props.value,
-    { id: crypto.randomUUID(), enabled: true, hostPattern: '', maxConnectionPerServer: 2 },
+    { id: crypto.randomUUID(), enabled: true, hostPattern: '', maxConnectionPerServer: 0, proxy: 'default' },
   ])
 }
 
@@ -50,16 +62,24 @@ function remove(index: number) {
         @update:value="(hostPattern: string) => update(index, { hostPattern: hostPattern.trim().toLowerCase() })"
       />
       <NInputNumber
-        :value="rule.maxConnectionPerServer"
+        :value="rule.maxConnectionPerServer || null"
         size="small"
+        clearable
         class="site-rule-connections"
         :min="SITE_RULE_CONNECTION_RANGE.min"
         :max="SITE_RULE_CONNECTION_RANGE.max"
+        :placeholder="t('preferences.site-rule-connections-default')"
+        :title="t('preferences.site-rule-connections')"
         :aria-label="t('preferences.site-rule-connections')"
-        @update:value="
-          (connections: number | null) =>
-            update(index, { maxConnectionPerServer: connections ?? rule.maxConnectionPerServer })
-        "
+        @update:value="(connections: number | null) => update(index, { maxConnectionPerServer: connections ?? 0 })"
+      />
+      <NSelect
+        :value="rule.proxy"
+        size="small"
+        class="site-rule-proxy"
+        :options="proxyOptions"
+        :aria-label="t('preferences.site-rule-proxy')"
+        @update:value="(proxy: SiteRule['proxy']) => update(index, { proxy })"
       />
       <NButton quaternary circle size="small" :aria-label="t('app.delete')" @click="remove(index)">
         <template #icon>
@@ -96,7 +116,11 @@ function remove(index: number) {
   min-width: 0;
 }
 .site-rule-connections {
-  width: 96px;
+  width: 110px;
+  flex-shrink: 0;
+}
+.site-rule-proxy {
+  width: 150px;
   flex-shrink: 0;
 }
 .site-rules-footer {

@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "ไม่มีโปรแกรม",
     "post-download-arguments": "อาร์กิวเมนต์",
     "site-rules": "กฎของเว็บไซต์",
-    "site-rules-hint": "จำกัดจำนวนการเชื่อมต่อต่อเซิร์ฟเวอร์สำหรับเว็บไซต์ที่ห้ามดาวน์โหลดแบบขนาน example.com ครอบคลุมโดเมนย่อยด้วย ส่วน * ตรงกับอักขระใดก็ได้",
+    "site-rules-hint": "การตั้งค่าดาวน์โหลดรายไซต์: จำนวนการเชื่อมต่อต่อเซิร์ฟเวอร์สำหรับไซต์ที่ห้ามดาวน์โหลดแบบขนาน และจะใช้พร็อกซีเซิร์ฟเวอร์หรือไม่ example.com ครอบคลุมโดเมนย่อยด้วย ส่วน * ตรงกับอักขระใดก็ได้",
     "site-rule-add": "เพิ่มกฎ",
     "site-rule-enabled": "เปิดใช้",
     "site-rule-connections": "การเชื่อมต่อต่อเซิร์ฟเวอร์",
@@ -607,7 +607,16 @@
     "system-title-bar": "ใช้แถบชื่อเรื่องของระบบ",
     "system-title-bar-hint": "สำหรับตัวจัดการหน้าต่างที่วาดแถบชื่อเรื่องเอง จะซ่อนปุ่มหน้าต่างของแอป",
     "show-tray-icon": "แสดงไอคอนในถาด",
-    "show-tray-icon-hint": "เมื่อซ่อนไว้ การปิดหน้าต่างไปทำงานเบื้องหลังจะย่อหน้าต่างแทน"
+    "show-tray-icon-hint": "เมื่อซ่อนไว้ การปิดหน้าต่างไปทำงานเบื้องหลังจะย่อหน้าต่างแทน",
+    "extension-torrent-action": "ลิงก์ทอร์เรนต์",
+    "extension-torrent-action-hint": "การบันทึกจะเก็บไฟล์ .torrent ไว้เหมือนการดาวน์โหลดทั่วไป และจะบันทึกเสมอเมื่อปิด BitTorrent",
+    "extension-torrent-open": "เปิดเนื้อหาของทอร์เรนต์",
+    "extension-torrent-save": "บันทึกไฟล์ .torrent",
+    "site-rule-connections-default": "ค่าเริ่มต้น",
+    "site-rule-proxy": "พร็อกซี",
+    "site-rule-proxy-default": "พร็อกซีตามการตั้งค่า",
+    "site-rule-proxy-proxy": "ใช้พร็อกซี",
+    "site-rule-proxy-direct": "เชื่อมต่อโดยตรง"
   },
   "task": {
     "scope-all": "ทั้งหมด",

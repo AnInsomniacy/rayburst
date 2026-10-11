@@ -378,6 +378,22 @@ describe('useAppStore', () => {
       expect(submitBatchItemsMock).not.toHaveBeenCalled()
     })
 
+    it.each([
+      ['the user saves torrent files', { extensionTorrentAction: 'save' as const }],
+      ['BitTorrent is off', { bittorrentEnabled: false }],
+    ])('downloads a .torrent link as a plain file when %s', async (_, prefs) => {
+      const store = useAppStore()
+      const { usePreferenceStore } = await import('@/stores/preference')
+      const prefStore = usePreferenceStore()
+      prefStore.config.extensionDownloadBehavior = 'confirm'
+      Object.assign(prefStore.config, prefs)
+
+      await store.handleExternalInputs([browserInput('https://example.com/linux.torrent')])
+
+      expect(store.pendingBatch).toHaveLength(1)
+      expect(store.pendingBatch[0].kind).toBe('uri')
+    })
+
     it('auto-submits magnet URLs without bypassing file selection', async () => {
       const store = useAppStore()
       const { usePreferenceStore } = await import('@/stores/preference')

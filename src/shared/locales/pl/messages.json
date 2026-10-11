@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "Brak programu",
     "post-download-arguments": "Argumenty",
     "site-rules": "Reguły witryn",
-    "site-rules-hint": "Ogranicza liczbę połączeń na serwer dla witryn, które zabraniają pobierania równoległego. example.com obejmuje też subdomeny; * pasuje do dowolnych znaków.",
+    "site-rules-hint": "Ustawienia pobierania dla witryn: połączenia na serwer dla witryn zabraniających pobierania równoległego oraz użycie serwera proxy. example.com obejmuje też subdomeny; * pasuje do dowolnych znaków.",
     "site-rule-add": "Dodaj regułę",
     "site-rule-enabled": "Włączona",
     "site-rule-connections": "Połączenia na serwer",
@@ -607,7 +607,16 @@
     "system-title-bar": "Użyj systemowego paska tytułu",
     "system-title-bar-hint": "Dla menedżerów okien, które rysują własny pasek tytułu. Ukrywa przyciski okna aplikacji.",
     "show-tray-icon": "Pokaż ikonę w zasobniku",
-    "show-tray-icon-hint": "Gdy ukryta, zamknięcie okna do tła zamiast tego je minimalizuje."
+    "show-tray-icon-hint": "Gdy ukryta, zamknięcie okna do tła zamiast tego je minimalizuje.",
+    "extension-torrent-action": "Linki torrent",
+    "extension-torrent-action-hint": "Zapis zachowuje plik .torrent jak każde pobieranie; przy wyłączonym BitTorrent jest zawsze zapisywany.",
+    "extension-torrent-open": "Otwórz zawartość torrenta",
+    "extension-torrent-save": "Zapisz plik .torrent",
+    "site-rule-connections-default": "Domyślnie",
+    "site-rule-proxy": "Proxy",
+    "site-rule-proxy-default": "Proxy wg ustawień",
+    "site-rule-proxy-proxy": "Użyj proxy",
+    "site-rule-proxy-direct": "Połącz bezpośrednio"
   },
   "task": {
     "scope-all": "Wszystkie",

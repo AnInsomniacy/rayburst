@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "No program",
     "post-download-arguments": "Arguments",
     "site-rules": "Site rules",
-    "site-rules-hint": "Limits connections per server for sites that ban parallel downloads. example.com also covers its subdomains; * matches any characters.",
+    "site-rules-hint": "Per-site download settings: connections per server for sites that ban parallel downloads, and whether to use the proxy server. example.com also covers its subdomains; * matches any characters.",
     "site-rule-add": "Add rule",
     "site-rule-enabled": "Enabled",
     "site-rule-connections": "Connections per server",
@@ -607,7 +607,16 @@
     "system-title-bar": "Use system title bar",
     "system-title-bar-hint": "For window managers that draw their own title bar. Hides the app's window buttons.",
     "show-tray-icon": "Show tray icon",
-    "show-tray-icon-hint": "When hidden, closing the window to the background minimizes it instead."
+    "show-tray-icon-hint": "When hidden, closing the window to the background minimizes it instead.",
+    "extension-torrent-action": "Torrent links",
+    "extension-torrent-action-hint": "Saving keeps the .torrent file like any other download; it is always saved while BitTorrent is off.",
+    "extension-torrent-open": "Open the torrent's content",
+    "extension-torrent-save": "Save the .torrent file",
+    "site-rule-connections-default": "Default",
+    "site-rule-proxy": "Proxy",
+    "site-rule-proxy-default": "Proxy as configured",
+    "site-rule-proxy-proxy": "Use the proxy",
+    "site-rule-proxy-direct": "Connect directly"
   },
   "task": {
     "scope-all": "All",

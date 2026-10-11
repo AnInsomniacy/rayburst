@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "Program yok",
     "post-download-arguments": "Argümanlar",
     "site-rules": "Site kuralları",
-    "site-rules-hint": "Paralel indirmeyi yasaklayan siteler için sunucu başına bağlantıyı sınırlar. example.com alt alan adlarını da kapsar; * herhangi bir karakterle eşleşir.",
+    "site-rules-hint": "Site başına indirme ayarları: paralel indirmeyi yasaklayan siteler için sunucu başına bağlantı sayısı ve proxy sunucusunun kullanılıp kullanılmayacağı. example.com alt alan adlarını da kapsar; * herhangi bir karakterle eşleşir.",
     "site-rule-add": "Kural ekle",
     "site-rule-enabled": "Etkin",
     "site-rule-connections": "Sunucu başına bağlantı",
@@ -607,7 +607,16 @@
     "system-title-bar": "Sistem başlık çubuğunu kullan",
     "system-title-bar-hint": "Kendi başlık çubuğunu çizen pencere yöneticileri için. Uygulamanın pencere düğmelerini gizler.",
     "show-tray-icon": "Tepsi simgesini göster",
-    "show-tray-icon-hint": "Gizliyken pencereyi arka plana kapatmak onu küçültür."
+    "show-tray-icon-hint": "Gizliyken pencereyi arka plana kapatmak onu küçültür.",
+    "extension-torrent-action": "Torrent bağlantıları",
+    "extension-torrent-action-hint": "Kaydetmek .torrent dosyasını her indirme gibi tutar; BitTorrent kapalıyken her zaman kaydedilir.",
+    "extension-torrent-open": "Torrent içeriğini aç",
+    "extension-torrent-save": ".torrent dosyasını kaydet",
+    "site-rule-connections-default": "Varsayılan",
+    "site-rule-proxy": "Proxy",
+    "site-rule-proxy-default": "Ayarlara göre proxy",
+    "site-rule-proxy-proxy": "Proxy kullan",
+    "site-rule-proxy-direct": "Doğrudan bağlan"
   },
   "task": {
     "scope-all": "Tümü",

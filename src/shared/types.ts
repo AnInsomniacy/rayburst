@@ -409,8 +409,13 @@ export interface SiteRule {
   enabled: boolean
   /** `example.com` names the domain and its subdomains; `*` matches any characters. */
   hostPattern: string
+  /** 0 keeps the task's own value. */
   maxConnectionPerServer: number
+  /** `proxy` uses the configured proxy server even when downloads go direct; `direct` skips it. */
+  proxy: SiteRuleProxy
 }
+
+export type SiteRuleProxy = 'default' | 'proxy' | 'direct'
 
 /** Application user preferences with full type coverage. */
 export interface AppConfig {
@@ -515,6 +520,8 @@ export interface AppConfig {
   clipboard: ClipboardConfig
   /** One policy owns confirmation and window activation for extension downloads. */
   extensionDownloadBehavior: 'confirm' | 'background' | 'show'
+  /** Browser .torrent links: open the torrent's content, or save the file like any download. */
+  extensionTorrentAction: 'open' | 'save'
   trackerSource: string[]
   customTrackerUrls: string[]
   historyDirectories: string[]

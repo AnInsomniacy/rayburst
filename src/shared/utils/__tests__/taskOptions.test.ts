@@ -57,12 +57,14 @@ describe('site rules', () => {
       { id: 'a', hostPattern: ' Example.COM ', maxConnectionPerServer: 40 },
       { id: 'a', hostPattern: 'duplicate.com', maxConnectionPerServer: 2 },
       { id: 'b', enabled: false, hostPattern: 'bad host', maxConnectionPerServer: 2 },
-      { id: 'c', enabled: false, hostPattern: 'files.org', maxConnectionPerServer: 0 },
+      { id: 'c', enabled: false, hostPattern: 'files.org', maxConnectionPerServer: 0, proxy: 'proxy' },
+      { id: 'd', hostPattern: 'cdn.test', maxConnectionPerServer: -3, proxy: 'tunnel' },
       null,
     ])
     expect(rules).toEqual([
-      { id: 'a', enabled: true, hostPattern: 'example.com', maxConnectionPerServer: 16 },
-      { id: 'c', enabled: false, hostPattern: 'files.org', maxConnectionPerServer: 1 },
+      { id: 'a', enabled: true, hostPattern: 'example.com', maxConnectionPerServer: 16, proxy: 'default' },
+      { id: 'c', enabled: false, hostPattern: 'files.org', maxConnectionPerServer: 0, proxy: 'proxy' },
+      { id: 'd', enabled: true, hostPattern: 'cdn.test', maxConnectionPerServer: 0, proxy: 'default' },
     ])
     expect(normalizeSiteRules('nope')).toEqual([])
     const many = Array.from({ length: MAX_SITE_RULES + 5 }, (_, i) => ({

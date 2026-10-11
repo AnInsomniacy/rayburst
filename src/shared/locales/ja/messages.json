@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "実行しない",
     "post-download-arguments": "引数",
     "site-rules": "サイトルール",
-    "site-rules-hint": "並列ダウンロードを禁止しているサイトのサーバーごとの接続数を制限します。example.com はサブドメインも対象です。* は任意の文字に一致します。",
+    "site-rules-hint": "サイトごとのダウンロード設定：並列ダウンロードを禁止するサイト向けのサーバーごとの接続数と、プロキシサーバーを使うかどうか。example.com はサブドメインも含み、* は任意の文字に一致します。",
     "site-rule-add": "ルールを追加",
     "site-rule-enabled": "有効",
     "site-rule-connections": "サーバーごとの接続数",
@@ -607,7 +607,16 @@
     "system-title-bar": "システムのタイトルバーを使用",
     "system-title-bar-hint": "独自にタイトルバーを描画するウィンドウマネージャー向けです。アプリのウィンドウボタンを隠します。",
     "show-tray-icon": "トレイアイコンを表示",
-    "show-tray-icon-hint": "非表示にすると、ウィンドウをバックグラウンドへ閉じる操作は最小化になります。"
+    "show-tray-icon-hint": "非表示にすると、ウィンドウをバックグラウンドへ閉じる操作は最小化になります。",
+    "extension-torrent-action": "トレントのリンク",
+    "extension-torrent-action-hint": "保存を選ぶと .torrent ファイルを通常のダウンロードとして残します。BitTorrent がオフのときは常に保存します。",
+    "extension-torrent-open": "トレントの内容を開く",
+    "extension-torrent-save": ".torrent ファイルを保存",
+    "site-rule-connections-default": "既定",
+    "site-rule-proxy": "プロキシ",
+    "site-rule-proxy-default": "プロキシ設定に従う",
+    "site-rule-proxy-proxy": "プロキシを使う",
+    "site-rule-proxy-direct": "直接接続"
   },
   "task": {
     "scope-all": "すべて",

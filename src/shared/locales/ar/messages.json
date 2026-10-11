@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "بدون برنامج",
     "post-download-arguments": "الوسائط",
     "site-rules": "قواعد المواقع",
-    "site-rules-hint": "يحدّ عدد الاتصالات لكل خادم للمواقع التي تحظر التنزيل المتوازي. يشمل example.com نطاقاته الفرعية أيضًا؛ ويطابق * أي أحرف.",
+    "site-rules-hint": "إعدادات التنزيل لكل موقع: عدد الاتصالات لكل خادم للمواقع التي تمنع التنزيل المتوازي، واستخدام خادم الوكيل أو عدمه. يشمل example.com نطاقاته الفرعية أيضًا، ويطابق * أي أحرف.",
     "site-rule-add": "إضافة قاعدة",
     "site-rule-enabled": "مفعّلة",
     "site-rule-connections": "الاتصالات لكل خادم",
@@ -607,7 +607,16 @@
     "system-title-bar": "استخدام شريط عنوان النظام",
     "system-title-bar-hint": "لمديري النوافذ الذين يرسمون شريط العنوان بأنفسهم. يخفي أزرار نافذة التطبيق.",
     "show-tray-icon": "إظهار أيقونة علبة النظام",
-    "show-tray-icon-hint": "عند إخفائها، يؤدي إغلاق النافذة إلى الخلفية إلى تصغيرها بدلًا من ذلك."
+    "show-tray-icon-hint": "عند إخفائها، يؤدي إغلاق النافذة إلى الخلفية إلى تصغيرها بدلًا من ذلك.",
+    "extension-torrent-action": "روابط التورنت",
+    "extension-torrent-action-hint": "الحفظ يُبقي ملف ‎.torrent‎ كأي تنزيل؛ ويُحفظ دائمًا عند إيقاف BitTorrent.",
+    "extension-torrent-open": "فتح محتوى التورنت",
+    "extension-torrent-save": "حفظ ملف ‎.torrent‎",
+    "site-rule-connections-default": "افتراضي",
+    "site-rule-proxy": "الوكيل",
+    "site-rule-proxy-default": "الوكيل حسب الإعدادات",
+    "site-rule-proxy-proxy": "استخدام الوكيل",
+    "site-rule-proxy-direct": "اتصال مباشر"
   },
   "task": {
     "scope-all": "الكل",

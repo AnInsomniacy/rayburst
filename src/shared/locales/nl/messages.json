@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "Geen programma",
     "post-download-arguments": "Argumenten",
     "site-rules": "Siteregels",
-    "site-rules-hint": "Beperkt het aantal verbindingen per server voor sites die parallel downloaden verbieden. example.com omvat ook subdomeinen; * komt overeen met willekeurige tekens.",
+    "site-rules-hint": "Downloadinstellingen per site: verbindingen per server voor sites die parallelle downloads verbieden, en of de proxyserver wordt gebruikt. example.com omvat ook subdomeinen; * komt overeen met willekeurige tekens.",
     "site-rule-add": "Regel toevoegen",
     "site-rule-enabled": "Ingeschakeld",
     "site-rule-connections": "Verbindingen per server",
@@ -607,7 +607,16 @@
     "system-title-bar": "Systeemtitelbalk gebruiken",
     "system-title-bar-hint": "Voor vensterbeheerders die hun eigen titelbalk tekenen. Verbergt de vensterknoppen van de app.",
     "show-tray-icon": "Systeemvakpictogram tonen",
-    "show-tray-icon-hint": "Verborgen wordt het venster bij sluiten naar de achtergrond in plaats daarvan geminimaliseerd."
+    "show-tray-icon-hint": "Verborgen wordt het venster bij sluiten naar de achtergrond in plaats daarvan geminimaliseerd.",
+    "extension-torrent-action": "Torrentlinks",
+    "extension-torrent-action-hint": "Opslaan bewaart het .torrent-bestand zoals elke download; met BitTorrent uit wordt het altijd opgeslagen.",
+    "extension-torrent-open": "Inhoud van de torrent openen",
+    "extension-torrent-save": ".torrent-bestand opslaan",
+    "site-rule-connections-default": "Standaard",
+    "site-rule-proxy": "Proxy",
+    "site-rule-proxy-default": "Proxy volgens instellingen",
+    "site-rule-proxy-proxy": "Proxy gebruiken",
+    "site-rule-proxy-direct": "Direct verbinden"
   },
   "task": {
     "scope-all": "Alle",

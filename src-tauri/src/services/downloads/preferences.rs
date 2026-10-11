@@ -23,6 +23,7 @@ pub(crate) struct Preferences {
     user_agent_profiles: Vec<Profile>,
     user_agent_rules: Vec<Rule>,
     site_rules: Vec<SiteRule>,
+    proxy: ProxySettings,
     #[serde(default = "enabled")]
     pub(super) bittorrent_enabled: bool,
 }
@@ -52,13 +53,35 @@ struct Rule {
     override_plugin: bool,
 }
 
-/// Limits connections to the hosts of a site that bans parallel downloads.
+/// Per-site download settings: a connection cap for sites that ban parallel
+/// downloads and a proxy choice that overrides the global download scope.
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct SiteRule {
     enabled: bool,
     host_pattern: String,
+    #[serde(default)]
     max_connection_per_server: u32,
+    #[serde(default)]
+    proxy: SiteProxy,
+}
+
+#[derive(Default, Deserialize, PartialEq, Clone, Copy)]
+#[serde(rename_all = "lowercase")]
+enum SiteProxy {
+    #[default]
+    Default,
+    Proxy,
+    Direct,
+}
+
+/// The configured proxy server; a site rule may use it while downloads go direct.
+#[derive(Default, Deserialize)]
+#[serde(default)]
+struct ProxySettings {
+    server: String,
+    username: Option<String>,
+    password: Option<String>,
 }
 
 pub(crate) fn load(app: &AppHandle) -> Result<Preferences, AppError> {
@@ -106,8 +129,9 @@ fn host_matches(pattern: &str, host: &str) -> bool {
             && host[host.len() - pattern.len()..].eq_ignore_ascii_case(pattern)
 }
 
-/// Caps connections per server for URIs on a host a site rule names. The
-/// strictest of the matching rules and an explicit task value wins.
+/// Applies the site rules naming a host of the URIs: the strictest
+/// connection cap (an explicit lower task value stays) and the first proxy
+/// choice. A task that already names a proxy keeps it unless a rule says direct.
 pub(super) fn apply_site_rules(prefs: &Preferences, uris: &[String], options: &mut Value) {
     if !options.is_object() {
         return;
@@ -117,16 +141,27 @@ pub(super) fn apply_site_rules(prefs: &Preferences, uris: &[String], options: &m
         .filter_map(|uri| url::Url::parse(uri).ok())
         .filter_map(|url| url.host_str().map(str::to_owned))
         .collect();
-    let Some(limit) = prefs
+    let matching: Vec<&SiteRule> = prefs
         .site_rules
         .iter()
-        .filter(|rule| rule.enabled && rule.max_connection_per_server > 0)
+        .filter(|rule| rule.enabled)
         .filter(|rule| {
             hosts
                 .iter()
                 .any(|host| host_matches(&rule.host_pattern, host))
         })
+        .collect();
+    if let Some(proxy) = matching
+        .iter()
+        .map(|rule| rule.proxy)
+        .find(|proxy| *proxy != SiteProxy::Default)
+    {
+        apply_site_proxy(&prefs.proxy, proxy, options);
+    }
+    let Some(limit) = matching
+        .iter()
         .map(|rule| rule.max_connection_per_server)
+        .filter(|limit| *limit > 0)
         .min()
     else {
         return;
@@ -140,6 +175,30 @@ pub(super) fn apply_site_rules(prefs: &Preferences, uris: &[String], options: &m
         .filter(|value| *value > 0);
     let limit = current.map_or(limit, |current| current.min(limit));
     options["max-connection-per-server"] = limit.to_string().into();
+}
+
+fn apply_site_proxy(settings: &ProxySettings, proxy: SiteProxy, options: &mut Value) {
+    let named = options
+        .get("all-proxy")
+        .and_then(Value::as_str)
+        .is_some_and(|server| !server.trim().is_empty());
+    match proxy {
+        SiteProxy::Direct => {
+            for key in ["all-proxy", "all-proxy-user", "all-proxy-passwd"] {
+                options[key] = "".into();
+            }
+        }
+        SiteProxy::Proxy if !named && !settings.server.trim().is_empty() => {
+            options["all-proxy"] = settings.server.trim().into();
+            let username = settings.username.as_deref().unwrap_or("").trim();
+            let password = settings.password.as_deref().unwrap_or("");
+            if !username.is_empty() || !password.is_empty() {
+                options["all-proxy-user"] = username.into();
+                options["all-proxy-passwd"] = password.into();
+            }
+        }
+        _ => {}
+    }
 }
 
 pub(super) fn options(prefs: &Preferences, request: &AddRequest) -> Result<Value, AppError> {
@@ -302,6 +361,38 @@ mod tests {
         assert!(headers.contains(&"user-agent: Site agent"));
         assert!(headers.contains(&"cookie: session=current"));
         assert!(headers.contains(&"x-token: opaque"));
+    }
+
+    #[test]
+    fn site_rules_choose_the_proxy_for_matching_hosts() {
+        let prefs: Preferences = serde_json::from_value(json!({
+            "proxy":{"mode":"direct","server":"socks5://127.0.0.1:1080","username":"me","password":"pw"},
+            "siteRules":[
+                {"enabled":true,"hostPattern":"github.com","proxy":"proxy"},
+                {"enabled":true,"hostPattern":"mirror.cn","maxConnectionPerServer":0,"proxy":"direct"}
+            ]
+        }))
+        .unwrap();
+        let apply = |uri: &str, options: Value| {
+            let mut options = options;
+            apply_site_rules(&prefs, &[uri.to_owned()], &mut options);
+            options
+        };
+        let proxied = apply("https://objects.github.com/a.zip", json!({}));
+        assert_eq!(proxied["all-proxy"], "socks5://127.0.0.1:1080");
+        assert_eq!(proxied["all-proxy-user"], "me");
+        assert!(proxied.get("max-connection-per-server").is_none());
+        let own = apply(
+            "https://github.com/a.zip",
+            json!({"all-proxy":"http://task:8080"}),
+        );
+        assert_eq!(own["all-proxy"], "http://task:8080");
+        let direct = apply(
+            "https://mirror.cn/a.iso",
+            json!({"all-proxy":"http://global:8080"}),
+        );
+        assert_eq!(direct["all-proxy"], "");
+        assert_eq!(apply("https://other.org/a", json!({})), json!({}));
     }
 
     #[test]

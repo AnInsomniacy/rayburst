@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "Tanpa program",
     "post-download-arguments": "Argumen",
     "site-rules": "Aturan situs",
-    "site-rules-hint": "Membatasi koneksi per server untuk situs yang melarang unduhan paralel. example.com juga mencakup subdomainnya; * cocok dengan karakter apa pun.",
+    "site-rules-hint": "Pengaturan unduhan per situs: koneksi per server untuk situs yang melarang unduhan paralel, dan apakah server proxy dipakai. example.com juga mencakup subdomainnya; * cocok dengan karakter apa pun.",
     "site-rule-add": "Tambah aturan",
     "site-rule-enabled": "Aktif",
     "site-rule-connections": "Koneksi per server",
@@ -607,7 +607,16 @@
     "system-title-bar": "Gunakan bilah judul sistem",
     "system-title-bar-hint": "Untuk pengelola jendela yang menggambar bilah judulnya sendiri. Menyembunyikan tombol jendela aplikasi.",
     "show-tray-icon": "Tampilkan ikon baki",
-    "show-tray-icon-hint": "Saat disembunyikan, menutup jendela ke latar belakang akan meminimalkannya."
+    "show-tray-icon-hint": "Saat disembunyikan, menutup jendela ke latar belakang akan meminimalkannya.",
+    "extension-torrent-action": "Tautan torrent",
+    "extension-torrent-action-hint": "Menyimpan mempertahankan file .torrent seperti unduhan lain; saat BitTorrent mati file selalu disimpan.",
+    "extension-torrent-open": "Buka isi torrent",
+    "extension-torrent-save": "Simpan file .torrent",
+    "site-rule-connections-default": "Bawaan",
+    "site-rule-proxy": "Proxy",
+    "site-rule-proxy-default": "Proxy sesuai pengaturan",
+    "site-rule-proxy-proxy": "Gunakan proxy",
+    "site-rule-proxy-direct": "Sambung langsung"
   },
   "task": {
     "scope-all": "Semua",

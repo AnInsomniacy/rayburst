@@ -592,7 +592,7 @@
     "post-download-program-placeholder": "실행 안 함",
     "post-download-arguments": "인수",
     "site-rules": "사이트 규칙",
-    "site-rules-hint": "병렬 다운로드를 금지하는 사이트의 서버당 연결 수를 제한합니다. example.com은 하위 도메인도 포함하며 *는 임의의 문자와 일치합니다.",
+    "site-rules-hint": "사이트별 다운로드 설정: 병렬 다운로드를 막는 사이트의 서버당 연결 수와 프록시 서버 사용 여부입니다. example.com은 하위 도메인도 포함하고, *는 모든 문자와 일치합니다.",
     "site-rule-add": "규칙 추가",
     "site-rule-enabled": "사용",
     "site-rule-connections": "서버당 연결 수",
@@ -607,7 +607,16 @@
     "system-title-bar": "시스템 제목 표시줄 사용",
     "system-title-bar-hint": "자체 제목 표시줄을 그리는 창 관리자용입니다. 앱의 창 버튼을 숨깁니다.",
     "show-tray-icon": "트레이 아이콘 표시",
-    "show-tray-icon-hint": "숨기면 창을 백그라운드로 닫을 때 대신 최소화합니다."
+    "show-tray-icon-hint": "숨기면 창을 백그라운드로 닫을 때 대신 최소화합니다.",
+    "extension-torrent-action": "토렌트 링크",
+    "extension-torrent-action-hint": "저장하면 .torrent 파일을 일반 다운로드처럼 보관합니다. BitTorrent가 꺼져 있으면 항상 저장합니다.",
+    "extension-torrent-open": "토렌트 내용 열기",
+    "extension-torrent-save": ".torrent 파일 저장",
+    "site-rule-connections-default": "기본값",
+    "site-rule-proxy": "프록시",
+    "site-rule-proxy-default": "프록시 설정 따르기",
+    "site-rule-proxy-proxy": "프록시 사용",
+    "site-rule-proxy-direct": "직접 연결"
   },
   "task": {
     "scope-all": "전체",

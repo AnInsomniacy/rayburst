@@ -114,7 +114,8 @@ lost. Invalid input returns 400; an unavailable engine returns 503.
 
 `GET /tasks` lists unfinished tasks in queue order and the ten latest finished
 ones with the global statistics; `POST /tasks/{gid}/pause` and `…/resume` control
-one task. These serve the extension popup.
+one task, and `…/reveal` shows its file, or its folder, on the desktop. These serve
+the extension popup.
 
 ## Native storage and recovery
 
