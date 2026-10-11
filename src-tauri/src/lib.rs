@@ -161,6 +161,17 @@ pub(crate) fn restore_window_state_if_enabled(
     }
 }
 
+/// Set while a silent autostart has not restored the window state yet.
+static DEFERRED_WINDOW_STATE: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
+/// Restores the window state a silent autostart deferred, once.
+pub(crate) fn restore_deferred_window_state(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
+    if DEFERRED_WINDOW_STATE.swap(false, std::sync::atomic::Ordering::SeqCst) {
+        restore_window_state_if_enabled(app, window);
+    }
+}
+
 fn save_window_state_before_lightweight_destroy(app: &tauri::AppHandle) {
     use tauri_plugin_window_state::AppHandleExt;
 
@@ -239,6 +250,13 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     );
     native_messaging::schedule_repair(app.handle());
     commands::protocol::repair_activation_protocol(app.handle());
+    #[cfg(windows)]
+    {
+        let handle = app.handle().clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            services::notification::register_app_identity(&handle);
+        });
+    }
     #[cfg(target_os = "macos")]
     {
         let m = menu::build_menu(handle)?;
@@ -366,7 +384,14 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // The window-state plugin is registered with skip_initial_state("main"),
     // so initial and lightweight-recreated windows both restore through the
     // same explicit helper.
-    if let Some(w) = app.get_webview_window("main") {
+    // A silent autostart defers the restore to the first activation: on
+    // Windows, restoring a maximized state shows the hidden window.
+    let silent_autostart = std::env::args()
+        .any(|a| a == "--autostart" || a.starts_with("--autostart="))
+        && read_pref_bool(app.handle(), "autoHideWindow", false);
+    if silent_autostart {
+        DEFERRED_WINDOW_STATE.store(true, std::sync::atomic::Ordering::SeqCst);
+    } else if let Some(w) = app.get_webview_window("main") {
         restore_window_state_if_enabled(handle, &w);
     }
 
@@ -743,6 +768,7 @@ pub fn run() {
             commands::aria2_add_uri,
             commands::aria2_replace_uri,
             commands::tasks_find_duplicates,
+            commands::tasks_set_detailed,
             commands::resolve_file_category,
             commands::validate_file_categories,
             commands::cancel_download_request,

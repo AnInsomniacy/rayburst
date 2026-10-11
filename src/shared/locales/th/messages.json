@@ -593,7 +593,9 @@
     "site-rule-add": "เพิ่มกฎ",
     "site-rule-enabled": "เปิดใช้",
     "site-rule-connections": "การเชื่อมต่อต่อเซิร์ฟเวอร์",
-    "site-rule-invalid": "มีกฎของเว็บไซต์ที่รูปแบบโฮสต์ไม่ถูกต้อง"
+    "site-rule-invalid": "มีกฎของเว็บไซต์ที่รูปแบบโฮสต์ไม่ถูกต้อง",
+    "bittorrent-enabled": "เปิดใช้ BitTorrent",
+    "bittorrent-enabled-hint": "เมื่อปิด ลิงก์แม็กเน็ตและทอร์เรนต์จะถูกปฏิเสธ และไฟล์ .torrent ที่ดาวน์โหลดจะถูกบันทึกเท่านั้น"
   },
   "task": {
     "scope-all": "ทั้งหมด",
@@ -918,7 +920,8 @@
     "resume-selected": "ดำเนินการต่อรายการที่เลือก",
     "pause-selected": "หยุดชั่วคราวรายการที่เลือก",
     "delete-selected": "ลบรายการที่เลือก",
-    "clear-selection": "ล้างการเลือก"
+    "clear-selection": "ล้างการเลือก",
+    "bittorrent-disabled": "BitTorrent ถูกปิดในการตั้งค่า"
   },
   "media": {
     "probing": "กำลังตรวจสอบสื่อ",

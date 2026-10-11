@@ -593,7 +593,9 @@
     "site-rule-add": "Додати правило",
     "site-rule-enabled": "Увімкнено",
     "site-rule-connections": "З’єднань на сервер",
-    "site-rule-invalid": "У правилі сайту неправильний шаблон хоста"
+    "site-rule-invalid": "У правилі сайту неправильний шаблон хоста",
+    "bittorrent-enabled": "Увімкнути BitTorrent",
+    "bittorrent-enabled-hint": "Якщо вимкнено, magnet-посилання й торенти відхиляються, а завантажені файли .torrent лише зберігаються."
   },
   "task": {
     "scope-all": "Усі",
@@ -918,7 +920,8 @@
     "resume-selected": "Відновити вибрані",
     "pause-selected": "Призупинити вибрані",
     "delete-selected": "Видалити вибрані",
-    "clear-selection": "Скасувати вибір"
+    "clear-selection": "Скасувати вибір",
+    "bittorrent-disabled": "BitTorrent вимкнено в налаштуваннях"
   },
   "media": {
     "probing": "Аналіз медіа",

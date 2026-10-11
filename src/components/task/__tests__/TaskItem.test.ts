@@ -273,6 +273,22 @@ describe('TaskItem', () => {
     expect(wrapper.find('.progress-left').classes()).toContain('info-hidden')
   })
 
+  it('shows a queued magnet as queued', () => {
+    const task = {
+      ...createTask(''),
+      status: 'waiting',
+      totalLength: '0',
+      completedLength: '0',
+      files: [],
+      bittorrent: { state: 'downloadingMetadata' },
+    } satisfies Aria2Task
+
+    const wrapper = mount(TaskItem, { props: { task } })
+
+    expect(wrapper.text()).not.toContain('task.bt-metadata-fetching')
+    expect(wrapper.text()).toContain('task.status-waiting')
+  })
+
   it('keeps the full card surface non-interactive', async () => {
     const wrapper = mount(TaskItem, {
       props: {

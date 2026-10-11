@@ -593,7 +593,9 @@
     "site-rule-add": "Adicionar regra",
     "site-rule-enabled": "Ativada",
     "site-rule-connections": "Conexões por servidor",
-    "site-rule-invalid": "Uma regra de site tem um padrão de host inválido"
+    "site-rule-invalid": "Uma regra de site tem um padrão de host inválido",
+    "bittorrent-enabled": "Ativar BitTorrent",
+    "bittorrent-enabled-hint": "Desativado, links magnet e torrents são recusados, e arquivos .torrent baixados são apenas salvos."
   },
   "task": {
     "scope-all": "Todas",
@@ -918,7 +920,8 @@
     "resume-selected": "Retomar seleção",
     "pause-selected": "Pausar seleção",
     "delete-selected": "Excluir seleção",
-    "clear-selection": "Limpar seleção"
+    "clear-selection": "Limpar seleção",
+    "bittorrent-disabled": "O BitTorrent está desativado nas preferências"
   },
   "media": {
     "probing": "Analisando mídia",

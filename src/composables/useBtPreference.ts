@@ -43,6 +43,7 @@ export function isValidTrackerSourceUrl(input: string): boolean {
 
 export interface BtForm {
   [key: string]: unknown
+  bittorrentEnabled: boolean
   magnetFileSelectionPolicy: MagnetFileSelectionPolicy
   btEncryption: BtEncryptionMode
   btTransport: BtTransportMode
@@ -81,6 +82,7 @@ export interface BtForm {
  */
 export function buildBtForm(config: AppConfig): BtForm {
   return {
+    bittorrentEnabled: config.bittorrentEnabled ?? D.bittorrentEnabled,
     magnetFileSelectionPolicy: config.magnetFileSelectionPolicy ?? D.magnetFileSelectionPolicy,
     btEncryption: config.btEncryption ?? D.btEncryption,
     btTransport: config.btTransport ?? D.btTransport,

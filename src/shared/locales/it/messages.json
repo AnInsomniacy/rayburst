@@ -593,7 +593,9 @@
     "site-rule-add": "Aggiungi regola",
     "site-rule-enabled": "Attiva",
     "site-rule-connections": "Connessioni per server",
-    "site-rule-invalid": "Una regola del sito ha un modello di host non valido"
+    "site-rule-invalid": "Una regola del sito ha un modello di host non valido",
+    "bittorrent-enabled": "Abilita BitTorrent",
+    "bittorrent-enabled-hint": "Se disattivato, i link magnet e i torrent vengono rifiutati e i file .torrent scaricati vengono solo salvati."
   },
   "task": {
     "scope-all": "Tutte",
@@ -918,7 +920,8 @@
     "resume-selected": "Riprendi selezionati",
     "pause-selected": "Sospendi selezionati",
     "delete-selected": "Elimina selezionati",
-    "clear-selection": "Annulla selezione"
+    "clear-selection": "Annulla selezione",
+    "bittorrent-disabled": "BitTorrent è disattivato nelle preferenze"
   },
   "media": {
     "probing": "Analisi del contenuto",

@@ -145,6 +145,7 @@ fn activate_main_window(window: &tauri::WebviewWindow, source: &'static str) {
         }
     }
 
+    crate::restore_deferred_window_state(window.app_handle(), window);
     if let Err(e) = window.unminimize() {
         log::warn!("window:activate-unminimize-failed source={source} error={e}");
     }

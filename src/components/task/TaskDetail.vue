@@ -269,7 +269,7 @@ watch(visibleTabs, (tabs) => {
 const sharingState = computed(() => (props.task ? getTaskSharingState(props.task) : null))
 const sharingKind = computed(() => sharingState.value?.kind ?? null)
 const isSharing = computed(() => (props.task ? checkTaskIsSharing(props.task) : false))
-const isMetadataFetching = computed(() => (props.task ? isBtMetadataTask(props.task) : false))
+const isMetadataFetching = computed(() => (props.task?.status === 'active' ? isBtMetadataTask(props.task) : false))
 const btLifecycle = computed(() => (props.task ? getBtLifecycleState(props.task) : 'none'))
 const taskStatusKey = computed(() =>
   btLifecycle.value === 'selection'

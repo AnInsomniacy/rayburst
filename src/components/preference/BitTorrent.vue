@@ -412,6 +412,25 @@ onMounted(() => {
   <div class="preference-form-wrapper">
     <div class="preference-form-scroll">
       <NForm label-placement="left" label-align="left" label-width="260px" size="small" class="form-preference">
+        <NFormItem>
+          <template #label>
+            <PreferenceHintLabel
+              :label="t('preferences.bittorrent-enabled')"
+              :hint="t('preferences.bittorrent-enabled-hint')"
+            />
+          </template>
+          <NSwitch v-model:value="form.bittorrentEnabled" />
+        </NFormItem>
+      </NForm>
+      <NForm
+        label-placement="left"
+        label-align="left"
+        label-width="260px"
+        size="small"
+        class="form-preference"
+        :class="{ 'bt-disabled': !form.bittorrentEnabled }"
+        :disabled="!form.bittorrentEnabled"
+      >
         <!-- BT Settings -->
         <NDivider title-placement="left">{{ t('preferences.bt-settings') }}</NDivider>
 
@@ -735,6 +754,10 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.bt-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
 .bt-tracker-sync-button {
   min-width: 100px;
 }

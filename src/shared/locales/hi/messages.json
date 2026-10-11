@@ -593,7 +593,9 @@
     "site-rule-add": "नियम जोड़ें",
     "site-rule-enabled": "सक्षम",
     "site-rule-connections": "प्रति सर्वर कनेक्शन",
-    "site-rule-invalid": "किसी साइट नियम में अमान्य होस्ट पैटर्न है"
+    "site-rule-invalid": "किसी साइट नियम में अमान्य होस्ट पैटर्न है",
+    "bittorrent-enabled": "BitTorrent सक्षम करें",
+    "bittorrent-enabled-hint": "बंद होने पर मैग्नेट लिंक और टोरेंट अस्वीकार किए जाते हैं, और डाउनलोड की गई .torrent फ़ाइलें केवल सहेजी जाती हैं।"
   },
   "task": {
     "scope-all": "सभी",
@@ -918,7 +920,8 @@
     "resume-selected": "चयनित फिर से शुरू करें",
     "pause-selected": "चयनित रोकें",
     "delete-selected": "चयनित हटाएँ",
-    "clear-selection": "चयन साफ़ करें"
+    "clear-selection": "चयन साफ़ करें",
+    "bittorrent-disabled": "BitTorrent प्राथमिकताओं में बंद है"
   },
   "media": {
     "probing": "मीडिया की जाँच जारी",

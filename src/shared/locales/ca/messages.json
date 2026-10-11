@@ -593,7 +593,9 @@
     "site-rule-add": "Afegeix una regla",
     "site-rule-enabled": "Activada",
     "site-rule-connections": "Connexions per servidor",
-    "site-rule-invalid": "Una regla de lloc té un patró d’amfitrió no vàlid"
+    "site-rule-invalid": "Una regla de lloc té un patró d’amfitrió no vàlid",
+    "bittorrent-enabled": "Activa BitTorrent",
+    "bittorrent-enabled-hint": "Si està desactivat, es rebutgen els enllaços magnet i els torrents, i els fitxers .torrent baixats només es desen."
   },
   "task": {
     "scope-all": "Totes",
@@ -918,7 +920,8 @@
     "resume-selected": "Reprèn la selecció",
     "pause-selected": "Posa en pausa la selecció",
     "delete-selected": "Suprimeix la selecció",
-    "clear-selection": "Esborra la selecció"
+    "clear-selection": "Esborra la selecció",
+    "bittorrent-disabled": "BitTorrent està desactivat a les preferències"
   },
   "media": {
     "probing": "Analitzant el contingut",

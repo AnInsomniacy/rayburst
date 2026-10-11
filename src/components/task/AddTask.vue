@@ -758,6 +758,15 @@ async function handleSubmit() {
       }
     }
 
+    if (
+      !preferenceStore.config.bittorrentEnabled &&
+      (fileItems.value.length > 0 || normalizeUriLines(form.value.uris).some(isMagnetUri))
+    ) {
+      message.error(t('task.bittorrent-disabled'), { closable: true })
+      submitting.value = false
+      return
+    }
+
     const skipped = await duplicatesToSkip()
     if (!skipped) {
       submitting.value = false
@@ -930,7 +939,11 @@ defineExpose({ dismiss: () => handleClose() })
           </NTabPane>
 
           <!-- ── Torrent Tab ─────────────────────────────────── -->
-          <NTabPane :name="ADD_TASK_TYPE.TORRENT" :tab="t('task.torrent-task') || 'Torrent'">
+          <NTabPane
+            :name="ADD_TASK_TYPE.TORRENT"
+            :tab="t('task.torrent-task') || 'Torrent'"
+            :disabled="!preferenceStore.config.bittorrentEnabled"
+          >
             <div v-motion-auto-animate="{ duration: 200, easing: 'ease-out' }" class="tab-pane-content">
               <!-- Torrent panel: animated batch list + file detail -->
               <div v-if="fileItems.length > 0" class="torrent-panel">

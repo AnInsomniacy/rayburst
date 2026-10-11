@@ -496,18 +496,70 @@ fn open_target(app: &tauri::AppHandle, target: &NotificationTarget) {
     crate::tray::request_main_window(app, "notification", true);
 }
 
+/// Development builds run from Cargo's target directory without an
+/// installed application identity.
+#[cfg(windows)]
+fn development_build() -> bool {
+    tauri::utils::platform::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(std::path::Path::to_path_buf))
+        .is_some_and(|dir| dir.ends_with("target/debug") || dir.ends_with("target/release"))
+}
+
+/// Registers the toast identity under `HKCU\Software\Classes\AppUserModelId`.
+///
+/// Windows drops toasts from an identity it cannot resolve. The installer's
+/// Start menu shortcut normally provides it, but an install upgraded from an
+/// older product keeps that product's shortcut; the registry entry works
+/// without any shortcut.
+#[cfg(windows)]
+pub fn register_app_identity(app: &tauri::AppHandle) {
+    use winreg::{enums::HKEY_CURRENT_USER, RegKey};
+    const ICON: &[u8] = include_bytes!("../../icons/128x128.png");
+    if development_build() {
+        return;
+    }
+    let icon = match app.path().app_local_data_dir() {
+        Ok(dir) => dir.join("notification-icon.png"),
+        Err(error) => {
+            log::warn!("notification:identity-failed error={error}");
+            return;
+        }
+    };
+    let result = (|| -> std::io::Result<()> {
+        if std::fs::read(&icon).ok().as_deref() != Some(ICON) {
+            if let Some(parent) = icon.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            std::fs::write(&icon, ICON)?;
+        }
+        let path = format!(
+            "Software\\Classes\\AppUserModelId\\{}",
+            app.config().identifier
+        );
+        let (key, _) = RegKey::predef(HKEY_CURRENT_USER).create_subkey(path)?;
+        let name = app
+            .config()
+            .product_name
+            .clone()
+            .unwrap_or_else(|| "Rayburst".into());
+        key.set_value("DisplayName", &name)?;
+        key.set_value("IconUri", &icon.to_string_lossy().into_owned())?;
+        Ok(())
+    })();
+    match result {
+        Ok(()) => log::debug!("notification:identity-registered"),
+        Err(error) => log::warn!("notification:identity-failed error={error}"),
+    }
+}
+
 #[cfg(windows)]
 async fn send_platform_notification(
     app: &tauri::AppHandle,
     content: &TaskNotificationContent,
 ) -> Result<NotificationDispatchResult, String> {
     use tauri_winrt_notification::Toast;
-    // Development builds have no registered application identity.
-    let development = tauri::utils::platform::current_exe()
-        .ok()
-        .and_then(|exe| exe.parent().map(std::path::Path::to_path_buf))
-        .is_some_and(|dir| dir.ends_with("target/debug") || dir.ends_with("target/release"));
-    let app_id = if development {
+    let app_id = if development_build() {
         Toast::POWERSHELL_APP_ID.to_owned()
     } else {
         app.config().identifier.clone()

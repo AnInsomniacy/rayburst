@@ -196,10 +196,28 @@ holds the same dialog, receives later handoffs while open, and closes after
 submission without raising the main window. Auto-submitted downloads use it
 invisibly and close it when the engine accepted them.
 
+Turning BitTorrent off (`bittorrentEnabled`) makes `submit` refuse magnet URIs
+and torrents from every entry point. Independently, the engine runs with
+`follow-torrent=false`: a `.torrent` fetched over HTTP is saved as a file and
+never starts its content.
+
 When a task completes, the optional post-download program runs detached with the
 configured arguments. Arguments split at unquoted whitespace, double quotes group,
 and `{file}`, `{dir}` and `{name}` are replaced after splitting, so paths with
 spaces stay one argument. Its exit status is only logged.
+
+## Snapshots and API limits
+
+The pump's WebView snapshot carries at most 64 files per task, selected files
+first, and sets `filesTotal` when it trimmed the list; the task whose details are
+open (`tasks_set_detailed`) keeps every file. Native consumers read the whole
+list. Tasks first seen after the initial snapshot get a start notification
+whoever added them, including RPC clients and other extensions.
+
+The extension API bounds work per client class: 64 reads and 512 writes in flight
+(held confirmations keep an `/add` open), and a write budget of a 256-request
+burst refilled at 32 per second. Excess requests get `429` with `Retry-After: 1`;
+the extension then leaves the download to the browser.
 
 ## Verification and packaging
 

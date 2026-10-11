@@ -593,7 +593,9 @@
     "site-rule-add": "Ajouter une règle",
     "site-rule-enabled": "Activée",
     "site-rule-connections": "Connexions par serveur",
-    "site-rule-invalid": "Une règle de site a un motif d’hôte invalide"
+    "site-rule-invalid": "Une règle de site a un motif d’hôte invalide",
+    "bittorrent-enabled": "Activer BitTorrent",
+    "bittorrent-enabled-hint": "Désactivé, les liens magnet et les torrents sont refusés, et les fichiers .torrent téléchargés sont seulement enregistrés."
   },
   "task": {
     "scope-all": "Toutes",
@@ -918,7 +920,8 @@
     "resume-selected": "Reprendre la sélection",
     "pause-selected": "Suspendre la sélection",
     "delete-selected": "Supprimer la sélection",
-    "clear-selection": "Effacer la sélection"
+    "clear-selection": "Effacer la sélection",
+    "bittorrent-disabled": "BitTorrent est désactivé dans les préférences"
   },
   "media": {
     "probing": "Analyse du média",

@@ -593,7 +593,9 @@
     "site-rule-add": "Добавяне на правило",
     "site-rule-enabled": "Включено",
     "site-rule-connections": "Връзки към сървър",
-    "site-rule-invalid": "Правило за сайт има невалиден шаблон на хост"
+    "site-rule-invalid": "Правило за сайт има невалиден шаблон на хост",
+    "bittorrent-enabled": "Включване на BitTorrent",
+    "bittorrent-enabled-hint": "Когато е изключено, magnet връзките и торентите се отказват, а изтеглените .torrent файлове само се запазват."
   },
   "task": {
     "scope-all": "Всички",
@@ -918,7 +920,8 @@
     "resume-selected": "Продължаване на избраните",
     "pause-selected": "Пауза на избраните",
     "delete-selected": "Изтриване на избраните",
-    "clear-selection": "Изчистване на избора"
+    "clear-selection": "Изчистване на избора",
+    "bittorrent-disabled": "BitTorrent е изключен в настройките"
   },
   "media": {
     "probing": "Анализ на медията",

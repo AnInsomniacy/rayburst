@@ -593,7 +593,9 @@
     "site-rule-add": "Προσθήκη κανόνα",
     "site-rule-enabled": "Ενεργός",
     "site-rule-connections": "Συνδέσεις ανά διακομιστή",
-    "site-rule-invalid": "Ένας κανόνας ιστότοπου έχει μη έγκυρο μοτίβο κεντρικού υπολογιστή"
+    "site-rule-invalid": "Ένας κανόνας ιστότοπου έχει μη έγκυρο μοτίβο κεντρικού υπολογιστή",
+    "bittorrent-enabled": "Ενεργοποίηση BitTorrent",
+    "bittorrent-enabled-hint": "Όταν είναι ανενεργό, οι σύνδεσμοι magnet και τα torrent απορρίπτονται και τα ληφθέντα αρχεία .torrent απλώς αποθηκεύονται."
   },
   "task": {
     "scope-all": "Όλα",
@@ -918,7 +920,8 @@
     "resume-selected": "Συνέχιση επιλεγμένων",
     "pause-selected": "Παύση επιλεγμένων",
     "delete-selected": "Διαγραφή επιλεγμένων",
-    "clear-selection": "Απαλοιφή επιλογής"
+    "clear-selection": "Απαλοιφή επιλογής",
+    "bittorrent-disabled": "Το BitTorrent είναι απενεργοποιημένο στις προτιμήσεις"
   },
   "media": {
     "probing": "Ανάλυση πολυμέσων",

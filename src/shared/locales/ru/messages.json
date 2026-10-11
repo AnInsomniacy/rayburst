@@ -593,7 +593,9 @@
     "site-rule-add": "Добавить правило",
     "site-rule-enabled": "Включено",
     "site-rule-connections": "Соединений на сервер",
-    "site-rule-invalid": "В правиле сайта неверный шаблон хоста"
+    "site-rule-invalid": "В правиле сайта неверный шаблон хоста",
+    "bittorrent-enabled": "Включить BitTorrent",
+    "bittorrent-enabled-hint": "Если выключено, magnet-ссылки и торренты отклоняются, а загруженные файлы .torrent только сохраняются."
   },
   "task": {
     "scope-all": "Все",
@@ -918,7 +920,8 @@
     "resume-selected": "Возобновить выбранные",
     "pause-selected": "Приостановить выбранные",
     "delete-selected": "Удалить выбранные",
-    "clear-selection": "Снять выделение"
+    "clear-selection": "Снять выделение",
+    "bittorrent-disabled": "BitTorrent выключен в настройках"
   },
   "media": {
     "probing": "Анализ медиа",

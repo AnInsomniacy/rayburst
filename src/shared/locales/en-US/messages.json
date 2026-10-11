@@ -593,7 +593,9 @@
     "site-rule-add": "Add rule",
     "site-rule-enabled": "Enabled",
     "site-rule-connections": "Connections per server",
-    "site-rule-invalid": "A site rule has an invalid host pattern"
+    "site-rule-invalid": "A site rule has an invalid host pattern",
+    "bittorrent-enabled": "Enable BitTorrent",
+    "bittorrent-enabled-hint": "When off, magnet links and torrents are refused, and downloaded .torrent files are only saved."
   },
   "task": {
     "scope-all": "All",
@@ -918,7 +920,8 @@
     "resume-selected": "Resume selected",
     "pause-selected": "Pause selected",
     "delete-selected": "Delete selected",
-    "clear-selection": "Clear selection"
+    "clear-selection": "Clear selection",
+    "bittorrent-disabled": "BitTorrent is turned off in preferences"
   },
   "media": {
     "probing": "Inspecting media",

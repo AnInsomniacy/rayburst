@@ -593,7 +593,9 @@
     "site-rule-add": "إضافة قاعدة",
     "site-rule-enabled": "مفعّلة",
     "site-rule-connections": "الاتصالات لكل خادم",
-    "site-rule-invalid": "تحتوي قاعدة موقع على نمط مضيف غير صالح"
+    "site-rule-invalid": "تحتوي قاعدة موقع على نمط مضيف غير صالح",
+    "bittorrent-enabled": "تفعيل BitTorrent",
+    "bittorrent-enabled-hint": "عند الإيقاف تُرفض روابط magnet والتورنت، وتُحفظ ملفات .torrent المنزّلة فقط."
   },
   "task": {
     "scope-all": "الكل",
@@ -918,7 +920,8 @@
     "resume-selected": "استئناف المحدد",
     "pause-selected": "إيقاف المحدد مؤقتًا",
     "delete-selected": "حذف المحدد",
-    "clear-selection": "إلغاء التحديد"
+    "clear-selection": "إلغاء التحديد",
+    "bittorrent-disabled": "تم إيقاف BitTorrent في التفضيلات"
   },
   "media": {
     "probing": "جارٍ فحص الوسائط",

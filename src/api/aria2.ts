@@ -318,6 +318,11 @@ export async function saveSession(): Promise<string> {
   return invoke<string>('aria2_save_session')
 }
 
+/** Names the task whose details are open, so snapshots carry all its files. */
+export async function setDetailedTask(gid: string | null): Promise<void> {
+  return invoke<void>('tasks_set_detailed', { gid })
+}
+
 /** Removes a completed/errored task record from the download list. */
 export async function removeTaskRecord(params: { gid: string }): Promise<string> {
   return invoke<string>('aria2_remove_download_result', { gid: params.gid })
@@ -329,6 +334,7 @@ export async function purgeTaskRecords(): Promise<void> {
 }
 
 const api = {
+  setDetailedTask,
   retryMedia,
   finishMedia,
   getVersion,

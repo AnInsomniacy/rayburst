@@ -255,6 +255,9 @@ pub struct Aria2Task {
     pub following: Option<String>,
     #[serde(default)]
     pub belongs_to: Option<String>,
+    /// Set when the WebView snapshot carries only some of the files.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub files_total: Option<usize>,
 }
 
 /// What a download of an HTTP(S) URL would receive (`aria2.probe`).

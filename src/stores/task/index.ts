@@ -446,6 +446,7 @@ export const useTaskStore = defineStore('task', () => {
     updateCurrentTaskItem(task)
     currentTaskGid.value = task.gid
     taskDetailVisible.value = true
+    api?.setDetailedTask?.(task.gid).catch((error) => logger.debug('TaskStore.setDetailedTask', error))
   }
 
   async function showTaskDetailByGid(gid: string) {
@@ -456,6 +457,7 @@ export const useTaskStore = defineStore('task', () => {
   function hideTaskDetail() {
     if (taskDetailVisible.value) taskDetailClosing.value = true
     taskDetailVisible.value = false
+    api?.setDetailedTask?.(null).catch((error) => logger.debug('TaskStore.setDetailedTask', error))
   }
 
   function updateCurrentTaskItem(task: Aria2Task | null) {

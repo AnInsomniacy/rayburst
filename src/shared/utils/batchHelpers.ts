@@ -275,9 +275,32 @@ export function mergeRawUriLines(existingText: string, incoming: string[]): stri
 /** ASCII control characters (0x00–0x1F, 0x7F) and C1 controls (0x80–0x9F). */
 const CONTROL_CHAR_RE = /[\x00-\x1f\x7f\x80-\x9f]/g
 
+/** The engine's name limit in UTF-8 bytes; it leaves room for a numbered suffix. */
+const MAX_FILENAME_BYTES = 240
+
+/**
+ * Removes characters no file system accepts and shortens the name to the
+ * engine's limit, keeping the extension (`sanitize-filename` alone cuts at
+ * 255 bytes, through the extension of a long multibyte name).
+ */
+export function safeFilename(name: string): string {
+  const encoder = new TextEncoder()
+  let fitted = name
+  if (encoder.encode(fitted).length > MAX_FILENAME_BYTES) {
+    const dot = fitted.lastIndexOf('.')
+    const extension = dot > 0 && fitted.length - dot < 32 ? fitted.slice(dot) : ''
+    const stem = Array.from(extension ? fitted.slice(0, dot) : fitted)
+    const budget = MAX_FILENAME_BYTES - encoder.encode(extension).length
+    let bytes = encoder.encode(stem.join('')).length
+    while (stem.length > 0 && bytes > budget) bytes -= encoder.encode(stem.pop()).length
+    fitted = stem.join('') + extension
+  }
+  return sanitizeFilename(fitted, { replacement: '_' })
+}
+
 function sanitizeFilenameSegment(name: string): string {
   const stripped = name.replace(CONTROL_CHAR_RE, '').replace(/[. ]+$/, '')
-  const sanitized = sanitizeFilename(stripped, { replacement: '_' })
+  const sanitized = safeFilename(stripped)
     .trim()
     .replace(/[. ]+$/, '')
   return sanitized && !/^\.+$/.test(sanitized) ? sanitized : ''

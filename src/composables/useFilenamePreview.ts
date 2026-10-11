@@ -1,8 +1,7 @@
 /** @fileoverview Suggested names and explicit, cancellable HTTP filename inspection. */
 import { computed, onBeforeUnmount, ref, watch, type Ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-import sanitizeFilename from 'sanitize-filename'
-import { extractDecodedFilename, normalizeUriLines } from '@shared/utils/batchHelpers'
+import { extractDecodedFilename, normalizeUriLines, safeFilename } from '@shared/utils/batchHelpers'
 import { logger } from '@shared/logger'
 import { getErrorMessage } from '@shared/utils/errorMessage'
 import { buildTaskProxyOptions, buildProxyUrlWithCredentials } from '@shared/utils/proxy'
@@ -25,7 +24,7 @@ export function useFilenamePreview(
   const missingExtension = computed(() =>
     edited.value && form.value.out.trim() && !extensionOf(form.value.out.trim()) ? extensionOf(suggested.value) : '',
   )
-  const clean = (name: string) => sanitizeFilename(name.replace(/^.*[/\\]/, ''), { replacement: '_' })
+  const clean = (name: string) => safeFilename(name.replace(/^.*[/\\]/, ''))
   function cancel() {
     const id = pending.value
     pending.value = null

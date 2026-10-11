@@ -593,7 +593,9 @@
     "site-rule-add": "Regel toevoegen",
     "site-rule-enabled": "Ingeschakeld",
     "site-rule-connections": "Verbindingen per server",
-    "site-rule-invalid": "Een siteregel heeft een ongeldig hostpatroon"
+    "site-rule-invalid": "Een siteregel heeft een ongeldig hostpatroon",
+    "bittorrent-enabled": "BitTorrent inschakelen",
+    "bittorrent-enabled-hint": "Uitgeschakeld worden magnetlinks en torrents geweigerd en gedownloade .torrent-bestanden alleen opgeslagen."
   },
   "task": {
     "scope-all": "Alle",
@@ -918,7 +920,8 @@
     "resume-selected": "Selectie hervatten",
     "pause-selected": "Selectie pauzeren",
     "delete-selected": "Selectie verwijderen",
-    "clear-selection": "Selectie wissen"
+    "clear-selection": "Selectie wissen",
+    "bittorrent-disabled": "BitTorrent is uitgeschakeld in de voorkeuren"
   },
   "media": {
     "probing": "Media onderzoeken",

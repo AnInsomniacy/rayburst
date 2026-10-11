@@ -247,6 +247,7 @@ export const DEFAULT_APP_CONFIG = {
   btPeerIdPrefix: ENGINE_DEFAULT_BT_PEER_ID_PREFIX,
   btBlocklistScope: 'peers' as const,
   btDhtEnabled: true,
+  bittorrentEnabled: true,
   btPeerExchangeEnabled: true, // improves peer discovery inside active swarms
   btLocalPeerDiscoveryEnabled: true,
   btEncryption: 'preferred' as const,

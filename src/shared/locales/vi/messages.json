@@ -593,7 +593,9 @@
     "site-rule-add": "Thêm quy tắc",
     "site-rule-enabled": "Bật",
     "site-rule-connections": "Kết nối mỗi máy chủ",
-    "site-rule-invalid": "Một quy tắc trang web có mẫu máy chủ không hợp lệ"
+    "site-rule-invalid": "Một quy tắc trang web có mẫu máy chủ không hợp lệ",
+    "bittorrent-enabled": "Bật BitTorrent",
+    "bittorrent-enabled-hint": "Khi tắt, liên kết magnet và torrent bị từ chối, còn tệp .torrent tải về chỉ được lưu lại."
   },
   "task": {
     "scope-all": "Tất cả",
@@ -918,7 +920,8 @@
     "resume-selected": "Tiếp tục mục đã chọn",
     "pause-selected": "Tạm dừng mục đã chọn",
     "delete-selected": "Xóa mục đã chọn",
-    "clear-selection": "Bỏ chọn"
+    "clear-selection": "Bỏ chọn",
+    "bittorrent-disabled": "BitTorrent đã bị tắt trong tùy chọn"
   },
   "media": {
     "probing": "Đang phân tích nội dung",

@@ -83,6 +83,8 @@ function updateSelection(keys: DataTableRowKey[]) {
       :row-key="(row: BtFileSelectionItem) => row.index"
       :checked-row-keys="selectedIndices"
       :max-height="maxHeight"
+      :virtual-scroll="files.length > 100"
+      :min-row-height="28"
       size="small"
       @update:checked-row-keys="updateSelection"
     />

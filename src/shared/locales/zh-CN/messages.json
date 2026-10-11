@@ -593,7 +593,9 @@
     "site-rule-add": "添加规则",
     "site-rule-enabled": "启用",
     "site-rule-connections": "每服务器连接数",
-    "site-rule-invalid": "站点规则中有无效的主机匹配"
+    "site-rule-invalid": "站点规则中有无效的主机匹配",
+    "bittorrent-enabled": "启用 BitTorrent",
+    "bittorrent-enabled-hint": "关闭后将拒绝磁力链接和种子，下载的 .torrent 文件只会保存。"
   },
   "task": {
     "scope-all": "全部",
@@ -918,7 +920,8 @@
     "resume-selected": "继续所选",
     "pause-selected": "暂停所选",
     "delete-selected": "删除所选",
-    "clear-selection": "取消选择"
+    "clear-selection": "取消选择",
+    "bittorrent-disabled": "BitTorrent 已在设置中关闭"
   },
   "media": {
     "probing": "正在探测媒体",

@@ -593,7 +593,9 @@
     "site-rule-add": "افزودن قانون",
     "site-rule-enabled": "فعال",
     "site-rule-connections": "اتصال به هر سرور",
-    "site-rule-invalid": "یک قانون سایت الگوی میزبان نامعتبر دارد"
+    "site-rule-invalid": "یک قانون سایت الگوی میزبان نامعتبر دارد",
+    "bittorrent-enabled": "فعال‌سازی BitTorrent",
+    "bittorrent-enabled-hint": "در حالت خاموش، پیوندهای magnet و تورنت‌ها رد می‌شوند و فایل‌های .torrent دانلودشده فقط ذخیره می‌شوند."
   },
   "task": {
     "scope-all": "همه",
@@ -918,7 +920,8 @@
     "resume-selected": "ادامهٔ موارد انتخاب‌شده",
     "pause-selected": "توقف موارد انتخاب‌شده",
     "delete-selected": "حذف موارد انتخاب‌شده",
-    "clear-selection": "پاک کردن انتخاب"
+    "clear-selection": "پاک کردن انتخاب",
+    "bittorrent-disabled": "BitTorrent در تنظیمات خاموش است"
   },
   "media": {
     "probing": "در حال بررسی رسانه",

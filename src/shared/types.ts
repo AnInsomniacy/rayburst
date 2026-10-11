@@ -277,6 +277,8 @@ export interface Aria2Task {
   followedBy?: string[]
   following?: string
   belongsTo?: string
+  /** Set when the snapshot carries only some of the files; the open detail task carries all. */
+  filesTotal?: number
 }
 
 /** Parsed global statistics with numeric values (post-conversion from string). */
@@ -463,6 +465,8 @@ export interface AppConfig {
   btPeerIdPrefix: string
   btBlocklistScope: BtBlocklistScope
   btDhtEnabled: boolean
+  /** Off refuses magnet links and torrents everywhere. */
+  bittorrentEnabled: boolean
   btPeerExchangeEnabled: boolean
   btLocalPeerDiscoveryEnabled: boolean
   openAtLogin: boolean
@@ -820,6 +824,8 @@ export interface ResumeEligibleResult {
 /** Aria2 JSON-RPC client API surface consumed by the task store. */
 export interface TaskApi {
   retryMedia: (gid: string) => Promise<string>
+  /** Names the task whose details are open, so snapshots carry all its files. */
+  setDetailedTask?: (gid: string | null) => Promise<void>
   fetchTaskList: (params: { type: string; limit?: number }) => Promise<Aria2Task[]>
   refreshTasks: () => Promise<TaskSnapshot>
   fetchTaskItem: (params: { gid: string }) => Promise<Aria2Task>

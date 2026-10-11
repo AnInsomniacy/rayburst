@@ -23,6 +23,12 @@ pub(crate) struct Preferences {
     user_agent_profiles: Vec<Profile>,
     user_agent_rules: Vec<Rule>,
     site_rules: Vec<SiteRule>,
+    #[serde(default = "enabled")]
+    pub(super) bittorrent_enabled: bool,
+}
+
+fn enabled() -> bool {
+    true
 }
 #[derive(Default, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]

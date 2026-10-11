@@ -593,7 +593,9 @@
     "site-rule-add": "Dodaj regułę",
     "site-rule-enabled": "Włączona",
     "site-rule-connections": "Połączenia na serwer",
-    "site-rule-invalid": "Reguła witryny ma nieprawidłowy wzorzec hosta"
+    "site-rule-invalid": "Reguła witryny ma nieprawidłowy wzorzec hosta",
+    "bittorrent-enabled": "Włącz BitTorrent",
+    "bittorrent-enabled-hint": "Po wyłączeniu linki magnet i torrenty są odrzucane, a pobrane pliki .torrent są tylko zapisywane."
   },
   "task": {
     "scope-all": "Wszystkie",
@@ -918,7 +920,8 @@
     "resume-selected": "Wznów zaznaczone",
     "pause-selected": "Wstrzymaj zaznaczone",
     "delete-selected": "Usuń zaznaczone",
-    "clear-selection": "Wyczyść zaznaczenie"
+    "clear-selection": "Wyczyść zaznaczenie",
+    "bittorrent-disabled": "BitTorrent jest wyłączony w ustawieniach"
   },
   "media": {
     "probing": "Analizowanie multimediów",

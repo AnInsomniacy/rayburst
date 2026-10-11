@@ -593,7 +593,9 @@
     "site-rule-add": "Adaugă regulă",
     "site-rule-enabled": "Activată",
     "site-rule-connections": "Conexiuni per server",
-    "site-rule-invalid": "O regulă de site are un model de gazdă nevalid"
+    "site-rule-invalid": "O regulă de site are un model de gazdă nevalid",
+    "bittorrent-enabled": "Activează BitTorrent",
+    "bittorrent-enabled-hint": "Când este dezactivat, linkurile magnet și torrentele sunt refuzate, iar fișierele .torrent descărcate sunt doar salvate."
   },
   "task": {
     "scope-all": "Toate",
@@ -918,7 +920,8 @@
     "resume-selected": "Reia selecția",
     "pause-selected": "Întrerupe selecția",
     "delete-selected": "Șterge selecția",
-    "clear-selection": "Golește selecția"
+    "clear-selection": "Golește selecția",
+    "bittorrent-disabled": "BitTorrent este dezactivat în preferințe"
   },
   "media": {
     "probing": "Analizare conținut",

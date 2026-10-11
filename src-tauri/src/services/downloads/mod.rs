@@ -152,6 +152,16 @@ pub enum TaskInput {
     Torrent(String),
 }
 impl TaskInput {
+    fn is_bittorrent(&self) -> bool {
+        match self {
+            Self::Torrent(_) => true,
+            Self::Uris(uris) => uris.iter().any(|uri| {
+                uri.get(..7)
+                    .is_some_and(|scheme| scheme.eq_ignore_ascii_case("magnet:"))
+            }),
+        }
+    }
+
     async fn create(
         self,
         engine: &crate::services::tasks::TaskService,
@@ -197,8 +207,14 @@ pub async fn submit(
     let handoffs = app.state::<Handoffs>();
     let claim = request_id.map(|id| handoffs.claim(id)).transpose()?;
     preferences::validate_save_location(app, &options)?;
+    let prefs = preferences::load(app)?;
+    if !prefs.bittorrent_enabled && input.is_bittorrent() {
+        return Err(AppError::InvalidInput(
+            "BitTorrent is turned off in preferences".into(),
+        ));
+    }
     if let TaskInput::Uris(uris) = &input {
-        preferences::apply_site_rules(&preferences::load(app)?, uris, &mut options);
+        preferences::apply_site_rules(&prefs, uris, &mut options);
     }
     let automatic = if let TaskInput::Uris(uris) = &input {
         native::prepare(app, &engine, uris, &mut options).await?

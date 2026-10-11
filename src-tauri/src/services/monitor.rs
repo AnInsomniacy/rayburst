@@ -655,6 +655,9 @@ pub struct Monitor {
     shutdown_triggered: bool,
     file_states: std::collections::HashMap<String, super::tasks::files::FileState>,
     files_checked_at: Option<Instant>,
+    /// Queued tasks of the previous snapshot; a gid outside it is a new task,
+    /// whoever added it (the desktop, a browser extension or an RPC client).
+    queued: std::collections::HashSet<String>,
 }
 
 impl Monitor {
@@ -675,6 +678,7 @@ impl Monitor {
             shutdown_triggered: false,
             file_states: std::collections::HashMap::new(),
             files_checked_at: None,
+            queued: initial.iter().map(|task| task.gid.clone()).collect(),
         }
     }
 
@@ -685,6 +689,12 @@ impl Monitor {
         aria2: &crate::services::tasks::TaskService,
         tasks: &[Aria2Task],
     ) {
+        for task in tasks {
+            if !self.queued.contains(&task.gid) {
+                aria2.tasks.expect_start(&task.gid).await;
+            }
+        }
+        self.queued = tasks.iter().map(|task| task.gid.clone()).collect();
         if let Err(error) = super::tasks::bittorrent::reconcile(app, aria2, tasks).await {
             log::warn!("bt_selection: reconciliation failed: {error}");
         }

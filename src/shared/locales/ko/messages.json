@@ -593,7 +593,9 @@
     "site-rule-add": "규칙 추가",
     "site-rule-enabled": "사용",
     "site-rule-connections": "서버당 연결 수",
-    "site-rule-invalid": "사이트 규칙에 잘못된 호스트 패턴이 있습니다"
+    "site-rule-invalid": "사이트 규칙에 잘못된 호스트 패턴이 있습니다",
+    "bittorrent-enabled": "BitTorrent 사용",
+    "bittorrent-enabled-hint": "끄면 마그넷 링크와 토렌트를 거부하고, 다운로드한 .torrent 파일은 저장만 합니다."
   },
   "task": {
     "scope-all": "전체",
@@ -918,7 +920,8 @@
     "resume-selected": "선택 항목 재개",
     "pause-selected": "선택 항목 일시정지",
     "delete-selected": "선택 항목 삭제",
-    "clear-selection": "선택 해제"
+    "clear-selection": "선택 해제",
+    "bittorrent-disabled": "BitTorrent가 설정에서 꺼져 있습니다"
   },
   "media": {
     "probing": "미디어 분석 중",

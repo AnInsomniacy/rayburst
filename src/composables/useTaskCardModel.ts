@@ -56,7 +56,8 @@ export function useTaskCardModel(task: ComputedRef<Aria2Task>): TaskCardModel {
   const sharingKind = computed(() => sharingState.value?.kind ?? null)
   const isSharing = computed(() => checkTaskIsSharing(task.value))
   const sharingLabel = computed(() => (sharingState.value ? t(getSharingStatusLabelKey(sharingState.value)) : ''))
-  const isMetadataFetching = computed(() => isBtMetadataTask(task.value))
+  // A queued magnet waits for a slot before it fetches anything.
+  const isMetadataFetching = computed(() => task.value.status === TASK_STATUS.ACTIVE && isBtMetadataTask(task.value))
   const taskStatus = computed(() => (isSharing.value ? TASK_STATUS.SHARING : task.value.status))
   const statusBadge = computed<TaskCardStatusBadge | null>(() => {
     if (task.value.media) {

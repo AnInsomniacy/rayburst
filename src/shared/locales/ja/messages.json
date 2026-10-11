@@ -593,7 +593,9 @@
     "site-rule-add": "ルールを追加",
     "site-rule-enabled": "有効",
     "site-rule-connections": "サーバーごとの接続数",
-    "site-rule-invalid": "サイトルールに無効なホストパターンがあります"
+    "site-rule-invalid": "サイトルールに無効なホストパターンがあります",
+    "bittorrent-enabled": "BitTorrent を有効にする",
+    "bittorrent-enabled-hint": "オフにすると、マグネットリンクとトレントは拒否され、ダウンロードした .torrent ファイルは保存のみされます。"
   },
   "task": {
     "scope-all": "すべて",
@@ -918,7 +920,8 @@
     "resume-selected": "選択項目を再開",
     "pause-selected": "選択項目を一時停止",
     "delete-selected": "選択項目を削除",
-    "clear-selection": "選択を解除"
+    "clear-selection": "選択を解除",
+    "bittorrent-disabled": "BitTorrent は設定でオフになっています"
   },
   "media": {
     "probing": "メディアを解析中",

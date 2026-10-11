@@ -44,6 +44,15 @@ pub async fn tasks_refresh(
     Ok((*pump.refresh().await?).clone())
 }
 
+/// Keeps the whole file list of the task whose details are open in snapshots.
+#[tauri::command]
+pub fn tasks_set_detailed(
+    pump: State<'_, std::sync::Arc<crate::services::pump::Pump>>,
+    gid: Option<String>,
+) {
+    pump.set_detailed(gid);
+}
+
 #[tauri::command]
 pub async fn aria2_select_bt_files(
     app: AppHandle,

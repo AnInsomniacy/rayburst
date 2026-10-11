@@ -51,6 +51,24 @@ pub struct Pump {
     wake: Notify,
     published: watch::Sender<Published>,
     running: Mutex<Option<Running>>,
+    /// The task whose details are open; it keeps its whole file list.
+    detailed: Mutex<Option<String>>,
+}
+
+/// Files a WebView snapshot carries per task. A torrent can hold tens of
+/// thousands; serializing them every tick froze the window.
+const SNAPSHOT_FILES: usize = 64;
+
+/// Keeps the selected files first, so opening a task still finds one.
+fn trim_files(task: &mut Aria2Task) {
+    if task.files.len() <= SNAPSHOT_FILES {
+        return;
+    }
+    task.files_total = Some(task.files.len());
+    task.files.sort_by_key(|file| file.selected != "true");
+    task.files.truncate(SNAPSHOT_FILES);
+    task.files
+        .sort_by_key(|file| file.index.parse::<u64>().unwrap_or(u64::MAX));
 }
 
 impl Pump {
@@ -59,7 +77,17 @@ impl Pump {
             wake: Notify::new(),
             published: watch::Sender::new(Published::default()),
             running: Mutex::new(None),
+            detailed: Mutex::new(None),
         }
+    }
+
+    /// Names the task whose details are open, or none.
+    pub fn set_detailed(&self, gid: Option<String>) {
+        *self
+            .detailed
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = gid;
+        self.wake();
     }
 
     /// Requests a tick now; repeated requests before it runs coalesce.
@@ -188,6 +216,16 @@ impl Pump {
             }
         }
         let any_active = stat.num_active > 0;
+        let detailed = self
+            .detailed
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone();
+        for task in &mut tasks {
+            if detailed.as_deref() != Some(task.gid.as_str()) {
+                trim_files(task);
+            }
+        }
         let snapshot = Arc::new(Snapshot { stat, tasks });
         if window {
             if let Err(error) = app.emit(SNAPSHOT_EVENT, &*snapshot) {
@@ -224,6 +262,41 @@ pub fn wake(app: &AppHandle) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn large_file_lists_keep_selected_files_in_index_order() {
+        let mut task = Aria2Task {
+            files: (0..200)
+                .map(|index| crate::aria2::types::Aria2File {
+                    index: (index + 1).to_string(),
+                    selected: if index >= 150 { "true" } else { "false" }.into(),
+                    ..Default::default()
+                })
+                .collect(),
+            ..Default::default()
+        };
+        super::trim_files(&mut task);
+        assert_eq!(task.files_total, Some(200));
+        assert_eq!(task.files.len(), super::SNAPSHOT_FILES);
+        assert_eq!(task.files[0].index, "1");
+        assert!(
+            task.files
+                .iter()
+                .filter(|file| file.selected == "true")
+                .count()
+                == 50
+        );
+        assert!(task.files.windows(2).all(|pair| {
+            pair[0].index.parse::<u64>().unwrap() < pair[1].index.parse::<u64>().unwrap()
+        }));
+
+        let mut small = Aria2Task {
+            files: vec![Default::default(); 3],
+            ..Default::default()
+        };
+        super::trim_files(&mut small);
+        assert_eq!((small.files.len(), small.files_total), (3, None));
+    }
 
     #[test]
     fn stat_strings_parse_and_garbage_reads_as_zero() {

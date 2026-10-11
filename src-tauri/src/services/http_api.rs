@@ -139,6 +139,7 @@ pub struct ApiContext {
 
 /// Build the Axum router with all routes.
 pub fn build_router(ctx: Arc<ApiContext>) -> Router {
+    let limits = Arc::new(Limits::new(WRITE_BURST));
     let cors = CorsLayer::new()
         .allow_origin(tower_http::cors::AllowOrigin::predicate(|origin, _| {
             origin.to_str().is_ok_and(extension_origin)
@@ -164,6 +165,9 @@ pub fn build_router(ctx: Arc<ApiContext>) -> Router {
         .route("/resume-all", post(handle_resume_all))
         .layer(axum::extract::DefaultBodyLimit::max(256 * 1024))
         .nest("/media/v2", super::media::routes::router())
+        .layer(middleware::from_fn(move |request, next| {
+            limit(Arc::clone(&limits), request, next)
+        }))
         .layer(middleware::from_fn(require_product_client))
         .layer(cors)
         .with_state(ctx)
@@ -197,6 +201,75 @@ async fn require_product_client(request: Request, next: Next) -> Response {
         return StatusCode::BAD_REQUEST.into_response();
     }
     next.run(request).await
+}
+
+// ── Resource limits ─────────────────────────────────────────────────
+
+/// Requests in flight per kind. A held confirmation keeps its `/add` open for
+/// up to two minutes, so writes allow far more than a page of downloads.
+const MAX_READS_IN_FLIGHT: usize = 64;
+const MAX_WRITES_IN_FLIGHT: usize = 512;
+/// Mutating requests may come in a burst of this size, refilled per second.
+const WRITE_BURST: f64 = 256.0;
+const WRITE_REFILL_PER_SECOND: f64 = 32.0;
+
+/// Bounds the work clients can start, whatever they send.
+struct Limits {
+    reads: Arc<tokio::sync::Semaphore>,
+    writes: Arc<tokio::sync::Semaphore>,
+    budget: std::sync::Mutex<(f64, std::time::Instant)>,
+}
+
+impl Limits {
+    fn new(burst: f64) -> Self {
+        Self {
+            reads: Arc::new(tokio::sync::Semaphore::new(MAX_READS_IN_FLIGHT)),
+            writes: Arc::new(tokio::sync::Semaphore::new(MAX_WRITES_IN_FLIGHT)),
+            budget: std::sync::Mutex::new((burst, std::time::Instant::now())),
+        }
+    }
+
+    /// Takes one mutating request from the refilling budget.
+    fn spend(&self, burst: f64) -> bool {
+        let mut budget = self
+            .budget
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let (tokens, at) = &mut *budget;
+        let now = std::time::Instant::now();
+        *tokens =
+            (*tokens + now.duration_since(*at).as_secs_f64() * WRITE_REFILL_PER_SECOND).min(burst);
+        *at = now;
+        if *tokens < 1.0 {
+            return false;
+        }
+        *tokens -= 1.0;
+        true
+    }
+}
+
+async fn limit(limits: Arc<Limits>, request: Request, next: Next) -> Response {
+    if request.method() == Method::OPTIONS {
+        return next.run(request).await;
+    }
+    let write = request.method() == Method::POST;
+    if write && !limits.spend(WRITE_BURST) {
+        log::warn!(
+            "http_api: write budget exhausted path={}",
+            request.uri().path()
+        );
+        return too_many_requests();
+    }
+    let permits = if write { &limits.writes } else { &limits.reads };
+    let Ok(_permit) = Arc::clone(permits).try_acquire_owned() else {
+        log::warn!("http_api: too many requests in flight write={write}");
+        return too_many_requests();
+    };
+    next.run(request).await
+}
+
+fn too_many_requests() -> Response {
+    (StatusCode::TOO_MANY_REQUESTS, [(header::RETRY_AFTER, "1")]).into_response()
 }
 
 // ── Handlers ────────────────────────────────────────────────────────
@@ -671,6 +744,15 @@ fn read_extension_api_allow_remote_access_from_store(app: &AppHandle) -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn write_budget_allows_a_burst_then_refills() {
+        let limits = super::Limits::new(4.0);
+        assert!((0..4).all(|_| limits.spend(4.0)));
+        assert!(!limits.spend(4.0));
+        limits.budget.lock().unwrap().1 -= std::time::Duration::from_millis(100);
+        assert!(limits.spend(4.0));
+    }
+
     use super::*;
     use axum::http::HeaderValue;
 

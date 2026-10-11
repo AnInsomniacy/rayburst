@@ -10,6 +10,7 @@ use tokio::sync::{Mutex, Notify};
 use url::Url;
 
 /// Base URL for update JSON files on the fixed `updater` GitHub Release tag.
+const METADATA_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(15);
 const UPDATER_BASE_URL: &str = "https://github.com/AnInsomniacy/rayburst/releases/download/updater";
 
 /// Serializable update metadata returned to the frontend.
@@ -261,8 +262,11 @@ fn build_updater(
     let endpoint =
         Url::parse(&endpoint_for_channel(channel)).map_err(|e| AppError::Updater(e.to_string()))?;
 
+    // Metadata is a few kilobytes; an unreachable host must not stall the
+    // check for the operating system's connect timeout. Downloads have none.
     let mut builder = app
         .updater_builder()
+        .timeout(METADATA_TIMEOUT)
         .endpoints(vec![endpoint])
         .map_err(|e| AppError::Updater(e.to_string()))?;
 
@@ -307,8 +311,16 @@ async fn resolve_update(
 ) -> Result<Option<SelectedUpdate>, AppError> {
     let mut current_version: Option<String> = None;
     let mut updates: Vec<(CandidateVersion, tauri_plugin_updater::Update)> = Vec::new();
-    for channel in candidate_channels_for_policy(requested_policy) {
-        let Some(update) = check_release_channel(app, channel, proxy).await? else {
+    let channels = candidate_channels_for_policy(requested_policy);
+    // Channels are independent; check them together.
+    let results = futures_util::future::try_join_all(
+        channels
+            .iter()
+            .map(|channel| check_release_channel(app, *channel, proxy)),
+    )
+    .await?;
+    for (channel, update) in channels.into_iter().zip(results) {
+        let Some(update) = update else {
             continue;
         };
         current_version.get_or_insert_with(|| update.current_version.clone());

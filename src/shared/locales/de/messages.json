@@ -593,7 +593,9 @@
     "site-rule-add": "Regel hinzufügen",
     "site-rule-enabled": "Aktiviert",
     "site-rule-connections": "Verbindungen pro Server",
-    "site-rule-invalid": "Eine Website-Regel hat ein ungültiges Host-Muster"
+    "site-rule-invalid": "Eine Website-Regel hat ein ungültiges Host-Muster",
+    "bittorrent-enabled": "BitTorrent aktivieren",
+    "bittorrent-enabled-hint": "Ausgeschaltet werden Magnet-Links und Torrents abgelehnt und heruntergeladene .torrent-Dateien nur gespeichert."
   },
   "task": {
     "scope-all": "Alle",
@@ -918,7 +920,8 @@
     "resume-selected": "Auswahl fortsetzen",
     "pause-selected": "Auswahl pausieren",
     "delete-selected": "Auswahl löschen",
-    "clear-selection": "Auswahl aufheben"
+    "clear-selection": "Auswahl aufheben",
+    "bittorrent-disabled": "BitTorrent ist in den Einstellungen ausgeschaltet"
   },
   "media": {
     "probing": "Medium wird untersucht",

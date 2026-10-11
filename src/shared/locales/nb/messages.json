@@ -593,7 +593,9 @@
     "site-rule-add": "Legg til regel",
     "site-rule-enabled": "Aktivert",
     "site-rule-connections": "Tilkoblinger per server",
-    "site-rule-invalid": "En nettstedsregel har et ugyldig vertsmønster"
+    "site-rule-invalid": "En nettstedsregel har et ugyldig vertsmønster",
+    "bittorrent-enabled": "Aktiver BitTorrent",
+    "bittorrent-enabled-hint": "Når av, avvises magnetlenker og torrenter, og nedlastede .torrent-filer bare lagres."
   },
   "task": {
     "scope-all": "Alle",
@@ -918,7 +920,8 @@
     "resume-selected": "Gjenoppta valgte",
     "pause-selected": "Pause valgte",
     "delete-selected": "Slett valgte",
-    "clear-selection": "Fjern utvalg"
+    "clear-selection": "Fjern utvalg",
+    "bittorrent-disabled": "BitTorrent er slått av i innstillingene"
   },
   "media": {
     "probing": "Undersøker medier",

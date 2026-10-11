@@ -9,6 +9,7 @@ import {
   decodePathSegment,
   extractDecodedFilename,
   parseAria2Input,
+  safeFilename,
 } from '../batchHelpers'
 
 describe('normalizeUriLines', () => {
@@ -422,3 +423,23 @@ describe('extractDecodedFilename', () => {
 // ── sanitizeAria2OutHint ─────────────────────────────────────────────
 // Pure filesystem safety — no business logic. Any out value (user-typed
 // or extension-provided) is safe to pass through this function.
+
+describe('safeFilename', () => {
+  it('keeps the extension of a long multibyte name', () => {
+    const name = `${'附件'.repeat(60)}.rar`
+    const safe = safeFilename(name)
+    expect(safe.endsWith('.rar')).toBe(true)
+    expect(new TextEncoder().encode(safe).length).toBeLessThanOrEqual(240)
+  })
+
+  it('leaves short names and keeps characters whole', () => {
+    expect(safeFilename('report:v2.pdf')).toBe('report_v2.pdf')
+    const emoji = safeFilename(`${'😀'.repeat(70)}.zip`)
+    expect(emoji).toMatch(/^(😀)+\.zip$/u)
+  })
+
+  it('extracts a long encoded URL name with its extension', () => {
+    const url = `https://example.com/files/${encodeURIComponent('长文件名'.repeat(30))}.rar?token=${'x'.repeat(500)}`
+    expect(extractDecodedFilename(url).endsWith('.rar')).toBe(true)
+  })
+})

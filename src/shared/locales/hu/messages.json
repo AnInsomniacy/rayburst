@@ -593,7 +593,9 @@
     "site-rule-add": "Szabály hozzáadása",
     "site-rule-enabled": "Engedélyezve",
     "site-rule-connections": "Kapcsolatok kiszolgálónként",
-    "site-rule-invalid": "Egy webhelyszabály érvénytelen gazdagépmintát tartalmaz"
+    "site-rule-invalid": "Egy webhelyszabály érvénytelen gazdagépmintát tartalmaz",
+    "bittorrent-enabled": "BitTorrent engedélyezése",
+    "bittorrent-enabled-hint": "Kikapcsolva a magnet hivatkozásokat és torrenteket elutasítja, a letöltött .torrent fájlokat csak menti."
   },
   "task": {
     "scope-all": "Összes",
@@ -918,7 +920,8 @@
     "resume-selected": "Kijelöltek folytatása",
     "pause-selected": "Kijelöltek szüneteltetése",
     "delete-selected": "Kijelöltek törlése",
-    "clear-selection": "Kijelölés törlése"
+    "clear-selection": "Kijelölés törlése",
+    "bittorrent-disabled": "A BitTorrent ki van kapcsolva a beállításokban"
   },
   "media": {
     "probing": "Média vizsgálata",

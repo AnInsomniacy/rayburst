@@ -593,7 +593,9 @@
     "site-rule-add": "Kural ekle",
     "site-rule-enabled": "Etkin",
     "site-rule-connections": "Sunucu başına bağlantı",
-    "site-rule-invalid": "Bir site kuralında geçersiz ana makine deseni var"
+    "site-rule-invalid": "Bir site kuralında geçersiz ana makine deseni var",
+    "bittorrent-enabled": "BitTorrent'i etkinleştir",
+    "bittorrent-enabled-hint": "Kapalıyken magnet bağlantıları ve torrentler reddedilir, indirilen .torrent dosyaları yalnızca kaydedilir."
   },
   "task": {
     "scope-all": "Tümü",
@@ -918,7 +920,8 @@
     "resume-selected": "Seçilenleri sürdür",
     "pause-selected": "Seçilenleri duraklat",
     "delete-selected": "Seçilenleri sil",
-    "clear-selection": "Seçimi temizle"
+    "clear-selection": "Seçimi temizle",
+    "bittorrent-disabled": "BitTorrent tercihlerde kapalı"
   },
   "media": {
     "probing": "Medya inceleniyor",
