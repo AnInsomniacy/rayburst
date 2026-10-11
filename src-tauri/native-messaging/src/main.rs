@@ -77,13 +77,24 @@ fn activate_windows(application: &std::path::Path) -> std::io::Result<()> {
     }
     // Firefox terminates the native host's job after the one-shot response.
     // Rayburst must outlive that job and must not inherit the messaging pipes.
-    Command::new(application)
-        .creation_flags(CREATE_BREAKAWAY_FROM_JOB | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()?;
-    Ok(())
+    let spawn = |flags| {
+        Command::new(application)
+            .creation_flags(flags)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+    };
+    let flags = CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW;
+    match spawn(flags | CREATE_BREAKAWAY_FROM_JOB) {
+        Ok(_) => Ok(()),
+        // A job that forbids breakaway rejects the flag; starting inside the
+        // job is then the only option left, and works unless it kills on close.
+        Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
+            spawn(flags).map(drop)
+        }
+        Err(error) => Err(error),
+    }
 }
 
 fn main() -> ExitCode {
