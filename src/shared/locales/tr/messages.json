@@ -948,7 +948,10 @@
     "folder-list-remove": "Listeden kaldır",
     "folder-history": "Son kullanılan ve favori klasörler",
     "ua-history": "Son kullanılan User-Agent'lar",
-    "invert-selection": "Seçimi tersine çevir"
+    "invert-selection": "Seçimi tersine çevir",
+    "space-free": "{free} boş",
+    "space-size-free": "İndirilecek {size}, boş {free}",
+    "space-short": "Yetersiz alan: indirilecek {size}, yalnızca {free} boş"
   },
   "media": {
     "probing": "Medya inceleniyor",

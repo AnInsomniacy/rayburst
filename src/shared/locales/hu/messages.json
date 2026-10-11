@@ -948,7 +948,10 @@
     "folder-list-remove": "Eltávolítás a listáról",
     "folder-history": "Legutóbbi és kedvenc mappák",
     "ua-history": "Legutóbbi User-Agentek",
-    "invert-selection": "Kijelölés megfordítása"
+    "invert-selection": "Kijelölés megfordítása",
+    "space-free": "{free} szabad",
+    "space-size-free": "{size} letöltendő, {free} szabad",
+    "space-short": "Nincs elég hely: {size} letöltendő, csak {free} szabad"
   },
   "media": {
     "probing": "Média vizsgálata",

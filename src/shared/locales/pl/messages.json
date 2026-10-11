@@ -948,7 +948,10 @@
     "folder-list-remove": "Usuń z listy",
     "folder-history": "Ostatnie i ulubione foldery",
     "ua-history": "Ostatnie User-Agenty",
-    "invert-selection": "Odwróć zaznaczenie"
+    "invert-selection": "Odwróć zaznaczenie",
+    "space-free": "Wolne: {free}",
+    "space-size-free": "Do pobrania {size}, wolne {free}",
+    "space-short": "Za mało miejsca: do pobrania {size}, wolne tylko {free}"
   },
   "media": {
     "probing": "Analizowanie multimediów",

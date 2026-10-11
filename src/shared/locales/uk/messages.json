@@ -948,7 +948,10 @@
     "folder-list-remove": "Вилучити зі списку",
     "folder-history": "Нещодавні та обрані теки",
     "ua-history": "Нещодавні User-Agent",
-    "invert-selection": "Інвертувати вибір"
+    "invert-selection": "Інвертувати вибір",
+    "space-free": "Вільно {free}",
+    "space-size-free": "Завантажити {size}, вільно {free}",
+    "space-short": "Недостатньо місця: завантажити {size}, вільно лише {free}"
   },
   "media": {
     "probing": "Аналіз медіа",

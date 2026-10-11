@@ -29,6 +29,9 @@ pub struct ExternalDownloadInput {
     pub request_headers: Vec<ExternalRequestHeader>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
+    /// Bytes to download, when the browser or the engine's check knows them.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub size: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -227,6 +230,7 @@ mod tests {
                     },
                 ],
                 source: Some("http-api".to_string()),
+                size: None,
             });
             inner.silent = true;
         }
@@ -265,6 +269,7 @@ mod tests {
                 user_agent: None,
                 request_headers: vec![],
                 source: Some("http-api".to_string()),
+                size: None,
             });
             inner.silent = true;
         }

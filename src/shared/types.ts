@@ -629,6 +629,8 @@ export interface ExternalDownloadContext {
   userAgent?: string
   requestHeaders?: BrowserRequestHeader[]
   traceId?: string
+  /** Bytes to download, when the browser or the engine's check knows them. */
+  size?: number
 }
 
 export interface ExternalDownloadInput extends ExternalDownloadContext {

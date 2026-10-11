@@ -948,7 +948,10 @@
     "folder-list-remove": "Remover da lista",
     "folder-history": "Pastas recentes e favoritas",
     "ua-history": "User-Agents recentes",
-    "invert-selection": "Inverter seleção"
+    "invert-selection": "Inverter seleção",
+    "space-free": "{free} livres",
+    "space-size-free": "{size} para baixar, {free} livres",
+    "space-short": "Espaço insuficiente: {size} para baixar, apenas {free} livres"
   },
   "media": {
     "probing": "Analisando mídia",

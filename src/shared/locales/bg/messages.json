@@ -948,7 +948,10 @@
     "folder-list-remove": "Премахване от списъка",
     "folder-history": "Последни и любими папки",
     "ua-history": "Последни User-Agent",
-    "invert-selection": "Обръщане на избора"
+    "invert-selection": "Обръщане на избора",
+    "space-free": "{free} свободни",
+    "space-size-free": "{size} за изтегляне, {free} свободни",
+    "space-short": "Няма достатъчно място: {size} за изтегляне, само {free} свободни"
   },
   "media": {
     "probing": "Анализ на медията",

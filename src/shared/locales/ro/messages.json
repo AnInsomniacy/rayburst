@@ -948,7 +948,10 @@
     "folder-list-remove": "Elimină din listă",
     "folder-history": "Dosare recente și favorite",
     "ua-history": "User-Agent recente",
-    "invert-selection": "Inversează selecția"
+    "invert-selection": "Inversează selecția",
+    "space-free": "{free} liber",
+    "space-size-free": "{size} de descărcat, {free} liber",
+    "space-short": "Spațiu insuficient: {size} de descărcat, doar {free} liber"
   },
   "media": {
     "probing": "Analizare conținut",

@@ -948,7 +948,10 @@
     "folder-list-remove": "Treu de la llista",
     "folder-history": "Carpetes recents i preferides",
     "ua-history": "User-Agents recents",
-    "invert-selection": "Inverteix la selecció"
+    "invert-selection": "Inverteix la selecció",
+    "space-free": "{free} lliures",
+    "space-size-free": "{size} per baixar, {free} lliures",
+    "space-short": "Espai insuficient: {size} per baixar, només {free} lliures"
   },
   "media": {
     "probing": "Analitzant el contingut",

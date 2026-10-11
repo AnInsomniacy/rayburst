@@ -948,7 +948,10 @@
     "folder-list-remove": "حذف از فهرست",
     "folder-history": "پوشه‌های اخیر و مورد علاقه",
     "ua-history": "User-Agentهای اخیر",
-    "invert-selection": "معکوس کردن انتخاب"
+    "invert-selection": "معکوس کردن انتخاب",
+    "space-free": "{free} فضای آزاد",
+    "space-size-free": "{size} برای دانلود، {free} فضای آزاد",
+    "space-short": "فضای کافی نیست: {size} برای دانلود، فقط {free} آزاد"
   },
   "media": {
     "probing": "در حال بررسی رسانه",

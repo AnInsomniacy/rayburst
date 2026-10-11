@@ -948,7 +948,10 @@
     "folder-list-remove": "Rimuovi dall'elenco",
     "folder-history": "Cartelle recenti e preferite",
     "ua-history": "User-Agent recenti",
-    "invert-selection": "Inverti selezione"
+    "invert-selection": "Inverti selezione",
+    "space-free": "{free} liberi",
+    "space-size-free": "{size} da scaricare, {free} liberi",
+    "space-short": "Spazio insufficiente: {size} da scaricare, solo {free} liberi"
   },
   "media": {
     "probing": "Analisi del contenuto",

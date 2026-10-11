@@ -948,7 +948,10 @@
     "folder-list-remove": "Hapus dari daftar",
     "folder-history": "Folder terbaru dan favorit",
     "ua-history": "User-Agent terbaru",
-    "invert-selection": "Balikkan pilihan"
+    "invert-selection": "Balikkan pilihan",
+    "space-free": "{free} kosong",
+    "space-size-free": "{size} untuk diunduh, {free} kosong",
+    "space-short": "Ruang tidak cukup: {size} untuk diunduh, hanya {free} kosong"
   },
   "media": {
     "probing": "Memeriksa media",

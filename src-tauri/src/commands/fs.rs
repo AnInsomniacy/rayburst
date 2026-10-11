@@ -220,6 +220,52 @@ pub fn check_path_is_dir(path: String) -> bool {
     result
 }
 
+/// Free bytes available to the user on the volume that holds `path`, or the
+/// nearest existing folder above it (a download folder may not exist yet).
+/// `None` when the path is relative or the system cannot tell.
+#[tauri::command]
+pub fn disk_free_space(path: String) -> Option<u64> {
+    let path = match path.strip_prefix('~') {
+        Some(rest) => dirs::home_dir()?.join(rest.trim_start_matches(['/', '\\'])),
+        None => std::path::PathBuf::from(path),
+    };
+    if !path.is_absolute() {
+        return None;
+    }
+    let folder = path.ancestors().find(|folder| folder.is_dir())?;
+    free_space(folder)
+}
+
+#[cfg(windows)]
+fn free_space(folder: &Path) -> Option<u64> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
+    let wide: Vec<u16> = folder.as_os_str().encode_wide().chain([0]).collect();
+    let mut available = 0u64;
+    // SAFETY: `wide` is NUL-terminated and outlives the call; the other
+    // outputs are optional.
+    let ok = unsafe {
+        GetDiskFreeSpaceExW(
+            wide.as_ptr(),
+            &mut available,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+        )
+    };
+    (ok != 0).then_some(available)
+}
+
+#[cfg(unix)]
+fn free_space(folder: &Path) -> Option<u64> {
+    use std::os::unix::ffi::OsStrExt;
+    let path = std::ffi::CString::new(folder.as_os_str().as_bytes()).ok()?;
+    // SAFETY: statvfs only writes the zero-initialized struct it is given.
+    let mut stat: libc::statvfs = unsafe { std::mem::zeroed() };
+    let ok = unsafe { libc::statvfs(path.as_ptr(), &mut stat) } == 0;
+    #[allow(clippy::unnecessary_cast)] // the field types differ between platforms
+    ok.then(|| stat.f_bavail as u64 * stat.f_frsize as u64)
+}
+
 /// Reads a local file selected or referenced by the user.
 ///
 /// This command keeps arbitrary user-path reads behind Rust IPC instead of
@@ -490,6 +536,16 @@ pub fn delete_path(path: String, mode: FileDeletionMode) -> Result<bool, AppErro
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn free_space_is_read_from_the_nearest_existing_folder() {
+        let temp = std::env::temp_dir();
+        let existing = disk_free_space(temp.to_string_lossy().into_owned());
+        assert!(existing.is_some_and(|bytes| bytes > 0));
+        let planned = temp.join("rayburst-not-created-yet").join("sub");
+        assert!(disk_free_space(planned.to_string_lossy().into_owned()).is_some());
+        assert_eq!(disk_free_space("relative/folder".into()), None);
+    }
 
     // ── normalize_path ─────────────────────────────────────────────────
 

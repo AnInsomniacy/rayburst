@@ -948,7 +948,10 @@
     "folder-list-remove": "นำออกจากรายการ",
     "folder-history": "โฟลเดอร์ล่าสุดและรายการโปรด",
     "ua-history": "User-Agent ล่าสุด",
-    "invert-selection": "กลับการเลือก"
+    "invert-selection": "กลับการเลือก",
+    "space-free": "ว่าง {free}",
+    "space-size-free": "ต้องดาวน์โหลด {size} ว่าง {free}",
+    "space-short": "พื้นที่ไม่พอ: ต้องดาวน์โหลด {size} ว่างเพียง {free}"
   },
   "media": {
     "probing": "กำลังตรวจสอบสื่อ",

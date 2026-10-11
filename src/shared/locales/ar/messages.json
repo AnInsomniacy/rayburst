@@ -948,7 +948,10 @@
     "folder-list-remove": "إزالة من القائمة",
     "folder-history": "المجلدات الأخيرة والمفضلة",
     "ua-history": "وكلاء المستخدم الأخيرة",
-    "invert-selection": "عكس التحديد"
+    "invert-selection": "عكس التحديد",
+    "space-free": "المساحة الحرة {free}",
+    "space-size-free": "{size} للتنزيل، والمساحة الحرة {free}",
+    "space-short": "المساحة غير كافية: {size} للتنزيل، والمتاح {free} فقط"
   },
   "media": {
     "probing": "جارٍ فحص الوسائط",

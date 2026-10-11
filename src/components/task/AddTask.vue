@@ -13,6 +13,7 @@ import { usePreferenceStore } from '@/stores/preference'
 import { usePreferenceNumericValidation } from '@/composables/usePreferenceNumericValidation'
 import { useHttpAuthStore } from '@/stores/httpAuth'
 import { useFilenamePreview } from '@/composables/useFilenamePreview'
+import { knownBatchSize, useFreeSpace } from '@/composables/useFreeSpace'
 import { ADD_TASK_TYPE } from '@shared/constants'
 import { detectResource } from '@shared/utils'
 import {
@@ -408,6 +409,11 @@ const displayedDir = computed(() => {
   if (dirUserModified.value || rememberedDirectory.value) return form.value.dir
   return categoryMatchPreview.value?.directory ?? form.value.dir
 })
+
+const space = useFreeSpace(
+  displayedDir,
+  computed(() => knownBatchSize(batch.value)),
+)
 
 const categoryPreviewText = computed(() => {
   if (!categoryEnabled.value) return ''
@@ -1058,6 +1064,9 @@ defineExpose({ dismiss: () => handleClose() })
                   </Transition>
                 </div>
               </div>
+              <div v-if="space.text.value" class="space-hint" :class="{ 'space-hint--short': space.short.value }">
+                {{ space.text.value }}
+              </div>
             </div>
           </NFormItem>
           <AdvancedOptions
@@ -1237,11 +1246,15 @@ defineExpose({ dismiss: () => handleClose() })
 .category-hint-collapse__inner {
   overflow: hidden;
 }
-.category-hint-text {
+.category-hint-text,
+.space-hint {
   font-size: var(--font-size-sm);
   color: var(--n-text-color-3);
   margin-top: 4px;
   padding-left: 2px;
+}
+.space-hint--short {
+  color: var(--m3-warning);
 }
 .category-hint-enter-active {
   transition:

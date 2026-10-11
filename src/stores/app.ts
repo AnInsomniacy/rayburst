@@ -261,6 +261,7 @@ export const useAppStore = defineStore('app', () => {
       filename: input.filename,
       filenameSource: input.filenameSource,
       requestId: input.requestId,
+      size: input.size,
     }
   }
 

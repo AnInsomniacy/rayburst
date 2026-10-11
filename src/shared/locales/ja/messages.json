@@ -948,7 +948,10 @@
     "folder-list-remove": "一覧から削除",
     "folder-history": "最近使ったフォルダーとお気に入り",
     "ua-history": "最近使った User-Agent",
-    "invert-selection": "選択を反転"
+    "invert-selection": "選択を反転",
+    "space-free": "空き {free}",
+    "space-size-free": "ダウンロード {size}、空き {free}",
+    "space-short": "空き容量が不足しています：ダウンロード {size}、空き {free}"
   },
   "media": {
     "probing": "メディアを解析中",

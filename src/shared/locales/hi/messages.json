@@ -948,7 +948,10 @@
     "folder-list-remove": "सूची से हटाएँ",
     "folder-history": "हाल के और पसंदीदा फ़ोल्डर",
     "ua-history": "हाल के User-Agent",
-    "invert-selection": "चयन उलटें"
+    "invert-selection": "चयन उलटें",
+    "space-free": "{free} खाली",
+    "space-size-free": "{size} डाउनलोड करना है, {free} खाली",
+    "space-short": "पर्याप्त जगह नहीं: {size} डाउनलोड करना है, केवल {free} खाली"
   },
   "media": {
     "probing": "मीडिया की जाँच जारी",

@@ -948,7 +948,10 @@
     "folder-list-remove": "목록에서 제거",
     "folder-history": "최근 및 즐겨찾는 폴더",
     "ua-history": "최근 User-Agent",
-    "invert-selection": "선택 반전"
+    "invert-selection": "선택 반전",
+    "space-free": "여유 공간 {free}",
+    "space-size-free": "다운로드 {size}, 여유 공간 {free}",
+    "space-short": "공간 부족: 다운로드 {size}, 여유 공간 {free}뿐"
   },
   "media": {
     "probing": "미디어 분석 중",

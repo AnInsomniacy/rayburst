@@ -948,7 +948,10 @@
     "folder-list-remove": "Remove from list",
     "folder-history": "Recent and favorite folders",
     "ua-history": "Recent User-Agents",
-    "invert-selection": "Invert selection"
+    "invert-selection": "Invert selection",
+    "space-free": "{free} free",
+    "space-size-free": "{size} to download, {free} free",
+    "space-short": "Not enough space: {size} to download, only {free} free"
   },
   "media": {
     "probing": "Inspecting media",

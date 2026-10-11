@@ -948,7 +948,10 @@
     "folder-list-remove": "从列表中移除",
     "folder-history": "最近和收藏的文件夹",
     "ua-history": "最近使用的 User-Agent",
-    "invert-selection": "反选"
+    "invert-selection": "反选",
+    "space-free": "可用 {free}",
+    "space-size-free": "需下载 {size}，可用 {free}",
+    "space-short": "空间不足：需下载 {size}，仅剩 {free}"
   },
   "media": {
     "probing": "正在探测媒体",

@@ -948,7 +948,10 @@
     "folder-list-remove": "Verwijderen uit lijst",
     "folder-history": "Recente en favoriete mappen",
     "ua-history": "Recente User-Agents",
-    "invert-selection": "Selectie omkeren"
+    "invert-selection": "Selectie omkeren",
+    "space-free": "{free} vrij",
+    "space-size-free": "{size} te downloaden, {free} vrij",
+    "space-short": "Onvoldoende ruimte: {size} te downloaden, slechts {free} vrij"
   },
   "media": {
     "probing": "Media onderzoeken",

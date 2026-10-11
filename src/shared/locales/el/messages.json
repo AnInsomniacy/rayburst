@@ -948,7 +948,10 @@
     "folder-list-remove": "Αφαίρεση από τη λίστα",
     "folder-history": "Πρόσφατοι και αγαπημένοι φάκελοι",
     "ua-history": "Πρόσφατα User-Agent",
-    "invert-selection": "Αντιστροφή επιλογής"
+    "invert-selection": "Αντιστροφή επιλογής",
+    "space-free": "{free} ελεύθερα",
+    "space-size-free": "{size} για λήψη, {free} ελεύθερα",
+    "space-short": "Ανεπαρκής χώρος: {size} για λήψη, μόνο {free} ελεύθερα"
   },
   "media": {
     "probing": "Ανάλυση πολυμέσων",

@@ -108,7 +108,9 @@ With `verify`, the engine requests the first byte of the URL with the browser's
 request context (`aria2.probe`) before anything is created. With the confirm
 behavior, or for `.torrent` links, the request stays open while the add dialog shows
 the download; closing the dialog answers `cancelled`, and a request that times out
-or whose extension disconnects is withdrawn from the dialog. Nothing is persisted:
+or whose extension disconnects is withdrawn from the dialog. The dialog shows the
+size the engine's check (or else the browser) reported, with the free space of the
+chosen folder, and warns when it does not fit. Nothing is persisted:
 an error or a lost answer leaves the download to the browser, so no download is
 lost. Invalid input returns 400; an unavailable engine returns 503.
 

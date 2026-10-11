@@ -948,7 +948,10 @@
     "folder-list-remove": "Удалить из списка",
     "folder-history": "Недавние и избранные папки",
     "ua-history": "Недавние User-Agent",
-    "invert-selection": "Инвертировать выбор"
+    "invert-selection": "Инвертировать выбор",
+    "space-free": "Свободно {free}",
+    "space-size-free": "Скачать {size}, свободно {free}",
+    "space-short": "Недостаточно места: скачать {size}, свободно лишь {free}"
   },
   "media": {
     "probing": "Анализ медиа",

@@ -948,7 +948,10 @@
     "folder-list-remove": "Fjern fra listen",
     "folder-history": "Nylige og favorittmapper",
     "ua-history": "Nylige User-Agenter",
-    "invert-selection": "Inverter utvalg"
+    "invert-selection": "Inverter utvalg",
+    "space-free": "{free} ledig",
+    "space-size-free": "{size} å laste ned, {free} ledig",
+    "space-short": "Ikke nok plass: {size} å laste ned, bare {free} ledig"
   },
   "media": {
     "probing": "Undersøker medier",

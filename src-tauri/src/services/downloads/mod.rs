@@ -61,6 +61,11 @@ pub async fn dispatch(app: &AppHandle, request: AddRequest) -> Result<AddRespons
     let prefs = preferences::load(app)?;
     crate::commands::database_initialize(app.clone()).await?;
     let options = preferences::options(&prefs, &request)?;
+    // Shown in the add dialog next to the free space of the chosen folder.
+    let mut size = request
+        .size
+        .and_then(|size| u64::try_from(size).ok())
+        .filter(|size| *size > 0);
     if request.verify
         && parsed
             .as_ref()
@@ -78,6 +83,12 @@ pub async fn dispatch(app: &AppHandle, request: AddRequest) -> Result<AddRespons
             );
             return Ok(AddResponse::fallback(reason));
         }
+        size = probe
+            .total_length
+            .as_deref()
+            .and_then(|length| length.parse().ok())
+            .filter(|size| *size > 0)
+            .or(size);
         log::info!(
             "downloads: engine verified the download: status={} size={:?} resumable={} redirected={}",
             probe.status,
@@ -92,7 +103,7 @@ pub async fn dispatch(app: &AppHandle, request: AddRequest) -> Result<AddRespons
             .as_ref()
             .is_some_and(|url| url.path().to_ascii_lowercase().ends_with(".torrent"))
     {
-        return confirm(app, &request).await;
+        return confirm(app, &request, size).await;
     }
     let gid = submit(app, TaskInput::Uris(vec![url.to_owned()]), options, None).await?;
     if prefs.extension_download_behavior == preferences::ExtensionDownloadBehavior::Show {
@@ -133,13 +144,17 @@ fn refusal(probe: &Aria2Probe, request: &AddRequest) -> Option<FallbackReason> {
 }
 
 /// Holds the browser download while the user decides in the add dialog.
-async fn confirm(app: &AppHandle, request: &AddRequest) -> Result<AddResponse, AppError> {
+async fn confirm(
+    app: &AppHandle,
+    request: &AddRequest,
+    size: Option<u64>,
+) -> Result<AddResponse, AppError> {
     let handoffs = app.state::<Handoffs>();
     let emitter = app.clone();
     let pending = handoffs.open(Box::new(move |id| {
         let _ = emitter.emit(handoff::EXPIRED_EVENT, serde_json::json!({ "id": id }));
     }));
-    show_confirmation(app, request, pending.id());
+    show_confirmation(app, request, pending.id(), size);
     Ok(match pending.wait(CONFIRMATION_TIMEOUT).await {
         Some(handoff::Outcome::Added(gid)) => AddResponse::added(gid),
         Some(handoff::Outcome::Cancelled) => AddResponse::cancelled(),
@@ -250,7 +265,7 @@ pub async fn submit(
     result
 }
 
-fn show_confirmation(app: &AppHandle, request: &AddRequest, id: &str) {
+fn show_confirmation(app: &AppHandle, request: &AddRequest, id: &str, size: Option<u64>) {
     let input = crate::services::external_input::ExternalDownloadInput {
         request_id: Some(id.to_owned()),
         filename_source: Some(request.filename_source),
@@ -262,6 +277,7 @@ fn show_confirmation(app: &AppHandle, request: &AddRequest, id: &str) {
         user_agent: request.user_agent.clone(),
         request_headers: request.request_headers.clone(),
         source: Some("http-api".into()),
+        size,
     };
     crate::services::external_input::route_external_inputs(app, vec![input], "http-api", false);
 }

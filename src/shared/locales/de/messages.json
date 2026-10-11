@@ -948,7 +948,10 @@
     "folder-list-remove": "Aus der Liste entfernen",
     "folder-history": "Zuletzt verwendete und favorisierte Ordner",
     "ua-history": "Zuletzt verwendete User-Agents",
-    "invert-selection": "Auswahl umkehren"
+    "invert-selection": "Auswahl umkehren",
+    "space-free": "{free} frei",
+    "space-size-free": "{size} herunterzuladen, {free} frei",
+    "space-short": "Nicht genug Speicherplatz: {size} herunterzuladen, nur {free} frei"
   },
   "media": {
     "probing": "Medium wird untersucht",
