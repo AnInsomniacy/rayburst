@@ -92,7 +92,7 @@ describe('EngineRecoveryDialog', () => {
     ])
     expect(wrapper.findAll('.engine-stage-dot')).toHaveLength(3)
 
-    for (const phase of ['preparing', 'starting', 'probing', 'initializing', 'stabilizing'] as const) {
+    for (const phase of ['starting', 'probing'] as const) {
       store.snapshot = { ...recoverySnapshot(phase), revision: store.snapshot.revision + 1 }
       await nextTick()
       expect(wrapper.find('.modal-stub').exists()).toBe(true)

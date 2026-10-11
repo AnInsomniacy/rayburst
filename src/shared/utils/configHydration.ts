@@ -11,13 +11,12 @@ import {
 import {
   NUMERIC_CONFIG_CONSTRAINTS,
   NUMERIC_CONFIG_ENUM_VALUES,
-  PORT_RECOVERY_CONSTRAINT,
   type NumericConfigKey,
   isNumericValueValid,
 } from '@shared/configConstraints'
 import { getAllowedColorSchemeIds, normalizeCustomColorScheme } from '@shared/utils/colorSchemeConfig'
 import { normalizeProxyMode } from '@shared/utils/proxy'
-import type { AppConfig, ClipboardConfig, PortConflictRecoveryConfig, ProxyConfig } from '@shared/types'
+import type { AppConfig, ClipboardConfig, ProxyConfig } from '@shared/types'
 import { normalizeFileCategory } from '@shared/utils/fileCategory'
 import { isValidOptionalIpAddress } from '@shared/utils/ipAddress'
 import { isValidBtPeerIdPrefix, isValidBtUserAgent } from '@shared/utils/btIdentity'
@@ -131,32 +130,6 @@ function normalizeClipboard(value: unknown): ClipboardConfig {
     ed2k: typeof saved.ed2k === 'boolean' ? saved.ed2k : defaults.ed2k,
     thunder: typeof saved.thunder === 'boolean' ? saved.thunder : defaults.thunder,
     btHash: typeof saved.btHash === 'boolean' ? saved.btHash : defaults.btHash,
-  }
-}
-
-function normalizePortRecovery(value: unknown, repairs: string[]): PortConflictRecoveryConfig {
-  const defaults = DEFAULT_APP_CONFIG.portConflictRecovery
-  const saved = isRecord(value) ? value : {}
-  const endpointsAreValid =
-    (saved.rangeStart === undefined || isNumericValueValid(saved.rangeStart, PORT_RECOVERY_CONSTRAINT)) &&
-    (saved.rangeEnd === undefined || isNumericValueValid(saved.rangeEnd, PORT_RECOVERY_CONSTRAINT))
-  const rangeStart = endpointsAreValid ? Number(saved.rangeStart ?? defaults.rangeStart) : defaults.rangeStart
-  const rangeEnd = endpointsAreValid ? Number(saved.rangeEnd ?? defaults.rangeEnd) : defaults.rangeEnd
-  const validRange = endpointsAreValid && rangeStart <= rangeEnd
-
-  if (!validRange) {
-    repairs.push('portConflictRecovery.range')
-  }
-
-  return {
-    enabled: typeof saved.enabled === 'boolean' ? saved.enabled : defaults.enabled,
-    rangeStart: validRange ? rangeStart : defaults.rangeStart,
-    rangeEnd: validRange ? rangeEnd : defaults.rangeEnd,
-    rpc: typeof saved.rpc === 'boolean' ? saved.rpc : defaults.rpc,
-    extensionApi: typeof saved.extensionApi === 'boolean' ? saved.extensionApi : defaults.extensionApi,
-    bt: typeof saved.bt === 'boolean' ? saved.bt : defaults.bt,
-    ed2k: typeof saved.ed2k === 'boolean' ? saved.ed2k : defaults.ed2k,
-    ed2kUdp: typeof saved.ed2kUdp === 'boolean' ? saved.ed2kUdp : defaults.ed2kUdp,
   }
 }
 
@@ -369,10 +342,6 @@ export function hydrateAppConfig(saved?: Partial<AppConfig> | null): HydratedApp
 
   merged.proxy = normalizeProxy(input?.proxy ?? merged.proxy, repairs)
   merged.clipboard = normalizeClipboard(input?.clipboard ?? merged.clipboard)
-  merged.portConflictRecovery = normalizePortRecovery(
-    input?.portConflictRecovery ?? merged.portConflictRecovery,
-    repairs,
-  )
   merged.taskManualOrder = normalizeTaskManualOrder(input?.taskManualOrder ?? merged.taskManualOrder, repairs)
   merged.taskSort = normalizeTaskSort(input?.taskSort ?? merged.taskSort, repairs)
 

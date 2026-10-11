@@ -1,18 +1,20 @@
-//! Download intent, submission receipts and native task creation.
+//! Browser download handoff and native task creation.
 pub mod category;
 pub mod contracts;
+mod handoff;
 mod native;
 pub(crate) mod preferences;
 
-use crate::database::SubmissionState;
-use crate::{database::DatabaseState, error::AppError, services::tasks::TaskServiceState};
-use contracts::{AddRequest, AddResponse};
-use sha2::{Digest, Sha256};
-use tauri::{AppHandle, Manager};
-use tokio::sync::Mutex;
+use crate::aria2::types::Aria2Probe;
+use crate::{error::AppError, services::tasks::TaskServiceState};
+use contracts::{AddRequest, AddResponse, FallbackReason};
+pub use handoff::Handoffs;
+use std::time::Duration;
+use tauri::{AppHandle, Emitter, Manager};
 
-#[derive(Default)]
-pub struct SubmissionGate(Mutex<()>);
+/// How long a confirmation dialog may hold a browser download. After that
+/// the browser keeps the download and the dialog drops it.
+const CONFIRMATION_TIMEOUT: Duration = Duration::from_secs(120);
 
 /// The desktop filename field never grants permission to select a directory.
 pub fn validate_filename(name: &str) -> Result<(), AppError> {
@@ -44,15 +46,6 @@ pub fn validate_filename(name: &str) -> Result<(), AppError> {
 }
 
 pub async fn dispatch(app: &AppHandle, request: AddRequest) -> Result<AddResponse, AppError> {
-    if request.id.is_empty()
-        || request.id.len() > 128
-        || !request
-            .id
-            .bytes()
-            .all(|ch| ch.is_ascii_alphanumeric() || ch == b'-' || ch == b':')
-    {
-        return Err(AppError::InvalidInput("Invalid download request ID".into()));
-    }
     let url = request.url.as_str();
     let parsed = url::Url::parse(url).ok();
     let engine_link = ["ed2k://", "thunder://"]
@@ -67,64 +60,90 @@ pub async fn dispatch(app: &AppHandle, request: AddRequest) -> Result<AddRespons
     }
     let prefs = preferences::load(app)?;
     crate::commands::database_initialize(app.clone()).await?;
-    let fingerprint = format!("{:x}", Sha256::digest(serde_json::to_vec(&request)?));
-    let record = app
-        .state::<DatabaseState>()
-        .0
-        .reserve_submission(&request.id, &fingerprint)
-        .await?;
-    if record.state == SubmissionState::Submitted {
-        return Ok(AddResponse {
-            id: request.id,
-            action: "submitted",
-            gid: Some(record.gid),
-        });
-    }
-    if record.state == SubmissionState::Cancelled {
-        return Ok(AddResponse {
-            id: request.id,
-            action: "cancelled",
-            gid: None,
-        });
+    let options = preferences::options(&prefs, &request)?;
+    if request.verify
+        && parsed
+            .as_ref()
+            .is_some_and(|url| matches!(url.scheme(), "http" | "https"))
+    {
+        let engine = app.state::<TaskServiceState>().0.clone();
+        let probe = engine.probe(url, options.clone()).await?;
+        if let Some(reason) = refusal(&probe, &request) {
+            log::info!(
+                "downloads: browser keeps the download ({reason:?}): status={} type={:?} size={:?} error={:?}",
+                probe.status,
+                probe.content_type,
+                probe.total_length,
+                probe.error
+            );
+            return Ok(AddResponse::fallback(reason));
+        }
+        log::info!(
+            "downloads: engine verified the download: status={} size={:?} resumable={} redirected={}",
+            probe.status,
+            probe.total_length,
+            probe.resumable,
+            probe.final_url != url
+        );
     }
     // Torrent files need native metainfo inspection and a file-selection dialog.
-    if record.state == SubmissionState::Pending
-        && prefs.extension_download_behavior != preferences::ExtensionDownloadBehavior::Confirm
-        && !parsed
+    if prefs.extension_download_behavior == preferences::ExtensionDownloadBehavior::Confirm
+        || parsed
             .as_ref()
             .is_some_and(|url| url.path().to_ascii_lowercase().ends_with(".torrent"))
     {
-        let options = preferences::options(&prefs, &request)?;
-        let gid = submit(
-            app,
-            TaskInput::Uris(vec![url.to_owned()]),
-            options,
-            Some(&request.id),
-        )
-        .await?;
-        if prefs.extension_download_behavior == preferences::ExtensionDownloadBehavior::Show {
-            super::frontend_action::dispatch_frontend_action(
-                app,
-                super::frontend_action::FrontendActionChannel::TrayMenuAction,
-                super::frontend_action::FrontendActionKind::ShowDownloads,
-                "http-api",
-            );
-        }
-        return Ok(AddResponse {
-            id: request.id,
-            action: "submitted",
-            gid: Some(gid),
-        });
+        return confirm(app, &request).await;
     }
-    app.state::<DatabaseState>()
-        .0
-        .stage_confirmation(&request.id, &serde_json::to_string(&request)?)
-        .await?;
-    show_confirmation(app, &request);
-    Ok(AddResponse {
-        id: request.id,
-        action: "needs-confirmation",
-        gid: None,
+    let gid = submit(app, TaskInput::Uris(vec![url.to_owned()]), options, None).await?;
+    if prefs.extension_download_behavior == preferences::ExtensionDownloadBehavior::Show {
+        super::frontend_action::dispatch_frontend_action(
+            app,
+            super::frontend_action::FrontendActionChannel::TrayMenuAction,
+            super::frontend_action::FrontendActionKind::ShowDownloads,
+            "http-api",
+        );
+    }
+    Ok(AddResponse::added(gid))
+}
+
+/// Why the engine must not take over what the browser is downloading.
+fn refusal(probe: &Aria2Probe, request: &AddRequest) -> Option<FallbackReason> {
+    if probe.status == "0" {
+        return Some(FallbackReason::Unreachable);
+    }
+    if probe.error.is_some() || !probe.status.starts_with('2') {
+        return Some(FallbackReason::Rejected);
+    }
+    let page = |mime: &str| {
+        let essence = mime.split(';').next().unwrap_or_default().trim();
+        essence.eq_ignore_ascii_case("text/html")
+            || essence.eq_ignore_ascii_case("application/xhtml+xml")
+    };
+    if page(&probe.content_type) && !request.mime.as_deref().is_some_and(page) {
+        return Some(FallbackReason::WebPage);
+    }
+    let size = probe
+        .total_length
+        .as_deref()
+        .and_then(|length| length.parse::<i64>().ok());
+    match (request.size.filter(|size| *size > 0), size) {
+        (Some(expected), Some(actual)) if expected != actual => Some(FallbackReason::SizeMismatch),
+        _ => None,
+    }
+}
+
+/// Holds the browser download while the user decides in the add dialog.
+async fn confirm(app: &AppHandle, request: &AddRequest) -> Result<AddResponse, AppError> {
+    let handoffs = app.state::<Handoffs>();
+    let emitter = app.clone();
+    let pending = handoffs.open(Box::new(move |id| {
+        let _ = emitter.emit(handoff::EXPIRED_EVENT, serde_json::json!({ "id": id }));
+    }));
+    show_confirmation(app, request, pending.id());
+    Ok(match pending.wait(CONFIRMATION_TIMEOUT).await {
+        Some(handoff::Outcome::Added(gid)) => AddResponse::added(gid),
+        Some(handoff::Outcome::Cancelled) => AddResponse::cancelled(),
+        None => AddResponse::fallback(FallbackReason::Unconfirmed),
     })
 }
 
@@ -166,6 +185,8 @@ impl TaskInput {
     }
 }
 
+/// Creates a task. `request_id` names the browser download the add dialog
+/// confirms; it answers that download once the task exists.
 pub async fn submit(
     app: &AppHandle,
     input: TaskInput,
@@ -173,24 +194,8 @@ pub async fn submit(
     request_id: Option<&str>,
 ) -> Result<String, AppError> {
     let engine = app.state::<TaskServiceState>().0.clone();
-    if let Some(id) = request_id {
-        let record = app
-            .state::<DatabaseState>()
-            .0
-            .submission(id)
-            .await?
-            .ok_or_else(|| AppError::NotFound("Download request expired".into()))?;
-        if record.state == SubmissionState::Submitted {
-            return Ok(record.gid);
-        }
-        if record.state == SubmissionState::Cancelled {
-            return Err(AppError::Conflict("Download request was cancelled".into()));
-        }
-        options
-            .as_object_mut()
-            .ok_or_else(|| AppError::InvalidInput("Download options must be an object".into()))?
-            .insert("gid".into(), record.gid.into());
-    }
+    let handoffs = app.state::<Handoffs>();
+    let claim = request_id.map(|id| handoffs.claim(id)).transpose()?;
     preferences::validate_save_location(app, &options)?;
     let automatic = if let TaskInput::Uris(uris) = &input {
         native::prepare(app, &engine, uris, &mut options).await?
@@ -203,76 +208,32 @@ pub async fn submit(
         .and_then(serde_json::Value::as_str)
         .map(str::to_owned);
     let _mutation = engine.mutation.lock().await;
-    let result = if let Some(id) = request_id {
-        let gate = app.state::<SubmissionGate>();
-        let _submission = gate.0.lock().await;
-        submit_reserved(&engine, &app.state::<DatabaseState>().0, id, input, options).await
-    } else {
-        input.create(&engine, options).await
-    };
-    if let Ok(gid) = &result {
-        super::tasks::notify_changed(app, gid);
-    } else if matches!(
-        result,
-        Err(AppError::Rpc { .. } | AppError::InvalidInput(_))
-    ) {
-        if let Some(gid) = selection_gid {
-            app.state::<DatabaseState>()
-                .0
-                .remove_bt_selection(&gid)
-                .await?;
+    let result = input.create(&engine, options).await;
+    match &result {
+        Ok(gid) => {
+            if let Some(claim) = claim {
+                claim.finish(gid.clone());
+            }
+            super::pump::wake(app);
         }
+        Err(AppError::Rpc { .. } | AppError::InvalidInput(_)) => {
+            if let Some(gid) = selection_gid {
+                app.state::<crate::database::DatabaseState>()
+                    .0
+                    .remove_bt_selection(&gid)
+                    .await?;
+            }
+        }
+        Err(_) => {}
     }
     drop(_mutation);
     native::finish(app.clone(), engine, automatic, generation).await;
     result
 }
 
-async fn submit_reserved(
-    engine: &crate::services::tasks::TaskService,
-    db: &crate::database::Database,
-    id: &str,
-    input: TaskInput,
-    mut options: serde_json::Value,
-) -> Result<String, AppError> {
-    let record = db
-        .submission(id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Download request expired".into()))?;
-    if record.state == SubmissionState::Submitted {
-        return Ok(record.gid);
-    }
-    if record.state == SubmissionState::Cancelled {
-        return Err(AppError::Conflict("Download request was cancelled".into()));
-    }
-    let exists = engine
-        .tell_task_snapshot(true)
-        .await?
-        .iter()
-        .any(|task| task.gid == record.gid);
-    if !exists {
-        options
-            .as_object_mut()
-            .ok_or_else(|| AppError::InvalidInput("Download options must be an object".into()))?
-            .insert("gid".into(), record.gid.clone().into());
-        input.create(engine, options).await?;
-    }
-    engine.save_session().await?;
-    db.commit_submission(id).await?;
-    Ok(record.gid)
-}
-
-pub async fn restore_pending(app: &AppHandle) -> Result<(), AppError> {
-    for value in app.state::<DatabaseState>().0.pending_downloads().await? {
-        let request: AddRequest = serde_json::from_str(&value)?;
-        show_confirmation(app, &request);
-    }
-    Ok(())
-}
-
-fn show_confirmation(app: &AppHandle, request: &AddRequest) {
+fn show_confirmation(app: &AppHandle, request: &AddRequest, id: &str) {
     let input = crate::services::external_input::ExternalDownloadInput {
-        request_id: Some(request.id.clone()),
+        request_id: Some(id.to_owned()),
         filename_source: Some(request.filename_source),
         url: request.url.clone(),
         final_url: request.final_url.clone(),
@@ -286,10 +247,9 @@ fn show_confirmation(app: &AppHandle, request: &AddRequest) {
     crate::services::external_input::route_external_inputs(app, vec![input], "http-api", false);
 }
 
-pub async fn cancel(app: &AppHandle, id: &str) -> Result<(), AppError> {
-    let gate = app.state::<SubmissionGate>();
-    let _submission = gate.0.lock().await;
-    app.state::<DatabaseState>().0.cancel_submission(id).await
+/// The user declined a browser download in the add dialog.
+pub fn cancel(app: &AppHandle, id: &str) {
+    app.state::<Handoffs>().cancel(id);
 }
 
 #[cfg(test)]

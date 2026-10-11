@@ -1,6 +1,7 @@
+use std::collections::VecDeque;
 use std::sync::atomic::{AtomicU64, AtomicU8, Ordering};
 use std::sync::{Mutex, RwLock};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
@@ -9,27 +10,26 @@ use tokio::sync::{watch, Mutex as AsyncMutex};
 use crate::aria2::types::Aria2Task;
 use crate::database::DatabaseState;
 use crate::error::AppError;
+use crate::services;
 use crate::services::tasks::TaskServiceState;
-use crate::services::{self, port_guard};
 
-use super::{start_engine, stop_engine, wait_for_engine_ports_release, EngineState};
+use super::{start_engine, stop_engine, EngineState};
 
 const START_ATTEMPTS: u32 = 5;
 const PROBE_ATTEMPTS: u32 = 5;
 const PROBE_BASE_DELAY_MS: u64 = 200;
 const RECOVERY_BASE_DELAY_MS: u64 = 500;
-const STABILITY_CHECKS: u32 = 3;
-const STABILITY_CHECK_INTERVAL_MS: u64 = 500;
+/// Crashes tolerated within `CRASH_WINDOW` before automatic restarts stop and
+/// the failure is shown to the user.
+const CRASH_BUDGET: usize = 3;
+const CRASH_WINDOW: Duration = Duration::from_secs(300);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum EnginePhase {
     Stopped,
-    Preparing,
     Starting,
     Probing,
-    Initializing,
-    Stabilizing,
     Running,
     Recovering,
     Stopping,
@@ -54,7 +54,6 @@ pub enum EngineOperationCause {
     FailureRetry,
     SessionRecovery,
     RuntimeCrash,
-    PortConflict,
     UpdateInstall,
     UpdateInstallFailed,
     AppRelaunch,
@@ -70,7 +69,6 @@ pub enum EngineFailureStage {
     Probe,
     Contract,
     Initialization,
-    Stability,
     Runtime,
     Shutdown,
     Recovery,
@@ -122,6 +120,7 @@ pub struct EngineSupervisor {
     revision: AtomicU64,
     operation_id: AtomicU64,
     desired: AtomicU8,
+    crashes: Mutex<VecDeque<Instant>>,
 }
 
 impl EngineSupervisor {
@@ -133,6 +132,7 @@ impl EngineSupervisor {
             revision: AtomicU64::new(0),
             operation_id: AtomicU64::new(0),
             desired: AtomicU8::new(0),
+            crashes: Mutex::new(VecDeque::new()),
         }
     }
 
@@ -346,18 +346,6 @@ impl EngineSupervisor {
                 .await?;
             }
 
-            self.publish(
-                app,
-                operation_id,
-                EnginePhase::Preparing,
-                attempt,
-                cause,
-                last_failure.clone(),
-            );
-            if let Err(error) = port_guard::reconcile_engine_ports(app) {
-                log::warn!("engine_supervisor: port reconciliation failed: {error}");
-            }
-
             if app
                 .try_state::<EngineState>()
                 .is_some_and(|state| state.is_running())
@@ -445,14 +433,6 @@ impl EngineSupervisor {
                 }
             }
 
-            self.publish(
-                app,
-                operation_id,
-                EnginePhase::Initializing,
-                attempt,
-                cause,
-                None,
-            );
             let initialization = tokio::select! {
                 biased;
                 changed = cancelled.changed() => {
@@ -477,46 +457,6 @@ impl EngineSupervisor {
                     );
                 }
                 return self.fail(app, operation_id, attempt, cause, failure);
-            }
-
-            self.publish(
-                app,
-                operation_id,
-                EnginePhase::Stabilizing,
-                attempt,
-                cause,
-                None,
-            );
-            match confirm_engine_stability(app, cancelled).await {
-                Ok(()) => {}
-                Err(error) if is_cancelled_error(&error) => return Err(error),
-                Err(error) => {
-                    last_failure = Some(failure_from_error(
-                        EngineFailureStage::Stability,
-                        &error,
-                        true,
-                        app,
-                    ));
-                    if let Err(stop_error) = self.stop_runtime(app, false, None).await {
-                        let failure = failure_from_error(
-                            EngineFailureStage::Shutdown,
-                            &stop_error,
-                            false,
-                            app,
-                        );
-                        return self.fail(app, operation_id, attempt, cause, failure);
-                    }
-                    if attempt < START_ATTEMPTS {
-                        continue;
-                    }
-                    return self.fail(
-                        app,
-                        operation_id,
-                        attempt,
-                        cause,
-                        last_failure.expect("stability failure must exist"),
-                    );
-                }
             }
 
             ensure_active(self, operation_id, cancelled)?;
@@ -632,16 +572,27 @@ impl EngineSupervisor {
             request_graceful_shutdown(app).await;
         }
         let app_for_stop = app.clone();
-        tokio::task::spawn_blocking(move || {
-            stop_engine(&app_for_stop, !fast)?;
-            if !fast && was_running {
-                wait_for_engine_ports_release(&app_for_stop);
-            }
-            Ok::<(), String>(())
-        })
-        .await
-        .map_err(|error| AppError::Engine(error.to_string()))?
-        .map_err(AppError::Engine)
+        tokio::task::spawn_blocking(move || stop_engine(&app_for_stop, !fast))
+            .await
+            .map_err(|error| AppError::Engine(error.to_string()))?
+            .map_err(AppError::Engine)
+    }
+
+    /// Records a crash; false once the budget for the window is spent.
+    fn within_crash_budget(&self) -> bool {
+        let now = Instant::now();
+        let mut crashes = self
+            .crashes
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        while crashes
+            .front()
+            .is_some_and(|at| now.duration_since(*at) > CRASH_WINDOW)
+        {
+            crashes.pop_front();
+        }
+        crashes.push_back(now);
+        crashes.len() <= CRASH_BUDGET
     }
 
     async fn recover_after_exit(&self, app: &AppHandle, failure: EngineFailure) {
@@ -650,6 +601,19 @@ impl EngineSupervisor {
         }
         let phase = self.snapshot().phase;
         if phase != EnginePhase::Running {
+            return;
+        }
+        if !self.within_crash_budget() {
+            log::error!("engine_supervisor: engine keeps exiting; automatic restart stopped");
+            let (operation_id, _) = self.begin_operation(DesiredEngineState::Running);
+            let _ = self.fail(
+                app,
+                operation_id,
+                0,
+                EngineOperationCause::RuntimeCrash,
+                failure,
+            );
+            self.finish_operation(operation_id);
             return;
         }
         if let Err(error) = self
@@ -664,35 +628,6 @@ impl EngineSupervisor {
             if !is_cancelled_error(&error) {
                 log::error!("engine_supervisor: crash recovery failed: {error}");
             }
-        }
-    }
-
-    async fn recover_port_conflict(
-        &self,
-        app: &AppHandle,
-        generation: u32,
-        kind: port_guard::PortKind,
-    ) {
-        if self.desired_state() != DesiredEngineState::Running
-            || app
-                .try_state::<EngineState>()
-                .is_none_or(|state| !state.is_current_generation(generation))
-            || self.snapshot().phase != EnginePhase::Running
-        {
-            return;
-        }
-        match port_guard::reconcile_runtime_ports(app, &[kind]) {
-            Ok(switches) if !switches.is_empty() => {
-                if let Err(error) = self.restart(app, EngineOperationCause::PortConflict).await {
-                    if !is_cancelled_error(&error) {
-                        log::error!("engine_supervisor: port recovery failed: {error}");
-                    }
-                }
-            }
-            Ok(_) => {
-                log::warn!("engine_supervisor: port conflict produced no configuration change")
-            }
-            Err(error) => log::error!("engine_supervisor: port reconciliation failed: {error}"),
         }
     }
 }
@@ -831,36 +766,6 @@ async fn probe_engine_contract(
     Ok(())
 }
 
-async fn confirm_engine_stability(
-    app: &AppHandle,
-    cancelled: &mut watch::Receiver<bool>,
-) -> Result<(), AppError> {
-    let engine = app
-        .try_state::<EngineState>()
-        .ok_or_else(|| AppError::Engine("EngineState is not managed".into()))?;
-    let aria2 = app
-        .try_state::<TaskServiceState>()
-        .ok_or_else(|| AppError::Engine("TaskServiceState is not managed".into()))?;
-
-    for index in 0..STABILITY_CHECKS {
-        ensure_not_cancelled(cancelled)?;
-        if !engine.is_running() {
-            return Err(AppError::Engine(
-                "Engine process exited during stability confirmation".into(),
-            ));
-        }
-        aria2.0.get_version().await?;
-        if index + 1 < STABILITY_CHECKS {
-            cancellable_delay(
-                cancelled,
-                Duration::from_millis(STABILITY_CHECK_INTERVAL_MS),
-            )
-            .await?;
-        }
-    }
-    Ok(())
-}
-
 fn ensure_active(
     supervisor: &EngineSupervisor,
     operation_id: u64,
@@ -952,15 +857,6 @@ pub fn report_process_exit(app: AppHandle, generation: u32, exit_code: i32, sign
         };
         let supervisor = app.state::<EngineSupervisor>();
         supervisor.recover_after_exit(&app, failure).await;
-    });
-}
-
-pub fn report_port_conflict(app: AppHandle, generation: u32, kind: port_guard::PortKind) {
-    tauri::async_runtime::spawn(async move {
-        let supervisor = app.state::<EngineSupervisor>();
-        supervisor
-            .recover_port_conflict(&app, generation, kind)
-            .await;
     });
 }
 

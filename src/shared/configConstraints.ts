@@ -51,8 +51,6 @@ export const NUMERIC_CONFIG_CONSTRAINTS = {
 
 export type NumericConfigKey = keyof typeof NUMERIC_CONFIG_CONSTRAINTS
 
-export const PORT_RECOVERY_CONSTRAINT = { min: 1024, max: 65535, integer: true } as const
-
 export const NUMERIC_CONFIG_ENUM_VALUES = {
   autoCheckUpdateInterval: [0, 24, 168, 720, 4320, 8760],
   speedScheduleDays: [0, 31, 96],
@@ -94,19 +92,6 @@ export function validateAppConfigCandidate(config: Partial<AppConfig>): ConfigVa
         path,
         constraint: { min: Math.min(...allowed), max: Math.max(...allowed), integer: true },
       })
-    }
-  }
-
-  const recovery = config.portConflictRecovery
-  if (recovery) {
-    if (!isNumericValueValid(recovery.rangeStart, PORT_RECOVERY_CONSTRAINT)) {
-      issues.push({ path: 'portConflictRecovery.rangeStart', constraint: PORT_RECOVERY_CONSTRAINT })
-    }
-    if (!isNumericValueValid(recovery.rangeEnd, PORT_RECOVERY_CONSTRAINT)) {
-      issues.push({ path: 'portConflictRecovery.rangeEnd', constraint: PORT_RECOVERY_CONSTRAINT })
-    }
-    if (recovery.rangeStart > recovery.rangeEnd) {
-      issues.push({ path: 'portConflictRecovery.range', constraint: PORT_RECOVERY_CONSTRAINT })
     }
   }
 

@@ -48,19 +48,6 @@ interface PendingFrontendAction {
   action: string
 }
 
-interface PortSwitchEvent {
-  kind: 'rpc' | 'extensionApi' | 'bt' | 'ed2k' | 'ed2kUdp'
-  oldPort: number
-  newPort: number
-}
-
-interface PortSwitchFailureEvent {
-  kind: 'rpc' | 'extensionApi' | 'bt' | 'ed2k' | 'ed2kUdp'
-  port: number
-  reason: 'disabled' | 'noAvailablePort' | 'bindFailed'
-  source: 'startup' | 'btRuntime' | 'extensionApi'
-}
-
 interface AppEventsDeps {
   t: (key: string, params?: Record<string, unknown>) => string
   appStore: {
@@ -192,64 +179,12 @@ export function useAppEvents(deps: AppEventsDeps): AppEventsReturn {
     registerCleanup(
       await listen<Record<string, TaskFileState>>('task-files:changed', (event) => updateTaskFileStates(event.payload)),
     )
-    const unlistenPortAutoSwitched = registerCleanup(
-      await listen<PortSwitchEvent[]>('port-auto-switched', (event) => {
-        const switches = event.payload
-        if (!Array.isArray(switches) || switches.length === 0) return
-        const labels: Record<PortSwitchEvent['kind'], string> = {
-          rpc: t('preferences.rpc-listen-port'),
-          extensionApi: t('preferences.extension-api-port'),
-          bt: t('preferences.bt-port'),
-          ed2k: t('preferences.ed2k-listen-port'),
-          ed2kUdp: t('preferences.ed2k-udp-listen-port'),
-        }
-        const ports = switches
-          .map((item) => `${labels[item.kind] ?? item.kind} ${item.oldPort} -> ${item.newPort}`)
-          .join(', ')
-        const patch: Record<string, number> = {}
-        for (const item of switches) {
-          if (item.kind === 'rpc') patch.rpcListenPort = item.newPort
-          if (item.kind === 'extensionApi') patch.extensionApiPort = item.newPort
-          if (item.kind === 'bt') patch.listenPort = item.newPort
-          if (item.kind === 'ed2k') patch.ed2kListenPort = item.newPort
-          if (item.kind === 'ed2kUdp') patch.ed2kUdpListenPort = item.newPort
-        }
-        preferenceStore.updatePreference?.(patch)
-        message.info(t('preferences.port-auto-switched', { ports }))
-      }),
-    )
-
-    const unlistenPortAutoSwitchFailed = registerCleanup(
-      await listen<PortSwitchFailureEvent>('port-auto-switch-failed', (event) => {
-        const failure = event.payload
-        if (!failure || typeof failure.port !== 'number') return
-        const labels: Record<PortSwitchFailureEvent['kind'], string> = {
-          rpc: t('preferences.rpc-listen-port'),
-          extensionApi: t('preferences.extension-api-port'),
-          bt: t('preferences.bt-port'),
-          ed2k: t('preferences.ed2k-listen-port'),
-          ed2kUdp: t('preferences.ed2k-udp-listen-port'),
-        }
-        const params = {
-          label: labels[failure.kind] ?? failure.kind,
-          port: failure.port,
-        }
-        if (failure.reason === 'disabled') {
-          message.warning(t('preferences.port-auto-switch-disabled', params))
-          return
-        }
-        if (failure.reason === 'noAvailablePort') {
-          message.error(t('preferences.port-auto-switch-no-available-port', params), { closable: true })
-          return
-        }
+    registerCleanup(
+      await listen<{ port: number }>('extension-api:bind-failed', (event) => {
+        const params = { label: t('preferences.extension-api-port'), port: event.payload.port }
         message.error(t('preferences.port-auto-switch-bind-failed', params), { closable: true })
       }),
     )
-
-    return {
-      unlistenPortAutoSwitched,
-      unlistenPortAutoSwitchFailed,
-    }
   }
 
   // ─── Navigation guard ─────────────────────────────────────────────

@@ -1,17 +1,11 @@
 /**
  * @fileoverview Pinia store for global application state: engine, tasks, stats, and polling.
  *
- * Global stat (speed / task counts) follows a Backend-as-Source-of-Truth architecture:
- *   Rust stat_service  ──500ms──▶  aria2 getGlobalStat
- *                      ├──▶  tray / dock / progress (direct native API)
- *                      └──▶  emit("stat:update")  ──▶  this store
- *
- * The frontend does NOT poll aria2 for global stats — it passively listens
- * to the Rust event stream. This eliminates double RPC and redundant IPC.
+ * Global stat (speed / task counts) arrives with every native pump snapshot
+ * (`tasks:snapshot`); the frontend never polls the engine.
  */
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { listen } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
 import { logger } from '@shared/logger'
 import { detectExternalInputKind, detectKind, createBatchItem } from '@shared/utils/batchHelpers'
@@ -21,6 +15,7 @@ import { usePreferenceStore } from '@/stores/preference'
 import { useTaskStore } from '@/stores/task'
 import type {
   Aria2EngineOptions,
+  Aria2GlobalStat,
   BrowserRequestHeader,
   ExternalDownloadContext,
   ExternalDownloadInput,
@@ -29,16 +24,6 @@ import type {
 } from '@shared/types'
 import type { AddTaskForm } from '@/composables/useAddTaskSubmit'
 import { getDefaultTaskProxyMode } from '@shared/utils/proxy'
-
-/** Payload shape emitted by Rust stat_service via `stat:update`. */
-interface StatPayload {
-  downloadSpeed: number
-  uploadSpeed: number
-  numActive: number
-  numWaiting: number
-  numStopped: number
-  numStoppedTotal: number
-}
 
 export interface DeepLinkHandlingResult {
   received: number
@@ -154,11 +139,8 @@ export const useAppStore = defineStore('app', () => {
     addTaskOptions.value = { ...options }
   }
 
-  /**
-   * Processes a single stat:update event payload from the Rust backend.
-   * The task list has its own fixed refresh cadence.
-   */
-  function handleStatEvent(payload: StatPayload) {
+  /** Applies the statistics of a pump snapshot. */
+  function applyStat(payload: Aria2GlobalStat) {
     stat.value = {
       downloadSpeed: payload.downloadSpeed,
       uploadSpeed: payload.uploadSpeed,
@@ -167,16 +149,6 @@ export const useAppStore = defineStore('app', () => {
       numStopped: payload.numStopped,
       numStoppedTotal: payload.numStoppedTotal,
     }
-  }
-
-  /**
-   * Subscribes to the Rust stat_service's `stat:update` event stream.
-   * Returns an unlisten function for cleanup.
-   */
-  function setupStatListener(): Promise<() => void> {
-    return listen<StatPayload>('stat:update', (event) => {
-      handleStatEvent(event.payload)
-    })
   }
 
   /**
@@ -418,8 +390,7 @@ export const useAppStore = defineStore('app', () => {
     showAddTaskDialog,
     hideAddTaskDialog,
     updateAddTaskOptions,
-    handleStatEvent,
-    setupStatListener,
+    applyStat,
     handleDeepLinkUrls,
     handleExternalInputs,
     setExternalInputErrorHandler,

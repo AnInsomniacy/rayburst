@@ -7,9 +7,12 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::{
     sync::atomic::{AtomicU64, Ordering},
-    time::Instant,
+    time::{Duration, Instant},
 };
 use tokio::sync::RwLock;
+
+/// Ordinary calls answer at once; anything slower means the engine is stuck.
+const CALL_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub struct RpcClient {
     http: reqwest::Client,
@@ -20,7 +23,6 @@ impl RpcClient {
     pub fn new(port: u16, secret: String) -> Self {
         Self {
             http: reqwest::Client::builder()
-                .timeout(std::time::Duration::from_secs(10))
                 .no_proxy()
                 .build()
                 .expect("local RPC client"),
@@ -37,7 +39,16 @@ impl RpcClient {
     pub async fn call<T: DeserializeOwned>(
         &self,
         method: &str,
+        params: Vec<Value>,
+    ) -> Result<T, AppError> {
+        self.call_within(method, params, CALL_TIMEOUT).await
+    }
+    /// For methods that wait on the network, such as `aria2.probe`.
+    pub async fn call_within<T: DeserializeOwned>(
+        &self,
+        method: &str,
         mut params: Vec<Value>,
+        timeout: Duration,
     ) -> Result<T, AppError> {
         let (port, secret) = self.credentials().await;
         authorize(method, &mut params, &secret);
@@ -53,6 +64,7 @@ impl RpcClient {
             let response = self
                 .http
                 .post(format!("http://127.0.0.1:{port}/jsonrpc"))
+                .timeout(timeout)
                 .json(&request)
                 .send()
                 .await?;

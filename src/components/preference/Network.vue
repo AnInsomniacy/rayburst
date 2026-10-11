@@ -8,7 +8,6 @@ import { usePreferenceForm } from '@/composables/usePreferenceForm'
 import { usePreferenceNumericValidation } from '@/composables/usePreferenceNumericValidation'
 import { usePlatform } from '@/composables/usePlatform'
 import { useSystemProxyDetect } from '@/composables/useSystemProxyDetect'
-import { logger } from '@shared/logger'
 import { getErrorMessage } from '@shared/utils/errorMessage'
 import { useAppMessage } from '@/composables/useAppMessage'
 import { PROXY_SCOPE_OPTIONS, FILE_ALLOCATION_OPTIONS } from '@shared/constants'
@@ -38,7 +37,6 @@ import {
 } from 'naive-ui'
 const showUserAgentManager = ref(false)
 import PreferenceActionRegistration from './PreferenceActionRegistration.vue'
-import PreferenceCheckboxGrid from './PreferenceCheckboxGrid.vue'
 import PreferenceHintLabel from './PreferenceHintLabel.vue'
 import UserAgentManager from './UserAgentManager.vue'
 import { SearchOutline } from '@vicons/ionicons5'
@@ -46,8 +44,7 @@ import { SearchOutline } from '@vicons/ionicons5'
 const { t } = useI18n()
 const preferenceStore = usePreferenceStore()
 const message = useAppMessage()
-const { constraint, configFieldProps, fieldProps, areConfigFieldsValid, portRecoveryConstraint } =
-  usePreferenceNumericValidation()
+const { constraint, configFieldProps, areConfigFieldsValid } = usePreferenceNumericValidation()
 const { isWindows } = usePlatform()
 
 const proxyScopeOptions = PROXY_SCOPE_OPTIONS.map((s: string) => ({
@@ -61,25 +58,6 @@ const fileAllocationOptions = computed(() =>
   })),
 )
 
-type PortRecoveryTarget = 'rpc' | 'extensionApi' | 'bt' | 'ed2k' | 'ed2kUdp'
-const portRecoveryTargets: PortRecoveryTarget[] = ['rpc', 'extensionApi', 'bt', 'ed2k', 'ed2kUdp']
-const portRecoveryTargetOptions = computed(() => [
-  { label: t('preferences.rpc-listen-port'), value: 'rpc' },
-  { label: t('preferences.extension-api-port'), value: 'extensionApi' },
-  { label: t('preferences.port-conflict-recovery-bt'), value: 'bt' },
-  { label: t('preferences.port-conflict-recovery-ed2k'), value: 'ed2k' },
-  { label: t('preferences.port-conflict-recovery-ed2k-udp'), value: 'ed2kUdp' },
-])
-const selectedPortRecoveryTargets = computed<string[]>({
-  get: () => portRecoveryTargets.filter((target) => form.value.portConflictRecovery[target]),
-  set: (targets) => {
-    const selected = new Set(targets)
-    for (const target of portRecoveryTargets) {
-      form.value.portConflictRecovery[target] = selected.has(target)
-    }
-  },
-})
-
 // ── Proxy detection ─────────────────────────────────────────────────
 const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect({
   onSuccess(info) {
@@ -92,9 +70,6 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
         duration: 0,
       })
     } else message.success(t('preferences.proxy-detected-success'))
-  },
-  onSocks() {
-    message.warning(t('preferences.proxy-system-socks-rejected'))
   },
   onNotFound() {
     message.info(t('preferences.proxy-system-not-detected'))
@@ -128,49 +103,13 @@ const { form, isDirty, handleSave, handleReset, resetSnapshot, patchSnapshot } =
     }
     return true
   },
-  afterSave: async (f, prevConfig) => {
-    if (f.enableUpnp !== prevConfig.enableUpnp) await syncUpnpState(!!f.enableUpnp)
-  },
 })
-const numericFieldsValid = computed(
-  () =>
-    areConfigFieldsValid({
-      connectTimeout: form.value.connectTimeout,
-      timeout: form.value.timeout,
-    }) &&
-    !fieldProps(form.value.portConflictRecovery.rangeStart, portRecoveryConstraint).validationStatus &&
-    !fieldProps(form.value.portConflictRecovery.rangeEnd, portRecoveryConstraint).validationStatus &&
-    form.value.portConflictRecovery.rangeStart <= form.value.portConflictRecovery.rangeEnd,
+const numericFieldsValid = computed(() =>
+  areConfigFieldsValid({
+    connectTimeout: form.value.connectTimeout,
+    timeout: form.value.timeout,
+  }),
 )
-const portRecoveryFieldProps = computed(() => {
-  const recovery = form.value.portConflictRecovery
-  if (recovery.rangeStart > recovery.rangeEnd) {
-    return {
-      validationStatus: 'error' as const,
-      feedback: t('preferences.port-conflict-recovery-invalid-range'),
-    }
-  }
-  const start = fieldProps(recovery.rangeStart, portRecoveryConstraint)
-  return start.validationStatus ? start : fieldProps(recovery.rangeEnd, portRecoveryConstraint)
-})
-
-// ── UPnP save-time sync ─────────────────────────────────────────────
-async function syncUpnpState(enabled: boolean) {
-  const config = preferenceStore.config
-  try {
-    if (enabled) {
-      await invoke('start_upnp_mapping', {
-        ed2kPort: Number(config.ed2kListenPort) > 0 ? Number(config.ed2kListenPort) : null,
-        ed2kUdpPort: Number(config.ed2kUdpListenPort) > 0 ? Number(config.ed2kUdpListenPort) : null,
-      })
-    } else {
-      await invoke('stop_upnp_mapping')
-    }
-  } catch (e) {
-    logger.warn('UPnP', `sync failed: ${getErrorMessage(e)}`)
-    message.warning(t('preferences.upnp-mapping-failed'))
-  }
-}
 
 // ── User-Agent presets ──────────────────────────────────────────────
 function changeUA(type: string) {
@@ -286,16 +225,7 @@ onMounted(() => {
         </NFormItem>
         <div class="proxy-collapse" :class="{ 'proxy-collapse--open': form.proxy.mode === 'manual' }">
           <div class="proxy-collapse__inner collapse-indent">
-            <NFormItem
-              v-bind="
-                form.portConflictRecovery.rangeStart > form.portConflictRecovery.rangeEnd
-                  ? {
-                      validationStatus: 'error',
-                      feedback: t('preferences.port-conflict-recovery-invalid-range'),
-                    }
-                  : fieldProps(form.portConflictRecovery.rangeStart, portRecoveryConstraint)
-              "
-            >
+            <NFormItem>
               <template #label>
                 <PreferenceHintLabel
                   :label="t('preferences.proxy-server')"
@@ -336,48 +266,6 @@ onMounted(() => {
                 :options="proxyScopeOptions"
                 multiple
                 class="pref-control-full"
-              />
-            </NFormItem>
-          </div>
-        </div>
-
-        <!-- Port conflict recovery -->
-        <NDivider title-placement="left">{{ t('preferences.port-conflict-recovery') }}</NDivider>
-        <NFormItem :label="t('preferences.port-conflict-recovery-enable')">
-          <NSwitch v-model:value="form.portConflictRecovery.enabled" />
-        </NFormItem>
-        <div
-          class="port-recovery-collapse"
-          :class="{ 'port-recovery-collapse--open': form.portConflictRecovery.enabled }"
-        >
-          <div class="port-recovery-collapse__inner collapse-indent">
-            <NFormItem v-bind="portRecoveryFieldProps">
-              <template #label>
-                <PreferenceHintLabel
-                  :label="t('preferences.port-conflict-recovery-range')"
-                  :hint="t('preferences.port-conflict-recovery-range-hint')"
-                />
-              </template>
-              <NInputGroup>
-                <NInputNumber
-                  v-model:value="form.portConflictRecovery.rangeStart"
-                  :min="portRecoveryConstraint.min"
-                  :max="portRecoveryConstraint.max"
-                  class="pref-port"
-                />
-                <span class="port-range-separator">to</span>
-                <NInputNumber
-                  v-model:value="form.portConflictRecovery.rangeEnd"
-                  :min="portRecoveryConstraint.min"
-                  :max="portRecoveryConstraint.max"
-                  class="pref-port"
-                />
-              </NInputGroup>
-            </NFormItem>
-            <NFormItem :label="t('preferences.port-conflict-recovery-apply-to')">
-              <PreferenceCheckboxGrid
-                v-model:value="selectedPortRecoveryTargets"
-                :options="portRecoveryTargetOptions"
               />
             </NFormItem>
           </div>
@@ -444,25 +332,6 @@ onMounted(() => {
 }
 .proxy-collapse__inner {
   overflow: hidden;
-}
-.port-recovery-collapse {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.35s cubic-bezier(0.2, 0, 0, 1);
-}
-.port-recovery-collapse--open {
-  grid-template-rows: 1fr;
-}
-.port-recovery-collapse__inner {
-  overflow: hidden;
-}
-.port-range-separator {
-  display: inline-flex;
-  align-items: center;
-  padding: 0 8px;
-  color: var(--m3-on-surface-variant);
-  font-size: 12px;
-  line-height: 1;
 }
 .network-proxy-detect-button {
   min-width: fit-content;

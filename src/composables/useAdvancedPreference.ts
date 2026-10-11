@@ -1,5 +1,5 @@
 /** Advanced settings own RPC, extension access, logging, and clipboard behavior. */
-import { PORT_RECOVERY_RANGE_END, PORT_RECOVERY_RANGE_START } from '@shared/constants'
+import { RANDOM_PORT_RANGE_END, RANDOM_PORT_RANGE_START } from '@shared/constants'
 import { generateRandomInt } from '@shared/utils'
 import type { AppConfig } from '@shared/types'
 
@@ -80,5 +80,5 @@ export function transformAdvancedForStore(form: AdvancedForm): Partial<AppConfig
 }
 
 export function randomRpcPort(): number {
-  return generateRandomInt(PORT_RECOVERY_RANGE_START, PORT_RECOVERY_RANGE_END + 1)
+  return generateRandomInt(RANDOM_PORT_RANGE_START, RANDOM_PORT_RANGE_END + 1)
 }

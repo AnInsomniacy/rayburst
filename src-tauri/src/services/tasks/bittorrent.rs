@@ -192,7 +192,7 @@ pub async fn select(
         .0
         .remove_bt_selection(gid)
         .await?;
-    super::notify_changed(app, gid);
+    crate::services::pump::wake(app);
     Ok(())
 }
 

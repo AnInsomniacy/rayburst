@@ -27,6 +27,10 @@ async fn rpc(
                 calls
                     .iter()
                     .map(|call| {
+                        if call["methodName"] == "aria2.getGlobalStat" {
+                            return json!([{"downloadSpeed":"0","uploadSpeed":"0","numActive":"0",
+                                "numWaiting":"0","numStopped":"0","numStoppedTotal":"0"}]);
+                        }
                         let rows: Vec<_> = tasks
                             .values()
                             .filter(|task| match call["methodName"].as_str().expect("method") {
@@ -146,7 +150,6 @@ struct Fixture {
     service: Arc<MediaService>,
     engine: Arc<EngineFixture>,
     server: tokio::task::JoinHandle<()>,
-    _directory: tempfile::TempDir,
 }
 impl Drop for Fixture {
     fn drop(&mut self) {
@@ -166,23 +169,18 @@ impl Fixture {
         let server = tokio::spawn(async move {
             axum::serve(listener, router).await.expect("fixture server");
         });
-        let directory = tempfile::tempdir().expect("fixture directory");
-        let journal = Journal::open(directory.path().join("operations.db"))
-            .await
-            .expect("journal");
-        let service = Arc::new(MediaService {
-            engine: Arc::new(TaskService::new(port, String::new())),
-            journal,
-            submission_gate: Mutex::new(()),
-            deferred_events: Mutex::new(HashMap::new()),
-            operations: Mutex::new(HashMap::new()),
-        });
+        let service = Arc::new(MediaService::new(Arc::new(TaskService::new(
+            port,
+            String::new(),
+        ))));
         Self {
             service,
             engine,
             server,
-            _directory: directory,
         }
+    }
+    async fn state(&self, id: Uuid) -> State {
+        self.service.operations.lock().await[&id].state
     }
     async fn ready(&self, request: ProbeRequest) -> Presentation {
         let id = request.id;
@@ -254,16 +252,7 @@ async fn confirmed_selection_starts_the_probed_gid_once_and_persists_receipt() {
     assert_eq!(first["gid"], options["gid"]);
     assert_eq!(fixture.engine.additions.load(Ordering::Relaxed), 1);
     assert_eq!(fixture.engine.starts.load(Ordering::Relaxed), 1);
-    let stored = fixture
-        .service
-        .journal
-        .load()
-        .await
-        .expect("durable receipt");
-    assert_eq!(stored[0].state, State::Submitted);
-    assert!(!serde_json::to_string(&stored)
-        .expect("journal JSON")
-        .contains("token=opaque"));
+    assert_eq!(fixture.state(request.id).await, State::Submitted);
     assert!(
         !fixture
             .service
@@ -305,10 +294,7 @@ async fn lost_start_reply_reconciles_without_restarting_or_creating_a_download()
         fixture.service.submit(request.id, submission.clone()).await,
         Err(Error::Unavailable)
     );
-    assert_eq!(
-        fixture.service.journal.load().await.expect("intent")[0].state,
-        State::Starting
-    );
+    assert_eq!(fixture.state(request.id).await, State::Starting);
     fixture.service.maintain().await.expect("reconcile");
     let receipt = fixture
         .service
@@ -372,90 +358,6 @@ async fn malformed_request_contexts_never_reach_the_engine() {
         Err(Error::UnsupportedSource)
     );
     assert_eq!(fixture.engine.additions.load(Ordering::Relaxed), 0);
-}
-
-#[tokio::test]
-async fn restart_preserves_submissions_and_invalidates_orphan_inspections() {
-    let fixture = Fixture::new().await;
-    let pending = request();
-    fixture.ready(pending.clone()).await;
-    let confirmed = request();
-    let presentation = fixture.ready(confirmed.clone()).await;
-    let submission = SubmitRequest {
-        submission_id: Uuid::new_v4(),
-        selection: presentation.defaults,
-    };
-    let receipt = fixture
-        .service
-        .submit(confirmed.id, submission.clone())
-        .await
-        .expect("confirmed download");
-    let restored = Arc::new(
-        MediaService::restore(
-            fixture.service.engine.clone(),
-            fixture.service.journal.clone(),
-        )
-        .await
-        .expect("restore"),
-    );
-    assert_eq!(
-        restored.read(pending.id).await.expect("orphan")["error"],
-        "source_expired"
-    );
-    assert_eq!(
-        restored
-            .submit(confirmed.id, submission)
-            .await
-            .expect("receipt"),
-        receipt
-    );
-    restored.maintain().await.expect("orphan cleanup");
-    assert_eq!(fixture.engine.tasks.lock().await.len(), 1);
-    assert_eq!(fixture.engine.starts.load(Ordering::Relaxed), 1);
-}
-
-#[tokio::test]
-async fn restart_finishes_a_persisted_submission_intent_on_its_original_gid() {
-    let fixture = Fixture::new().await;
-    let request = request();
-    let presentation = fixture.ready(request.clone()).await;
-    let submission = SubmitRequest {
-        submission_id: Uuid::new_v4(),
-        selection: presentation.defaults,
-    };
-    let mut intent = fixture
-        .service
-        .operations
-        .lock()
-        .await
-        .get(&request.id)
-        .expect("probe")
-        .clone();
-    intent.state = State::Starting;
-    intent.selection = Some(submission.selection.clone());
-    intent.submission_id = Some(submission.submission_id);
-    fixture
-        .service
-        .journal
-        .save(&intent)
-        .await
-        .expect("durable intent");
-    let restored = Arc::new(
-        MediaService::restore(
-            fixture.service.engine.clone(),
-            fixture.service.journal.clone(),
-        )
-        .await
-        .expect("restore"),
-    );
-    restored.maintain().await.expect("reconcile intent");
-    let receipt = restored
-        .submit(request.id, submission)
-        .await
-        .expect("receipt");
-    assert_eq!(receipt["gid"], intent.gid);
-    assert_eq!(fixture.engine.additions.load(Ordering::Relaxed), 1);
-    assert_eq!(fixture.engine.starts.load(Ordering::Relaxed), 1);
 }
 
 #[test]

@@ -1,8 +1,7 @@
 <script setup lang="ts">
 /** @fileoverview Main application layout with application shell and IPC event handling. */
 import { computed, ref, nextTick, watch } from 'vue'
-import { useIntervalFn, useMediaQuery } from '@vueuse/core'
-import { TASK_REFRESH_INTERVAL } from '@shared/timing'
+import { useMediaQuery } from '@vueuse/core'
 import { useRoute } from 'vue-router'
 import { onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -17,7 +16,7 @@ import { handleTaskComplete, handleP2pDownloadComplete, handleTaskError } from '
 import { shouldDeleteTorrent, trashTorrentFile } from '@/composables/useDownloadCleanup'
 import { getTaskName, resolveOpenTarget, checkTaskIsSharing, getTaskSharingKind } from '@shared/utils'
 import type { TaskSharingKind } from '@shared/utils/task'
-import type { Aria2Task } from '@shared/types'
+import type { Aria2Task, TaskSnapshot } from '@shared/types'
 import { ARIA2_ERROR_CODES } from '@shared/aria2ErrorCodes'
 import { useHistoryStore } from '@/stores/history'
 import { useDatabaseStore } from '@/stores/database'
@@ -51,9 +50,6 @@ const route = useRoute()
 const appStore = useAppStore()
 const engineStore = useEngineStore()
 const taskStore = useTaskStore()
-useIntervalFn(() => {
-  if (engineStore.isReady) void taskStore.fetchList(false)
-}, TASK_REFRESH_INTERVAL)
 const preferenceStore = usePreferenceStore()
 const navDialog = useDialog()
 const message = useAppMessage()
@@ -118,9 +114,8 @@ let unlistenSingleInstance: (() => void) | null = null
 let unlistenTrayMenu: (() => void) | null = null
 let unlistenResize: (() => void) | null = null
 let unlistenExitDialog: (() => void) | null = null
-let unlistenStat: (() => void) | null = null
+let unlistenSnapshot: (() => void) | null = null
 let unlistenTaskMonitor: Array<() => void> = []
-let unlistenAria2DownloadPause: (() => void) | null = null
 let unlistenFocusRecheck: (() => void) | null = null
 let unlistenAppToast: (() => void) | null = null
 
@@ -236,30 +231,22 @@ function stopAppToastListener() {
   unlistenAppToast = null
 }
 
-// ── Stat listener — passive subscription to Rust stat_service events ──
-// Replaces the old frontend polling loop. Rust is the sole poller of aria2;
-// the frontend simply listens for `stat:update` and updates reactive state.
+// ── Engine snapshots ─────────────────────────────────────────────────
+// The native pump is the only reader of engine state. It pushes every
+// snapshot (statistics and all tasks) while this window exists, right after
+// engine notifications and task actions and otherwise every 0.5–2 s.
 
-async function startStatListener() {
-  stopStatListener()
-  unlistenStat = await appStore.setupStatListener()
-}
-
-function stopStatListener() {
-  unlistenStat?.()
-  unlistenStat = null
-}
-
-// Native pause events refresh the same snapshot used by the selection queue.
-async function startAria2DownloadPauseListener() {
-  stopAria2DownloadPauseListener()
-  unlistenAria2DownloadPause = await listen('aria2-event:download-pause', async () => {
-    await taskStore.fetchList()
+async function startSnapshotListener() {
+  stopSnapshotListener()
+  unlistenSnapshot = await listen<TaskSnapshot>('tasks:snapshot', ({ payload }) => {
+    appStore.applyStat(payload.stat)
+    taskStore.applySnapshot(payload.tasks)
   })
 }
-function stopAria2DownloadPauseListener() {
-  unlistenAria2DownloadPause?.()
-  unlistenAria2DownloadPause = null
+
+function stopSnapshotListener() {
+  unlistenSnapshot?.()
+  unlistenSnapshot = null
 }
 
 watch(
@@ -499,8 +486,7 @@ onMounted(async () => {
     }
   }
 
-  startStatListener()
-  await startAria2DownloadPauseListener()
+  await startSnapshotListener()
 
   // ── Auto-shutdown event from Rust monitor (lightweight mode fallback) ──
   unlistenPowerCountdown = await listen('power:countdown', () => {
@@ -590,9 +576,6 @@ onMounted(async () => {
 
   unlistenTaskMonitor = [
     await listen<string>('bt-selection:error', ({ payload }) => message.error(payload)),
-    await listen<{ gid: string }>('tasks:changed', () => {
-      void taskStore.fetchList()
-    }),
     await listen<{ gid: string }>('task-monitor:error', async ({ payload }) => {
       const task = await fetchTaskForEvent(payload.gid)
       if (task) await onTaskError(task)
@@ -726,8 +709,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  stopStatListener()
-  stopAria2DownloadPauseListener()
+  stopSnapshotListener()
   unlistenTaskMonitor.forEach((fn) => fn())
   unlistenTaskMonitor = []
   if (unlistenFocusRecheck) unlistenFocusRecheck()

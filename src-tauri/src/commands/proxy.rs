@@ -8,8 +8,7 @@
 //! - **Linux**: Environment variables (`http_proxy`, `https_proxy`) with
 //!   `gsettings` (GNOME) fallback
 //!
-//! Note: SOCKS proxies are reported with `is_socks: true` so the frontend
-//! can reject them at the UI level (aria2 does not support SOCKS).
+//! SOCKS proxies are returned as `socks5://` URLs and flagged `is_socks`.
 
 use crate::error::AppError;
 use serde::Serialize;

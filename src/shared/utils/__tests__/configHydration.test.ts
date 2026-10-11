@@ -27,7 +27,6 @@ describe('hydrateAppConfig', () => {
     const result = hydrateAppConfig({
       proxy: { mode: 'manual', server: 'http://127.0.0.1:7890' } as AppConfig['proxy'],
       clipboard: { http: false } as AppConfig['clipboard'],
-      portConflictRecovery: { enabled: false, rangeStart: 29050 } as AppConfig['portConflictRecovery'],
     })
 
     expect(result.config.proxy).toEqual({
@@ -36,11 +35,6 @@ describe('hydrateAppConfig', () => {
       server: 'http://127.0.0.1:7890',
     })
     expect(result.config.clipboard).toEqual({ ...DEFAULT_APP_CONFIG.clipboard, http: false })
-    expect(result.config.portConflictRecovery).toEqual({
-      ...DEFAULT_APP_CONFIG.portConflictRecovery,
-      enabled: false,
-      rangeStart: 29050,
-    })
   })
 
   it('preserves user-owned arrays including intentionally empty arrays', () => {
@@ -182,20 +176,11 @@ describe('hydrateAppConfig', () => {
   it('repairs invalid nested values and keeps valid nested values', () => {
     const result = hydrateAppConfig({
       proxy: { ...DEFAULT_APP_CONFIG.proxy, mode: 'broken' as AppConfig['proxy']['mode'], scope: ['download', 'bad'] },
-      portConflictRecovery: {
-        ...DEFAULT_APP_CONFIG.portConflictRecovery,
-        rangeStart: 70000,
-        rangeEnd: 65000,
-        bt: false,
-      },
     })
 
     expect(result.config.proxy.mode).toBe('direct')
     expect(result.config.proxy.scope).toEqual(['download'])
-    expect(result.config.portConflictRecovery.rangeStart).toBe(DEFAULT_APP_CONFIG.portConflictRecovery.rangeStart)
-    expect(result.config.portConflictRecovery.rangeEnd).toBe(DEFAULT_APP_CONFIG.portConflictRecovery.rangeEnd)
-    expect(result.config.portConflictRecovery.bt).toBe(false)
-    expect(result.repairs).toEqual(expect.arrayContaining(['proxy.mode', 'portConflictRecovery.range']))
+    expect(result.repairs).toEqual(expect.arrayContaining(['proxy.mode']))
   })
 
   it('repairs invalid manual task order entries', () => {

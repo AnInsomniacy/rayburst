@@ -1,8 +1,8 @@
-//! Native HLS/DASH inspection leases and durable extension submission receipts.
+//! Native HLS/DASH inspection leases and extension submission receipts.
 mod assets;
 pub mod contracts;
 pub mod error;
-mod journal;
+mod operation;
 mod probe;
 mod runtime;
 pub use runtime::{owns, service, MediaState};
@@ -16,7 +16,7 @@ pub use policy::start_automatic_selection;
 use crate::services::tasks::TaskService;
 use contracts::*;
 use error::Error;
-use journal::{Journal, Operation, State};
+use operation::{Operation, State};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::{collections::HashMap, sync::Arc, time::Duration};
@@ -25,7 +25,6 @@ use uuid::Uuid;
 
 pub struct MediaService {
     engine: Arc<TaskService>,
-    journal: Journal,
     submission_gate: Mutex<()>,
     deferred_events: Mutex<HashMap<String, (&'static str, crate::aria2::types::Aria2Task)>>,
     operations: Mutex<HashMap<Uuid, Operation>>,
@@ -35,27 +34,13 @@ pub fn now() -> i64 {
     chrono::Utc::now().timestamp_millis()
 }
 impl MediaService {
-    async fn restore(engine: Arc<TaskService>, journal: Journal) -> Result<Self, Error> {
-        let mut operations = HashMap::new();
-        for mut op in journal.load().await? {
-            if op.state.pending() {
-                op.state = State::Failed;
-                op.error = Some(Error::SourceExpired);
-                journal.save(&op).await?;
-            }
-            engine
-                .tasks
-                .set_internal(&op.gid, op.state != State::Submitted)
-                .await;
-            operations.insert(op.id, op);
-        }
-        Ok(Self {
+    fn new(engine: Arc<TaskService>) -> Self {
+        Self {
             engine,
-            journal,
             submission_gate: Mutex::new(()),
             deferred_events: Mutex::new(HashMap::new()),
-            operations: Mutex::new(operations),
-        })
+            operations: Mutex::new(HashMap::new()),
+        }
     }
 
     pub async fn create(
@@ -92,7 +77,6 @@ impl MediaService {
             .collect();
         record.capture_ids.sort();
         record.capture_ids.dedup();
-        self.journal.save(&record).await?;
         self.engine.tasks.set_internal(&record.gid, true).await;
         records.insert(record.id, record.clone());
         let response = record.response();
@@ -147,7 +131,6 @@ impl MediaService {
         intent.submission_id = Some(request.submission_id);
         intent.state = State::Starting;
         intent.retain_until = now() + RECEIPT_MS;
-        self.journal.save(&intent).await?;
         *record = intent.clone();
         drop(records);
         let worker = self.clone();
@@ -171,7 +154,6 @@ impl MediaService {
         let mut completed = current.clone();
         completed.state = State::Submitted;
         completed.error = None;
-        self.journal.save(&completed).await?;
         *current = completed;
         self.engine.tasks.set_internal(&record.gid, false).await;
         Ok(receipt(current))
@@ -217,7 +199,6 @@ impl MediaService {
         }
         let mut cancelled = existing;
         cancelled.state = State::Cancelled;
-        self.journal.save(&cancelled).await?;
         records.insert(id, cancelled);
         Ok(json!({"id":id,"state":"cancelled"}))
     }
@@ -263,7 +244,6 @@ impl MediaService {
                             let mut failed = current.clone();
                             failed.state = State::Failed;
                             failed.error = Some(Error::SourceExpired);
-                            self.journal.save(&failed).await?;
                             *current = failed;
                         }
                     }
@@ -283,7 +263,6 @@ impl MediaService {
                 self.clean_gid(&record.gid).await?;
             }
             if record.retain_until <= now() && !record.state.pending() {
-                self.journal.delete(record.id).await?;
                 self.deferred_events.lock().await.remove(&record.gid);
                 self.engine.tasks.set_internal(&record.gid, false).await;
                 self.operations.lock().await.remove(&record.id);

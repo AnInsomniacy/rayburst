@@ -3,17 +3,16 @@ use tauri::Manager;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
 
-use super::cleanup::cleanup_port;
 use super::config::{generate_runtime_config, runtime_config_args, ManagedEngineConfig};
 use super::state::{path_to_safe_string, strip_ansi, EngineState};
 use super::{valid_aria2_log_level, DEFAULT_ARIA2_LOG_LEVEL};
-use crate::services::port_guard;
 use tauri_plugin_store::StoreExt;
 
 const ENGINE_SIDECAR_NAME: &str = "aria2-next";
-const DEFAULT_RPC_PORT_STR: &str = "29100";
-const ENGINE_PORT_RELEASE_TIMEOUT_MS: u64 = 2600;
-const ENGINE_PORT_RELEASE_POLL_MS: u64 = 100;
+pub(crate) const DEFAULT_RPC_PORT: u16 = 29100;
+/// An engine left by a previous app instance exits within about a second of
+/// its parent (`stop-with-process`), releasing the RPC port.
+const RPC_PORT_RELEASE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
 const GRACEFUL_EXIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 /// A killed process can stay alive while the kernel completes pending disk I/O.
 const KILLED_EXIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
@@ -94,23 +93,35 @@ fn process_spawn_allowed(app: &tauri::AppHandle) -> bool {
         .is_some_and(|supervisor| supervisor.allows_process_spawn())
 }
 
-pub(crate) fn wait_for_engine_ports_release(app: &tauri::AppHandle) {
-    match port_guard::wait_for_engine_ports_available(
-        app,
-        std::time::Duration::from_millis(ENGINE_PORT_RELEASE_TIMEOUT_MS),
-        std::time::Duration::from_millis(ENGINE_PORT_RELEASE_POLL_MS),
-    ) {
-        Ok(true) => {}
-        Ok(false) => {
-            log::warn!(
-                "restart: engine ports still occupied after {}ms, running conflict recovery",
-                ENGINE_PORT_RELEASE_TIMEOUT_MS
-            );
+fn rpc_port_free(port: u16) -> bool {
+    std::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)).is_ok()
+}
+
+/// The RPC port connects the app to its own engine, so a port held by another
+/// program moves this run to a free port instead of failing the start.
+fn choose_rpc_port(configured: u16) -> u16 {
+    let deadline = std::time::Instant::now() + RPC_PORT_RELEASE_TIMEOUT;
+    while !rpc_port_free(configured) {
+        if std::time::Instant::now() >= deadline {
+            let free = std::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
+                .and_then(|listener| listener.local_addr())
+                .map(|address| address.port());
+            match free {
+                Ok(port) => {
+                    log::warn!(
+                        "engine: RPC port {configured} is in use; using {port} for this run"
+                    );
+                    return port;
+                }
+                Err(error) => {
+                    log::warn!("engine: no free RPC port: {error}");
+                    return configured;
+                }
+            }
         }
-        Err(e) => {
-            log::warn!("restart: failed to wait for engine port release: {e}");
-        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
     }
+    configured
 }
 
 fn prepare_engine_args(
@@ -188,13 +199,6 @@ fn monitor_engine(
                         anstream::println!(
                             "{}",
                             crate::log_policy::format_engine_terminal_record(&text)
-                        );
-                    }
-                    if let Some(kind) = port_guard::aria2_runtime_bind_error_kind(&text) {
-                        crate::engine::supervisor::report_port_conflict(
-                            app.clone(),
-                            generation,
-                            kind,
                         );
                     }
                 }
@@ -296,12 +300,20 @@ pub fn start_engine(app: &tauri::AppHandle) -> Result<StartEngineOutcome, crate:
         crate::proxy_bypass::normalize_options(options)?;
     }
 
-    // Kill any leftover supported engine process on the RPC port before starting
-    let port = config
+    let configured_port = config
         .get("rpc-listen-port")
-        .and_then(|v| v.as_str())
-        .unwrap_or(DEFAULT_RPC_PORT_STR);
-    cleanup_port(port);
+        .and_then(|value| match value {
+            serde_json::Value::String(text) => text.parse().ok(),
+            serde_json::Value::Number(number) => {
+                number.as_u64().and_then(|n| u16::try_from(n).ok())
+            }
+            _ => None,
+        })
+        .unwrap_or(DEFAULT_RPC_PORT);
+    let rpc_port = choose_rpc_port(configured_port);
+    if let Some(options) = config.as_object_mut() {
+        options.insert("rpc-listen-port".into(), rpc_port.to_string().into());
+    }
 
     let args = prepare_engine_args(app, &config).map_err(AppError::Engine)?;
     if !process_spawn_allowed(app) {
@@ -312,7 +324,7 @@ pub fn start_engine(app: &tauri::AppHandle) -> Result<StartEngineOutcome, crate:
     log::info!(target: "engine", event = "engine_started", pid = child.pid(); "engine_started");
 
     let spawned_pid = child.pid();
-    state.attach(child);
+    state.attach(child, rpc_port);
     state.clear_stderr();
     let my_gen = state.next_generation();
     monitor_engine(app.clone(), receiver, spawned_pid, my_gen);

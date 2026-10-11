@@ -39,7 +39,7 @@ pub async fn rename_completed_file(
         .0
         .rename_completed_file(&gid, &name)
         .await?;
-    crate::services::tasks::notify_changed(&app, &gid);
+    crate::services::pump::wake(&app);
     Ok(())
 }
 

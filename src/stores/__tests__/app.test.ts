@@ -169,12 +169,12 @@ describe('useAppStore', () => {
     })
   })
 
-  // ── handleStatEvent (Rust event → reactive state) ───────────────
+  // ── applyStat (pump snapshot → reactive state) ──────────────────
 
-  describe('handleStatEvent', () => {
+  describe('applyStat', () => {
     it('updates stat values from event payload', () => {
       const store = useAppStore()
-      store.handleStatEvent({
+      store.applyStat({
         downloadSpeed: 204800,
         uploadSpeed: 10240,
         numActive: 2,
@@ -191,7 +191,7 @@ describe('useAppStore', () => {
 
     it('preserves the authoritative engine speed payload', () => {
       const store = useAppStore()
-      store.handleStatEvent({
+      store.applyStat({
         downloadSpeed: 999,
         uploadSpeed: 100,
         numActive: 0,
@@ -205,7 +205,7 @@ describe('useAppStore', () => {
 
     it('preserves downloadSpeed when tasks are active', () => {
       const store = useAppStore()
-      store.handleStatEvent({
+      store.applyStat({
         downloadSpeed: 512000,
         uploadSpeed: 0,
         numActive: 1,

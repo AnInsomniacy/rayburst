@@ -52,7 +52,7 @@ const failureDetail = computed(() => {
 const activeStage = computed(() => {
   const phase: EnginePhase = engineStore.snapshot.phase
   if (phase === 'starting') return 1
-  if (phase === 'probing' || phase === 'initializing' || phase === 'stabilizing') return 2
+  if (phase === 'probing') return 2
   return 0
 })
 const activeStageLabel = computed(

@@ -129,7 +129,8 @@ export function buildEngineOptions(form: AddTaskForm, context?: ExternalDownload
   }
   const options: Aria2EngineOptions = {
     dir: form.dir,
-    'stream-max-connections': String(form.streamMaxConnections),
+    split: String(form.streamMaxConnections),
+    'max-connection-per-server': String(form.streamMaxConnections),
   }
   if (form.out) options.out = form.out
   if (context?.filename) {

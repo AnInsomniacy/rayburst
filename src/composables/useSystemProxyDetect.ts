@@ -2,7 +2,7 @@
  * @fileoverview Composable for detecting the OS-level system proxy.
  *
  * Calls the Rust `get_system_proxy` Tauri command and routes the result
- * through one of four callbacks: onSuccess, onSocks, onNotFound, onError.
+ * through one of three callbacks: onSuccess, onNotFound, onError.
  *
  * Exposes a `detecting` ref for loading-state UI binding and guards
  * against concurrent invocations.
@@ -17,8 +17,6 @@ import { DETECT_MIN_DURATION } from '@shared/timing'
 export interface SystemProxyDetectCallbacks {
   /** Called with the detected proxy info when a valid HTTP/HTTPS proxy is found. */
   onSuccess: (info: SystemProxyInfo) => void
-  /** Called when the detected proxy uses SOCKS (unsupported by aria2). */
-  onSocks: () => void
   /** Called when no proxy is configured or the server field is empty. */
   onNotFound: () => void
   /** Called when the Tauri IPC call itself fails. */
@@ -46,11 +44,6 @@ export function useSystemProxyDetect(callbacks: SystemProxyDetectCallbacks) {
 
       if (!info || !info.server?.trim()) {
         callbacks.onNotFound()
-        return
-      }
-
-      if (info.isSocks) {
-        callbacks.onSocks()
         return
       }
 

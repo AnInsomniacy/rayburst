@@ -7,7 +7,8 @@ use url::Url;
 use uuid::Uuid;
 
 pub const LEASE_MS: i64 = 300_000;
-pub const RECEIPT_MS: i64 = 86_400_000;
+/// How long a finished operation still answers repeated requests.
+pub const RECEIPT_MS: i64 = 600_000;
 pub const HISTORY_OPTIONS: &[&str] = &[
     "media",
     "media-format",

@@ -1,6 +1,6 @@
 //! Tauri lifecycle wiring and publication of confirmed download events.
-use super::journal::State;
-use super::{error::Error, journal::Journal, MediaService};
+use super::operation::State;
+use super::{error::Error, MediaService};
 use crate::services::tasks::TaskServiceState;
 use std::{sync::Arc, time::Duration};
 use tauri::{AppHandle, Manager};
@@ -18,17 +18,8 @@ pub async fn service(app: &AppHandle) -> Result<Arc<MediaService>, Error> {
     let result = state
         .0
         .get_or_try_init(|| async {
-            let directory = app
-                .path()
-                .app_local_data_dir()
-                .map_err(|_| Error::Unavailable)?;
-            tokio::fs::create_dir_all(&directory)
-                .await
-                .map_err(|_| Error::Unavailable)?;
-            let journal = Journal::open(directory.join("media-operations.db")).await?;
-            let service = Arc::new(
-                MediaService::restore(app.state::<TaskServiceState>().0.clone(), journal).await?,
-            );
+            forget_journal(app).await;
+            let service = Arc::new(MediaService::new(app.state::<TaskServiceState>().0.clone()));
             let weak = Arc::downgrade(&service);
             let app = app.clone();
             tokio::spawn(async move {
@@ -105,6 +96,17 @@ pub async fn service(app: &AppHandle) -> Result<Arc<MediaService>, Error> {
         })
         .await?;
     Ok(result.clone())
+}
+
+/// Removes the operation journal earlier versions kept.
+async fn forget_journal(app: &AppHandle) {
+    let Ok(directory) = app.path().app_local_data_dir() else {
+        return;
+    };
+    for suffix in ["", "-wal", "-shm"] {
+        let _ =
+            tokio::fs::remove_file(directory.join(format!("media-operations.db{suffix}"))).await;
+    }
 }
 
 pub async fn owns(app: &AppHandle, gid: &str) -> bool {

@@ -37,7 +37,6 @@ import { PROXY_SCOPES } from '@shared/constants'
 import { diffConfig, checkIsNeedRestart } from '@shared/utils/config'
 import { bytesToSize } from '@shared/utils'
 import { resolveAppProxyUrl } from '@shared/utils/proxy'
-import { getErrorMessage } from '@shared/utils/errorMessage'
 import { logger } from '@shared/logger'
 import type { Ed2kSearchResult } from '@shared/types'
 import PreferenceActionRegistration from './PreferenceActionRegistration.vue'
@@ -155,17 +154,10 @@ const { form, isDirty, handleSave, handleReset, resetSnapshot } = usePreferenceF
     }
     return true
   },
-  afterSave: async (f, prevConfig) => {
+  afterSave: async () => {
     if (needsRestart.value) {
       needsRestart.value = false
       restartEngine('settingsChange')
-    }
-
-    if (
-      preferenceStore.config.enableUpnp &&
-      (f.ed2kListenPort !== prevConfig.ed2kListenPort || f.ed2kUdpListenPort !== prevConfig.ed2kUdpListenPort)
-    ) {
-      await syncUpnpState(f.ed2kListenPort, f.ed2kUdpListenPort)
     }
   },
 })
@@ -185,18 +177,6 @@ function onPortDice() {
 
 function onUdpPortDice() {
   form.value.ed2kUdpListenPort = randomEd2kPort()
-}
-
-async function syncUpnpState(ed2kPort: number, ed2kUdpPort: number) {
-  try {
-    await invoke('start_upnp_mapping', {
-      ed2kPort: ed2kPort > 0 ? ed2kPort : null,
-      ed2kUdpPort: ed2kUdpPort > 0 ? ed2kUdpPort : null,
-    })
-  } catch (e) {
-    logger.warn('UPnP', `ED2K sync failed: ${getErrorMessage(e)}`)
-    message.warning(t('preferences.upnp-mapping-failed'))
-  }
 }
 
 async function handleSearch() {

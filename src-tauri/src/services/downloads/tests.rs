@@ -1,11 +1,7 @@
 use super::*;
-use crate::{aria2::types::Aria2Task, database::Database, services::tasks::TaskService};
-use axum::{extract::State, http::StatusCode, routing::post, Json, Router};
-use serde_json::{json, Value};
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-};
+use crate::database::Database;
+use serde_json::json;
+use std::sync::Arc;
 
 #[test]
 fn filename_input_cannot_escape_the_selected_directory() {
@@ -28,97 +24,130 @@ fn filename_input_cannot_escape_the_selected_directory() {
     }
 }
 
-#[derive(Default)]
-struct Engine {
-    tasks: Mutex<Vec<Aria2Task>>,
-    additions: AtomicUsize,
+fn request(mime: Option<&str>, size: Option<i64>) -> AddRequest {
+    serde_json::from_value(json!({"url":"https://example.test/file.zip","verify":true,
+        "mime":mime,"size":size}))
+    .unwrap()
 }
-async fn rpc(
-    State(engine): State<Arc<Engine>>,
-    Json(request): Json<Value>,
-) -> (StatusCode, Json<Value>) {
-    let result = match request["method"].as_str().unwrap() {
-        "system.multicall" => json!([[*engine.tasks.lock().await], [[]], [[]]]),
-        "aria2.addUri" | "aria2.addTorrent" => {
-            let gid = request["params"].as_array().unwrap().last().unwrap()["gid"]
-                .as_str()
-                .unwrap();
-            engine.tasks.lock().await.push(Aria2Task {
-                gid: gid.into(),
-                status: "active".into(),
-                ..Default::default()
-            });
-            engine.additions.fetch_add(1, Ordering::Relaxed);
-            return (
-                StatusCode::GATEWAY_TIMEOUT,
-                Json(json!({"error":"lost creation reply"})),
-            );
-        }
-        "aria2.saveSession" => json!("OK"),
-        method => panic!("Unexpected native method: {method}"),
-    };
+
+fn probe(status: &str, content_type: &str, length: Option<&str>) -> Aria2Probe {
+    serde_json::from_value(
+        json!({"status":status,"finalUrl":"https://example.test/file.zip",
+        "contentType":content_type,"totalLength":length,"resumable":"true"}),
+    )
+    .unwrap()
+}
+
+#[test]
+fn the_browser_keeps_downloads_the_engine_would_not_receive_identically() {
+    let zip = request(Some("application/zip"), Some(1000));
+    assert_eq!(
+        refusal(&probe("206", "application/zip", Some("1000")), &zip),
+        None
+    );
+    assert_eq!(refusal(&probe("200", "", None), &zip), None);
+    assert_eq!(
+        refusal(&probe("0", "", None), &zip),
+        Some(FallbackReason::Unreachable)
+    );
+    assert_eq!(
+        refusal(&probe("403", "text/html", None), &zip),
+        Some(FallbackReason::Rejected)
+    );
+    let mut failed = probe("206", "", Some("1000"));
+    failed.error = Some("transfer closed".into());
+    assert_eq!(refusal(&failed, &zip), Some(FallbackReason::Rejected));
+    assert_eq!(
+        refusal(
+            &probe("200", "text/html; charset=utf-8", Some("1000")),
+            &zip
+        ),
+        Some(FallbackReason::WebPage)
+    );
+    assert_eq!(
+        refusal(&probe("206", "application/zip", Some("999")), &zip),
+        Some(FallbackReason::SizeMismatch)
+    );
+    // A page the browser was downloading as a page is still that page.
+    let page = request(Some("text/html"), None);
+    assert_eq!(refusal(&probe("200", "TEXT/HTML", None), &page), None);
+    // Unknown sizes never mismatch.
+    let unknown = request(None, Some(-1));
+    assert_eq!(
+        refusal(&probe("206", "application/zip", Some("5")), &unknown),
+        None
+    );
+}
+
+fn recorder() -> (Arc<std::sync::Mutex<Vec<String>>>, handoff::OnWithdraw) {
+    let withdrawn = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let sink = withdrawn.clone();
     (
-        StatusCode::OK,
-        Json(json!({"jsonrpc":"2.0","id":request["id"],"result":result})),
+        withdrawn,
+        Box::new(move |id: &str| sink.lock().unwrap().push(id.to_owned())),
     )
 }
 
 #[tokio::test]
-async fn lost_creation_replies_reconcile_the_original_gid_for_uri_and_torrent_inputs() {
-    let state = Arc::new(Engine::default());
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let engine = TaskService::new(listener.local_addr().unwrap().port(), String::new());
-    let router = Router::new()
-        .route("/jsonrpc", post(rpc))
-        .with_state(state.clone());
-    let server = tokio::spawn(async move {
-        axum::serve(listener, router).await.unwrap();
-    });
-    let db = Database::open_in_memory().unwrap();
-    for torrent in [false, true] {
-        let id = if torrent { "torrent" } else { "uri" };
-        let source = || {
-            if torrent {
-                TaskInput::Torrent("native-metainfo".into())
-            } else {
-                TaskInput::Uris(vec!["https://example.test/file".into()])
-            }
-        };
-        let expected = db.reserve_submission(id, "input").await.unwrap().gid;
-        db.stage_confirmation(id, "request body").await.unwrap();
-        assert!(submit_reserved(&engine, &db, id, source(), json!({}))
-            .await
-            .is_err());
-        assert_eq!(
-            submit_reserved(&engine, &db, id, source(), json!({}))
-                .await
-                .unwrap(),
-            expected
-        );
-        assert_eq!(
-            submit_reserved(&engine, &db, id, source(), json!({}))
-                .await
-                .unwrap(),
-            expected
-        );
-    }
-    assert_eq!(state.additions.load(Ordering::Relaxed), 2);
-    assert!(db.pending_downloads().await.unwrap().is_empty());
-    db.reserve_submission("cancelled", "input").await.unwrap();
-    db.cancel_submission("cancelled").await.unwrap();
+async fn the_dialog_answers_a_held_download_exactly_once() {
+    let handoffs = Handoffs::default();
+
+    let (withdrawn, on_withdraw) = recorder();
+    let pending = handoffs.open(on_withdraw);
+    let id = pending.id().to_owned();
+    let claim = handoffs.claim(&id).unwrap();
+    assert!(matches!(handoffs.claim(&id), Err(AppError::Conflict(_))));
+    // A claimed request ignores cancellation; its task decides.
+    handoffs.cancel(&id);
+    claim.finish("gid".into());
     assert!(matches!(
-        submit_reserved(
-            &engine,
-            &db,
-            "cancelled",
-            TaskInput::Uris(vec![]),
-            json!({})
-        )
-        .await,
-        Err(AppError::Conflict(_))
+        pending.wait(Duration::from_secs(1)).await,
+        Some(handoff::Outcome::Added(gid)) if gid == "gid"
     ));
-    assert_eq!(state.additions.load(Ordering::Relaxed), 2);
-    server.abort();
+    assert!(matches!(handoffs.claim(&id), Err(AppError::NotFound(_))));
+    assert!(withdrawn.lock().unwrap().is_empty());
+
+    let (_, on_withdraw) = recorder();
+    let pending = handoffs.open(on_withdraw);
+    let id = pending.id().to_owned();
+    // A failed creation returns the request to the dialog.
+    drop(handoffs.claim(&id).unwrap());
+    handoffs.cancel(&id);
+    assert!(matches!(
+        pending.wait(Duration::from_secs(1)).await,
+        Some(handoff::Outcome::Cancelled)
+    ));
+}
+
+#[tokio::test]
+async fn unanswered_or_abandoned_requests_go_back_to_the_browser() {
+    let handoffs = Handoffs::default();
+
+    let (withdrawn, on_withdraw) = recorder();
+    let pending = handoffs.open(on_withdraw);
+    let id = pending.id().to_owned();
+    assert!(pending.wait(Duration::from_millis(10)).await.is_none());
+    assert_eq!(*withdrawn.lock().unwrap(), std::slice::from_ref(&id));
+    assert!(matches!(handoffs.claim(&id), Err(AppError::NotFound(_))));
+
+    // The extension disconnected: dropping the request withdraws it.
+    let (withdrawn, on_withdraw) = recorder();
+    let id = handoffs.open(on_withdraw).id().to_owned();
+    assert_eq!(*withdrawn.lock().unwrap(), std::slice::from_ref(&id));
+    assert!(handoffs.claim(&id).is_err());
+
+    // A task being created when time runs out still answers.
+    let (withdrawn, on_withdraw) = recorder();
+    let pending = handoffs.open(on_withdraw);
+    let id = pending.id().to_owned();
+    let claim = handoffs.claim(&id).unwrap();
+    let finish = async {
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        claim.finish("late".into());
+    };
+    let (outcome, ()) = tokio::join!(pending.wait(Duration::from_millis(10)), finish);
+    assert!(matches!(outcome, Some(handoff::Outcome::Added(gid)) if gid == "late"));
+    assert!(withdrawn.lock().unwrap().is_empty());
 }
 
 #[tokio::test]

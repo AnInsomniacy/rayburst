@@ -257,6 +257,20 @@ pub struct Aria2Task {
     pub belongs_to: Option<String>,
 }
 
+/// What a download of an HTTP(S) URL would receive (`aria2.probe`).
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Aria2Probe {
+    /// Final HTTP status; "0" when no response arrived.
+    pub status: String,
+    pub final_url: String,
+    #[serde(default)]
+    pub content_type: String,
+    pub total_length: Option<String>,
+    pub resumable: String,
+    pub error: Option<String>,
+}
+
 /// Raw global statistics as returned by aria2 RPC (all values are strings).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

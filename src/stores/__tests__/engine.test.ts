@@ -90,14 +90,7 @@ describe('engine supervisor store', () => {
 
   it('keeps automatic recovery visible across every busy phase', () => {
     const store = useEngineStore()
-    const busyPhases: EngineSnapshot['phase'][] = [
-      'recovering',
-      'preparing',
-      'starting',
-      'probing',
-      'initializing',
-      'stabilizing',
-    ]
+    const busyPhases: EngineSnapshot['phase'][] = ['recovering', 'starting', 'probing', 'stopping', 'cleaning']
 
     for (const phase of busyPhases) {
       store.snapshot = {

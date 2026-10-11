@@ -69,7 +69,7 @@ const makeMockTask = (gid: string, status: TaskStatus = 'active', extra: Partial
 })
 
 function createMockApi() {
-  return {
+  const api = {
     fetchTaskList: vi.fn().mockResolvedValue([makeMockTask('gid1'), makeMockTask('gid2')]),
     fetchTaskItem: vi.fn().mockResolvedValue(makeMockTask('gid1')),
     fetchTaskItemWithPeers: vi.fn().mockResolvedValue({ ...makeMockTask('gid1'), peers: [] as Aria2Peer[] }),
@@ -94,7 +94,13 @@ function createMockApi() {
     removeTaskRecord: vi.fn().mockResolvedValue('OK'),
     purgeTaskRecords: vi.fn().mockResolvedValue(undefined),
     saveSession: vi.fn().mockResolvedValue('OK'),
+    // The pump's snapshot reads the same engine list.
+    refreshTasks: vi.fn(async () => ({
+      stat: { downloadSpeed: 0, uploadSpeed: 0, numActive: 0, numWaiting: 0, numStopped: 0, numStoppedTotal: 0 },
+      tasks: await api.fetchTaskList({ type: 'all' }),
+    })),
   }
+  return api
 }
 
 describe('TaskStore', () => {

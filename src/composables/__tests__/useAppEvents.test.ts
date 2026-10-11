@@ -337,50 +337,14 @@ describe('useAppEvents', () => {
     })
   })
 
-  it('shows a toast when local ports are auto-switched', async () => {
+  it('reports an extension API port that cannot be bound', async () => {
     const { deps, message } = createDeps()
     const { setupListeners } = mountComposable(deps)
 
     await setupListeners()
-    eventCallbacks['port-auto-switched']?.({
-      payload: [{ kind: 'bt', oldPort: 29120, newPort: 29800 }],
-    })
+    eventCallbacks['extension-api:bind-failed']?.({ payload: { port: 29110 } })
 
-    expect(message.info).toHaveBeenCalledWith('preferences.port-auto-switched')
-    expect(deps.preferenceStore.updatePreference).toHaveBeenCalledWith({
-      listenPort: 29800,
-    })
-  })
-
-  it('updates the ED2K listen port after automatic conflict recovery', async () => {
-    const { deps } = createDeps()
-    const { setupListeners } = mountComposable(deps)
-
-    await setupListeners()
-    eventCallbacks['port-auto-switched']?.({
-      payload: [{ kind: 'ed2k', oldPort: 29140, newPort: 29810 }],
-    })
-
-    expect(deps.preferenceStore.updatePreference).toHaveBeenCalledWith({
-      ed2kListenPort: 29810,
-    })
-  })
-
-  it('shows a toast when local port auto-switch recovery fails', async () => {
-    const { deps, message } = createDeps()
-    const { setupListeners } = mountComposable(deps)
-
-    await setupListeners()
-    eventCallbacks['port-auto-switch-failed']?.({
-      payload: {
-        kind: 'bt',
-        port: 29120,
-        reason: 'disabled',
-        source: 'bt-runtime',
-      },
-    })
-
-    expect(message.warning).toHaveBeenCalledWith('preferences.port-auto-switch-disabled')
+    expect(message.error).toHaveBeenCalledWith('preferences.port-auto-switch-bind-failed', { closable: true })
   })
 
   it('opens Downloads for a submitted native task after WebView recreation', async () => {

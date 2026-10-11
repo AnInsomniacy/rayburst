@@ -70,8 +70,8 @@ export const ED2K_UDP_LISTEN_PORT = 29150
 export const ED2K_SERVER_MET_URL = 'https://upd.emule-security.org/server.met'
 export const ED2K_NODES_DAT_URL = 'https://upd.emule-security.org/nodes.dat'
 export const BT_PEER_BLOCKLIST_URL = 'https://bcr.pbh-btn.com/combine/all.txt'
-export const PORT_RECOVERY_RANGE_START = 29000
-export const PORT_RECOVERY_RANGE_END = 29999
+export const RANDOM_PORT_RANGE_START = 29000
+export const RANDOM_PORT_RANGE_END = 29999
 export const ENGINE_DEFAULT_STREAM_CONNECTIONS = 64
 export const ENGINE_DEFAULT_BT_MAX_PEERS = 128
 export const ENGINE_DEFAULT_BT_USER_AGENT = 'qBittorrent/5.2.3'
@@ -213,7 +213,6 @@ export const DEFAULT_APP_CONFIG = {
   dir: '',
   rememberSaveLocation: false,
   lastSaveLocation: '',
-  streamMaxRangeSize: '0',
   streamMaxConnections: ENGINE_DEFAULT_STREAM_CONNECTIONS,
   maxConcurrentDownloads: 6,
   maxOverallDownloadLimit: '0',
@@ -290,17 +289,6 @@ export const DEFAULT_APP_CONFIG = {
   rpcListenPort: ENGINE_RPC_PORT,
   extensionApiPort: EXTENSION_API_PORT,
   allowRemoteAccess: false,
-  autoChangeConflictingPorts: true,
-  portConflictRecovery: {
-    enabled: true,
-    rangeStart: PORT_RECOVERY_RANGE_START,
-    rangeEnd: PORT_RECOVERY_RANGE_END,
-    rpc: true,
-    extensionApi: true,
-    bt: true,
-    ed2k: true,
-    ed2kUdp: true,
-  },
   // extensionApiSecret is intentionally ABSENT from defaults.
   // rpcSecret is intentionally ABSENT from defaults.
   // For both secrets:

@@ -301,7 +301,14 @@ export const useTaskStore = defineStore('task', () => {
       })
   }
 
-  /** Timers share the current read; actions request one fresh read after it. */
+  /** Applies a pump snapshot, pushed as `tasks:snapshot` or returned by a refresh. */
+  function applySnapshot(tasks: Aria2Task[]) {
+    liveSnapshot = tasks
+    publishSnapshot()
+    refreshDetail()
+  }
+
+  /** Concurrent calls share the current read; actions request one fresh read after it. */
   function fetchList(invalidate = true): Promise<void> {
     if (!apiReady) return Promise.resolve()
     if (invalidate) refreshHistory()
@@ -313,9 +320,7 @@ export const useTaskStore = defineStore('task', () => {
       do {
         refreshAgain = false
         try {
-          liveSnapshot = await api.fetchTaskList({ type: 'all' })
-          publishSnapshot()
-          refreshDetail()
+          applySnapshot((await api.refreshTasks()).tasks)
         } catch (error) {
           logger.warn('TaskStore.fetchList', error)
         }
@@ -574,6 +579,7 @@ export const useTaskStore = defineStore('task', () => {
     setApi,
     changeCurrentList,
     fetchList,
+    applySnapshot,
     saveManualOrder,
     saveCurrentManualOrder,
     saveVisiblePageManualOrder,

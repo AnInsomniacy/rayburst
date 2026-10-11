@@ -2,8 +2,9 @@
 use super::{
     contracts::*,
     error::Error,
-    journal::{Operation, State},
-    now, MediaService,
+    now,
+    operation::{Operation, State},
+    MediaService,
 };
 use serde_json::{json, Value};
 use std::{sync::Arc, time::Duration};
@@ -77,10 +78,7 @@ impl MediaService {
                 updated.error = Some(code);
             }
         }
-        match self.journal.save(&updated).await {
-            Ok(()) => *current = updated,
-            Err(code) => log::warn!("media: probe journal failed code={code}"),
-        }
+        *current = updated;
     }
 
     async fn run_probe(&self, record: &Operation, source: &Source) -> Result<Presentation, Error> {

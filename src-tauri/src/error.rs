@@ -34,9 +34,6 @@ pub enum AppError {
     /// Auto-updater check or install failure.
     #[error("Updater error: {0}")]
     Updater(String),
-    /// UPnP port mapping error (discovery, map, unmap).
-    #[error("UPnP error: {0}")]
-    Upnp(String),
     /// Protocol handler registration/query error.
     #[error("Protocol error: {0}")]
     Protocol(String),

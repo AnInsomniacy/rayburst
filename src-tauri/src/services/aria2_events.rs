@@ -7,22 +7,15 @@ use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
 use std::sync::Arc;
 use std::time::Duration;
-use tauri::{Emitter, Manager};
+use tauri::Manager;
 use tokio::sync::watch;
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::MaybeTlsStream;
 use tokio_tungstenite::WebSocketStream;
 
-pub const DOWNLOAD_PAUSE: &str = "aria2-event:download-pause";
 const RECONNECT_DELAY: Duration = Duration::from_secs(1);
 const AUTHORIZATION_TIMEOUT: Duration = Duration::from_secs(5);
-
-#[derive(Debug, Clone, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DownloadPauseEvent {
-    pub gid: String,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum NativeEventKind {
@@ -184,6 +177,8 @@ async fn receive_events(
                 if let Err(error) = handle_native_event(app, aria2, event).await {
                     log::warn!("aria2_events: lifecycle event failed: {error}");
                 }
+                // Every transition shows in the next snapshot right away.
+                super::pump::wake(app);
             }
         }
     }
@@ -210,18 +205,11 @@ async fn handle_native_event(
         return Ok(());
     }
     if event.kind == NativeEventKind::DownloadStart {
-        super::tasks::notify_changed(app, &event.gid);
+        super::pump::wake(app);
         return Ok(());
     }
     if event.kind == NativeEventKind::DownloadPause {
-        if let Err(error) = app.emit(
-            DOWNLOAD_PAUSE,
-            DownloadPauseEvent {
-                gid: event.gid.clone(),
-            },
-        ) {
-            log::warn!("aria2_events: failed to emit download pause: {error}");
-        }
+        super::pump::wake(app);
         let foreground = app
             .get_webview_window("main")
             .is_some_and(|window| window.is_focused().unwrap_or(false));

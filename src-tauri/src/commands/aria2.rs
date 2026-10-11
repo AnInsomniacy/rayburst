@@ -35,6 +35,15 @@ pub async fn aria2_fetch_task_list(
     Ok(state.0.tasks.visible_tasks(tasks).await)
 }
 
+/// Returns a snapshot read after this call; the same snapshot is published
+/// as `tasks:snapshot`.
+#[tauri::command]
+pub async fn tasks_refresh(
+    pump: State<'_, std::sync::Arc<crate::services::pump::Pump>>,
+) -> Result<crate::services::pump::Snapshot, AppError> {
+    Ok((*pump.refresh().await?).clone())
+}
+
 #[tauri::command]
 pub async fn aria2_select_bt_files(
     app: AppHandle,
@@ -886,7 +895,9 @@ mod tests {
                             ..Default::default()
                         }]
                     };
-                    json!([[tasks], [[]], [[]]])
+                    let stat = json!({"downloadSpeed":"0","uploadSpeed":"0","numActive":"0",
+                        "numWaiting":"0","numStopped":"0","numStoppedTotal":"0"});
+                    json!([[stat], [tasks], [[]], [[]]])
                 }
                 "aria2.forceRemove" => {
                     state.store(1, Ordering::Relaxed);
@@ -1020,8 +1031,8 @@ pub async fn aria2_batch_finish_media(
 }
 
 #[tauri::command]
-pub async fn cancel_download_request(app: AppHandle, id: String) -> Result<(), AppError> {
-    crate::services::downloads::cancel(&app, &id).await
+pub fn cancel_download_request(app: AppHandle, id: String) {
+    crate::services::downloads::cancel(&app, &id);
 }
 
 #[tauri::command]

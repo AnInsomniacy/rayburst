@@ -1,33 +1,17 @@
-//! Global stat service — polls aria2 for download/upload statistics.
+//! Native effects of the global statistics: tray title, Dock badge and
+//! progress, taskbar progress and the keep-awake assertion.
 //!
-//! Runs as a background tokio task, updating tray title, dock badge,
-//! and progress bar directly from Rust without WebView round-trips.
-//! Also emits `stat:update` events to the frontend for UI display.
-//!
-//! Port of the frontend `fetchGlobalStat` in `stores/app.ts`.
+//! The pump reads the statistics with each snapshot and applies them here
+//! directly from Rust, so they keep working while the WebView is destroyed in
+//! lightweight mode.
 
-use super::config::RuntimeConfigState;
+use super::config::RuntimeConfig;
 use super::power::{PowerGuard, RETRY_DELAY as POWER_RETRY_DELAY};
-use crate::services::tasks::TaskService;
-use std::sync::Arc;
-use std::time::Duration;
-use tauri::Emitter;
+#[cfg(target_os = "windows")]
 use tauri::Manager;
-use tokio::sync::watch;
 
-/// Native statistics cadence, independent of the frontend task refresh.
-///
-/// These MUST stay in sync with the frontend `STAT_*` constants.
-/// Mismatched values cause noticeable UI update rate differences
-/// between normal and lightweight mode.
-const STAT_BASE_INTERVAL_MS: u64 = 500;
-const STAT_PER_TASK_INTERVAL_MS: u64 = 100;
-const STAT_MIN_INTERVAL_MS: u64 = 500;
-const STAT_MAX_INTERVAL_MS: u64 = 6000;
-const STAT_IDLE_INCREMENT_MS: u64 = 100;
-
-/// Payload emitted to the frontend via `stat:update`.
-#[derive(Debug, Clone, serde::Serialize)]
+/// Global statistics as sent to the frontend with each snapshot.
+#[derive(Debug, Clone, Default, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StatUpdate {
     pub download_speed: u64,
@@ -370,264 +354,114 @@ unsafe fn draw_rounded_rect(rect: objc2_foundation::NSRect) {
     let _: () = msg_send![bezier_path, fill];
 }
 
-/// Handle for controlling the background stat service.
-pub struct StatServiceHandle {
-    stop_tx: watch::Sender<bool>,
-    join_handle: tokio::task::JoinHandle<()>,
+/// Applies statistics to native surfaces and remembers what it last set, so
+/// unchanged values cause no platform calls.
+#[derive(Default)]
+pub struct StatEffects {
+    awake_guard: Option<PowerGuard>,
+    power_retry_at: Option<std::time::Instant>,
+    last_tray_title: Option<String>,
 }
 
-impl StatServiceHandle {
-    /// Signal the service to stop.
-    pub async fn stop(self) {
-        let _ = self.stop_tx.send(true);
-        if let Err(e) = self.join_handle.await {
-            log::warn!("stat_service: join failed during stop: {e}");
-        }
-    }
-}
+impl StatEffects {
+    /// `active` holds the active tasks of the same snapshot as `stat`.
+    pub async fn apply(
+        &mut self,
+        app: &tauri::AppHandle,
+        cfg: &RuntimeConfig,
+        stat: &StatUpdate,
+        active: &[crate::aria2::types::Aria2Task],
+    ) {
+        self.keep_awake(cfg.keep_awake && stat.num_active > 0, stat.num_active)
+            .await;
 
-/// Spawns the global stat service as a background tokio task.
-pub fn spawn_stat_service(app: tauri::AppHandle, aria2: Arc<TaskService>) -> StatServiceHandle {
-    let (stop_tx, stop_rx) = watch::channel(false);
-
-    let join_handle = tokio::spawn(async move {
-        stat_loop(app, aria2, stop_rx).await;
-    });
-
-    StatServiceHandle {
-        stop_tx,
-        join_handle,
-    }
-}
-
-/// Adaptive interval state.
-struct IntervalState {
-    current_ms: u64,
-}
-
-impl IntervalState {
-    fn new() -> Self {
-        Self {
-            current_ms: STAT_BASE_INTERVAL_MS,
-        }
-    }
-
-    /// When tasks are active: interval = base - per_task * num_active (clamped).
-    fn update_for_active(&mut self, num_active: u64) {
-        let computed = STAT_BASE_INTERVAL_MS
-            .saturating_sub(STAT_PER_TASK_INTERVAL_MS.saturating_mul(num_active));
-        self.current_ms = computed.max(STAT_MIN_INTERVAL_MS);
-    }
-
-    /// When idle: increment interval toward max.
-    fn increase_idle(&mut self) {
-        self.current_ms = (self.current_ms + STAT_IDLE_INCREMENT_MS).min(STAT_MAX_INTERVAL_MS);
-    }
-
-    fn duration(&self) -> Duration {
-        Duration::from_millis(self.current_ms)
-    }
-}
-
-async fn stat_loop(
-    app: tauri::AppHandle,
-    aria2: Arc<TaskService>,
-    mut stop_rx: watch::Receiver<bool>,
-) {
-    let mut interval_state = IntervalState::new();
-
-    // Keep-awake guard: held while downloads are active and released when idle.
-    // Linux acquisition can fail when the desktop portal is temporarily
-    // unavailable, so retries are rate-limited independently of stat polling.
-    let mut awake_guard: Option<PowerGuard> = None;
-    let mut power_retry_at: Option<std::time::Instant> = None;
-    let mut last_tray_title: Option<String> = None;
-
-    loop {
-        tokio::select! {
-            _ = tokio::time::sleep(interval_state.duration()) => {},
-            _ = stop_rx.changed() => {
-                if *stop_rx.borrow() {
-                    if let Some(guard) = awake_guard.take() {
-                        if let Err(e) = guard.release().await {
-                            log::warn!("keep_awake: failed to release assertion: {e}");
-                        }
-                    }
-                    log::info!("stat_service: stopped");
-                    return;
-                }
+        let next_title =
+            tray_title_for_speed(cfg.tray_speedometer, stat.download_speed, stat.upload_speed);
+        if tray_title_needs_update(&self.last_tray_title, &next_title) {
+            if let Err(error) = crate::tray::set_title(app, &next_title) {
+                log::debug!("tray:title-update-failed error={error}");
             }
+            self.last_tray_title = Some(next_title);
         }
 
-        let stat = match aria2.get_global_stat().await {
-            Ok(s) => s,
-            Err(e) => {
-                // A busy engine answers late; only process exit triggers recovery.
-                log::debug!("stat_service: get_global_stat failed: {e}");
-                interval_state.increase_idle();
-                continue;
-            }
-        };
-
-        // Parse string values to u64
-        let download_speed = stat.download_speed.parse::<u64>().unwrap_or(0);
-        let upload_speed = stat.upload_speed.parse::<u64>().unwrap_or(0);
-        let num_active = stat.num_active.parse::<u64>().unwrap_or(0);
-        let num_waiting = stat.num_waiting.parse::<u64>().unwrap_or(0);
-        let num_stopped = stat.num_stopped.parse::<u64>().unwrap_or(0);
-        let num_stopped_total = stat.num_stopped_total.parse::<u64>().unwrap_or(0);
-
-        // Adaptive interval
-        if num_active > 0 {
-            interval_state.update_for_active(num_active);
-        } else {
-            interval_state.increase_idle();
+        // NSDockTile is an app-level API (no window needed) and must be used
+        // on the main thread.
+        #[cfg(target_os = "macos")]
+        {
+            let badge_label: Option<String> = (cfg.dock_badge_speed && stat.download_speed > 0)
+                .then(|| format!("{}/s", compact_size(stat.download_speed)));
+            let progress = (cfg.show_progress_bar && stat.num_active > 0)
+                .then(|| task_progress(active))
+                .flatten();
+            let _ = app.run_on_main_thread(move || {
+                set_dock_badge(badge_label.as_deref());
+                set_dock_progress(progress);
+            });
         }
 
-        // Emit to frontend
-        let update = StatUpdate {
-            download_speed,
-            upload_speed,
-            num_active,
-            num_waiting,
-            num_stopped,
-            num_stopped_total,
-        };
-        let _ = app.emit("stat:update", &update);
-
-        // Update tray/dock/progress directly from Rust — no frontend dependency.
-        // In lightweight mode the WebView is destroyed, so app.emit() would
-        // silently fail. Direct API calls ensure tray speed, dock badge, and
-        // progress bar keep updating. See issue #194 follow-up.
-        if let Some(rc_state) = app.try_state::<RuntimeConfigState>() {
-            let cfg = rc_state.snapshot().await;
-
-            // ── Keep-awake management ────────────────────────────────
-            if cfg.keep_awake && num_active > 0 {
-                let retry_due = power_retry_at.is_none_or(|at| std::time::Instant::now() >= at);
-                if awake_guard.is_none() && retry_due {
-                    match PowerGuard::acquire_download().await {
-                        Ok(guard) => {
-                            let backend = guard.backend_name();
-                            awake_guard = Some(guard);
-                            power_retry_at = None;
-                            log::info!(
-                                "keep_awake: assertion acquired backend={backend} active={num_active}"
-                            );
-                        }
-                        Err(e) => {
-                            power_retry_at = Some(std::time::Instant::now() + POWER_RETRY_DELAY);
-                            log::warn!("keep_awake: failed to acquire assertion: {e}");
-                        }
-                    }
+        #[cfg(target_os = "windows")]
+        if let Some(window) = app.get_webview_window("main") {
+            use tauri::window::{ProgressBarState, ProgressBarStatus};
+            let state = if cfg.show_progress_bar && stat.num_active > 0 {
+                let progress = task_progress(active);
+                ProgressBarState {
+                    status: Some(if progress.is_some() {
+                        ProgressBarStatus::Normal
+                    } else {
+                        ProgressBarStatus::Indeterminate
+                    }),
+                    progress,
                 }
             } else {
-                power_retry_at = None;
-                if let Some(guard) = awake_guard.take() {
-                    match guard.release().await {
-                        Ok(()) => {
-                            log::info!("keep_awake: assertion released active={num_active}");
-                        }
-                        Err(e) => {
-                            log::warn!("keep_awake: failed to release assertion: {e}");
-                        }
+                ProgressBarState {
+                    status: Some(ProgressBarStatus::None),
+                    progress: None,
+                }
+            };
+            let _ = window.set_progress_bar(state);
+        }
+
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+        let _ = active;
+    }
+
+    async fn keep_awake(&mut self, wanted: bool, num_active: u64) {
+        if wanted {
+            // Linux acquisition fails while the desktop portal is unavailable,
+            // so retries are rate-limited.
+            let retry_due = self
+                .power_retry_at
+                .is_none_or(|at| std::time::Instant::now() >= at);
+            if self.awake_guard.is_none() && retry_due {
+                match PowerGuard::acquire_download().await {
+                    Ok(guard) => {
+                        let backend = guard.backend_name();
+                        self.awake_guard = Some(guard);
+                        self.power_retry_at = None;
+                        log::info!(
+                            "keep_awake: assertion acquired backend={backend} active={num_active}"
+                        );
+                    }
+                    Err(e) => {
+                        self.power_retry_at = Some(std::time::Instant::now() + POWER_RETRY_DELAY);
+                        log::warn!("keep_awake: failed to acquire assertion: {e}");
                     }
                 }
             }
+            return;
+        }
+        self.power_retry_at = None;
+        self.release().await;
+    }
 
-            let next_title =
-                tray_title_for_speed(cfg.tray_speedometer, download_speed, upload_speed);
-            if tray_title_needs_update(&last_tray_title, &next_title) {
-                if let Err(error) = crate::tray::set_title(&app, &next_title) {
-                    log::debug!("tray:title-update-failed error={error}");
-                }
-                last_tray_title = Some(next_title);
-            }
-
-            // ── Dock badge (macOS only) ──
-            // Uses NSApp().dockTile().setBadgeLabel() directly — app-level API
-            // that does NOT require a Window object. set_badge_label() on
-            // WebviewWindow fails when the window is destroyed in lightweight
-            // mode because get_webview_window("main") returns None.
-            //
-            // NSDockTile MUST be accessed on the main thread, so we dispatch
-            // via app.run_on_main_thread().
-            #[cfg(target_os = "macos")]
-            {
-                let badge_label: Option<String> = if cfg.dock_badge_speed && download_speed > 0 {
-                    Some(format!("{}/s", compact_size(download_speed)))
-                } else {
-                    None
-                };
-                let _ = app.run_on_main_thread(move || {
-                    set_dock_badge(badge_label.as_deref());
-                });
-            }
-
-            // ── Progress bar ──
-            // macOS: Uses set_dock_progress() which operates on NSDockTile
-            // directly — app-level API, no Window required. Works in
-            // lightweight mode when WebView is destroyed.
-            // Windows: Falls back to window.set_progress_bar() which requires
-            // a webview window handle.
-            #[cfg(target_os = "macos")]
-            {
-                if cfg.show_progress_bar && num_active > 0 {
-                    match aria2.tell_active().await {
-                        Ok(tasks) => {
-                            let pct = task_progress(&tasks);
-                            let _ = app.run_on_main_thread(move || {
-                                set_dock_progress(pct);
-                            });
-                        }
-                        Err(e) => {
-                            log::debug!("stat_service: tell_active for progress failed: {e}");
-                        }
-                    }
-                } else {
-                    let _ = app.run_on_main_thread(move || {
-                        set_dock_progress(None);
-                    });
-                }
-            }
-
-            // Windows: uses window-based progress bar API
-            #[cfg(target_os = "windows")]
-            if let Some(window) = app.get_webview_window("main") {
-                if cfg.show_progress_bar && num_active > 0 {
-                    match aria2.tell_active().await {
-                        Ok(tasks) => {
-                            let progress = task_progress(&tasks);
-                            let _ = window.set_progress_bar(tauri::window::ProgressBarState {
-                                status: Some(if progress.is_some() {
-                                    tauri::window::ProgressBarStatus::Normal
-                                } else {
-                                    tauri::window::ProgressBarStatus::Indeterminate
-                                }),
-                                progress,
-                            });
-                        }
-                        Err(e) => {
-                            log::debug!("stat_service: tell_active for progress failed: {e}");
-                        }
-                    }
-                } else {
-                    let _ = window.set_progress_bar(tauri::window::ProgressBarState {
-                        status: Some(tauri::window::ProgressBarStatus::None),
-                        progress: None,
-                    });
-                }
+    /// Releases the keep-awake assertion; called when the pump stops.
+    pub async fn release(&mut self) {
+        if let Some(guard) = self.awake_guard.take() {
+            match guard.release().await {
+                Ok(()) => log::info!("keep_awake: assertion released"),
+                Err(e) => log::warn!("keep_awake: failed to release assertion: {e}"),
             }
         }
-    }
-}
-
-/// Managed state wrapper for the stat service handle.
-pub struct StatServiceState(pub Arc<tokio::sync::Mutex<Option<StatServiceHandle>>>);
-
-impl StatServiceState {
-    pub fn new() -> Self {
-        Self(Arc::new(tokio::sync::Mutex::new(None)))
     }
 }
 
@@ -678,72 +512,6 @@ mod tests {
         assert!(!tray_title_needs_update(&last_title, ""));
         assert!(tray_title_needs_update(&last_title, "↓1.0M"));
     }
-
-    // ── IntervalState ───────────────────────────────────────────────
-
-    #[test]
-    fn interval_default_is_base() {
-        let state = IntervalState::new();
-        assert_eq!(state.current_ms, STAT_BASE_INTERVAL_MS);
-    }
-
-    #[test]
-    fn interval_active_reduces() {
-        let mut state = IntervalState::new();
-        state.update_for_active(5);
-        // 500 - (100 * 5) = 0 → clamped to MIN (500)
-        assert_eq!(state.current_ms, STAT_MIN_INTERVAL_MS);
-    }
-
-    #[test]
-    fn interval_active_single_task() {
-        let mut state = IntervalState::new();
-        state.update_for_active(1);
-        // 500 - (100 * 1) = 400 → clamped to MIN (500)
-        assert_eq!(state.current_ms, STAT_MIN_INTERVAL_MS);
-    }
-
-    #[test]
-    fn interval_active_clamps_to_min() {
-        let mut state = IntervalState::new();
-        state.update_for_active(100);
-        assert_eq!(state.current_ms, STAT_MIN_INTERVAL_MS);
-    }
-
-    #[test]
-    fn interval_idle_increments() {
-        let mut state = IntervalState::new();
-        state.increase_idle();
-        assert_eq!(
-            state.current_ms,
-            STAT_BASE_INTERVAL_MS + STAT_IDLE_INCREMENT_MS
-        );
-    }
-
-    #[test]
-    fn interval_idle_clamps_to_max() {
-        let mut state = IntervalState::new();
-        for _ in 0..200 {
-            state.increase_idle();
-        }
-        assert_eq!(state.current_ms, STAT_MAX_INTERVAL_MS);
-    }
-
-    #[test]
-    fn interval_transitions_between_states() {
-        let mut state = IntervalState::new();
-        // Go idle
-        state.increase_idle();
-        assert_eq!(state.current_ms, 600); // 500 + 100
-        state.increase_idle();
-        assert_eq!(state.current_ms, 700); // 600 + 100
-                                           // Go active — snaps to MIN
-        state.update_for_active(3);
-        // 500 - (100 * 3) = 200 → clamped to 500
-        assert_eq!(state.current_ms, STAT_MIN_INTERVAL_MS);
-    }
-
-    // ── Constant alignment with timing.ts ────────────────────────────
 
     fn make_task(gid: &str, status: &str) -> Aria2Task {
         Aria2Task {

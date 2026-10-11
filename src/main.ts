@@ -344,18 +344,6 @@ if (import.meta.env.PROD) {
     // replay stale torrent/protocol inputs.
     Promise.allSettled([syncAutostart(config)])
 
-    // Start UPnP port mapping if enabled (fire-and-forget)
-    if (config.enableUpnp) {
-      import('@tauri-apps/api/core')
-        .then(({ invoke }) =>
-          invoke('start_upnp_mapping', {
-            ed2kPort: Number(config.ed2kListenPort) > 0 ? Number(config.ed2kListenPort) : null,
-            ed2kUdpPort: Number(config.ed2kUdpListenPort) > 0 ? Number(config.ed2kUdpListenPort) : null,
-          }),
-        )
-        .catch((e) => logger.warn('UPnP', `startup mapping failed: ${getErrorMessage(e)}`))
-    }
-
     // ── Phase 2 completion: engine ready ───────────────────────────────────
     try {
       const ok = await enginePromise

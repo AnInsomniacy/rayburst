@@ -6,7 +6,6 @@
  * - `detecting` ref is true while detection is in-progress
  * - `detecting` ref resets to false after completion (success, not-found, socks, error)
  * - Calls `onSuccess` with SystemProxyInfo when a valid HTTP proxy is detected
- * - Calls `onSocks` when a SOCKS proxy is detected (isSocks=true)
  * - Calls `onNotFound` when invoke returns null or empty server
  * - Calls `onError` when invoke rejects with an exception
  * - Only one callback fires per detection (mutual exclusivity)
@@ -42,7 +41,6 @@ function makeProxyInfo(overrides: Partial<SystemProxyInfo> = {}): SystemProxyInf
 function makeCallbacks() {
   return {
     onSuccess: vi.fn(),
-    onSocks: vi.fn(),
     onNotFound: vi.fn(),
     onError: vi.fn(),
   }
@@ -108,16 +106,6 @@ describe('useSystemProxyDetect', () => {
     expect(detecting.value).toBe(false)
   })
 
-  it('resets detecting to false after onSocks path', async () => {
-    mockInvoke.mockResolvedValue(makeProxyInfo({ isSocks: true }))
-    const cbs = makeCallbacks()
-    const { detect, detecting } = useSystemProxyDetect(cbs)
-
-    await detectAndFlush(detect)
-
-    expect(detecting.value).toBe(false)
-  })
-
   it('resets detecting to false after onError path', async () => {
     mockInvoke.mockRejectedValue(new Error('IPC failure'))
     const cbs = makeCallbacks()
@@ -161,23 +149,20 @@ describe('useSystemProxyDetect', () => {
     expect(cbs.onSuccess).toHaveBeenCalledTimes(1)
     expect(cbs.onSuccess).toHaveBeenCalledWith(info)
     // No other callbacks fired
-    expect(cbs.onSocks).not.toHaveBeenCalled()
     expect(cbs.onNotFound).not.toHaveBeenCalled()
     expect(cbs.onError).not.toHaveBeenCalled()
   })
 
   // ── SOCKS rejection path ──────────────────────────────────────────
 
-  it('calls onSocks when detected proxy uses SOCKS protocol', async () => {
+  it('accepts a SOCKS system proxy like any other', async () => {
     mockInvoke.mockResolvedValue(makeProxyInfo({ server: 'socks5://127.0.0.1:1080', isSocks: true }))
     const cbs = makeCallbacks()
     const { detect } = useSystemProxyDetect(cbs)
 
     await detectAndFlush(detect)
 
-    expect(cbs.onSocks).toHaveBeenCalledTimes(1)
-    // No other callbacks fired
-    expect(cbs.onSuccess).not.toHaveBeenCalled()
+    expect(cbs.onSuccess).toHaveBeenCalledTimes(1)
     expect(cbs.onNotFound).not.toHaveBeenCalled()
     expect(cbs.onError).not.toHaveBeenCalled()
   })
@@ -193,7 +178,6 @@ describe('useSystemProxyDetect', () => {
 
     expect(cbs.onNotFound).toHaveBeenCalledTimes(1)
     expect(cbs.onSuccess).not.toHaveBeenCalled()
-    expect(cbs.onSocks).not.toHaveBeenCalled()
     expect(cbs.onError).not.toHaveBeenCalled()
   })
 
@@ -231,7 +215,6 @@ describe('useSystemProxyDetect', () => {
     expect(cbs.onError).toHaveBeenCalledTimes(1)
     expect(cbs.onError).toHaveBeenCalledWith(err)
     expect(cbs.onSuccess).not.toHaveBeenCalled()
-    expect(cbs.onSocks).not.toHaveBeenCalled()
     expect(cbs.onNotFound).not.toHaveBeenCalled()
   })
 

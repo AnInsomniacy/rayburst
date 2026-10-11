@@ -6,11 +6,8 @@ import { logger } from '@shared/logger'
 
 export type EnginePhase =
   | 'stopped'
-  | 'preparing'
   | 'starting'
   | 'probing'
-  | 'initializing'
-  | 'stabilizing'
   | 'running'
   | 'recovering'
   | 'stopping'
@@ -23,7 +20,6 @@ export type EngineFailureStage =
   | 'probe'
   | 'contract'
   | 'initialization'
-  | 'stability'
   | 'runtime'
   | 'shutdown'
   | 'recovery'
@@ -36,7 +32,6 @@ export type EngineOperationCause =
   | 'failureRetry'
   | 'sessionRecovery'
   | 'runtimeCrash'
-  | 'portConflict'
   | 'updateInstall'
   | 'updateInstallFailed'
   | 'appRelaunch'
@@ -81,15 +76,12 @@ export const useEngineStore = defineStore('engine', () => {
 
   const isReady = computed(() => snapshot.value.phase === 'running')
   const isBusy = computed(() =>
-    ['preparing', 'starting', 'probing', 'initializing', 'stabilizing', 'recovering', 'stopping', 'cleaning'].includes(
-      snapshot.value.phase,
-    ),
+    ['starting', 'probing', 'recovering', 'stopping', 'cleaning'].includes(snapshot.value.phase),
   )
   const dialogCauses = new Set<EngineOperationCause>([
     'manualRestart',
     'settingsChange',
     'runtimeCrash',
-    'portConflict',
     'failureRetry',
     'sessionRecovery',
   ])

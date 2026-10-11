@@ -15,7 +15,6 @@ export interface DownloadsForm {
   [key: string]: unknown
   dir: string
   rememberSaveLocation: boolean
-  streamMaxRangeSize: string
   fileCategoryEnabled: boolean
   fileCategories: FileCategory[]
   maxConcurrentDownloads: number
@@ -60,7 +59,6 @@ export function buildDownloadsForm(config: AppConfig, defaultDir: string = ''): 
   return {
     dir: config.dir || defaultDir,
     rememberSaveLocation: config.rememberSaveLocation ?? D.rememberSaveLocation,
-    streamMaxRangeSize: config.streamMaxRangeSize ?? D.streamMaxRangeSize,
     fileCategoryEnabled: config.fileCategoryEnabled ?? D.fileCategoryEnabled,
     fileCategories:
       config.fileCategories && config.fileCategories.length > 0
@@ -108,9 +106,9 @@ export function buildDownloadsSystemConfig(f: DownloadsForm): Record<string, str
   const keepSharing = f.sharingMode === 'manual-stop'
   return {
     dir: f.dir,
-    'stream-max-range-size': f.streamMaxRangeSize,
     'max-concurrent-downloads': String(f.maxConcurrentDownloads),
-    'stream-max-connections': String(f.streamMaxConnections),
+    split: String(f.streamMaxConnections),
+    'max-connection-per-server': String(f.streamMaxConnections),
     'max-overall-download-limit': f.maxOverallDownloadLimit,
     'max-overall-upload-limit': f.maxOverallUploadLimit,
     continue: String(f.continue !== false),

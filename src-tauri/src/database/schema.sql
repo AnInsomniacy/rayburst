@@ -42,14 +42,8 @@ CREATE TABLE IF NOT EXISTS http_auth_credentials (
 CREATE INDEX IF NOT EXISTS idx_http_auth_credentials_origin
   ON http_auth_credentials(origin);
 
--- Pending confirmation retains its request until submission; receipts retain only identities.
-CREATE TABLE IF NOT EXISTS download_submissions (
-  id TEXT PRIMARY KEY,
-  fingerprint TEXT NOT NULL,
-  gid TEXT NOT NULL UNIQUE,
-  state TEXT NOT NULL DEFAULT 'pending' CHECK(state IN ('pending','confirming','submitted','cancelled')),
-  request TEXT
-);
+-- Version 6 kept browser handoff receipts; handoffs no longer persist.
+DROP TABLE IF EXISTS download_submissions;
 
 CREATE TABLE IF NOT EXISTS file_renames (
     gid TEXT PRIMARY KEY REFERENCES download_history(gid) ON DELETE CASCADE,

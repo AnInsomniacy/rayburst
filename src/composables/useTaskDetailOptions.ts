@@ -249,7 +249,7 @@ export function useTaskDetailOptions(config: UseTaskDetailOptionsConfig) {
 
       // Validate proxy format before sending to aria2 — prevents errorCode=28 crash
       if (hasInvalidManualProxy(proxyOptions)) {
-        message.error(t('task.proxy-unsupported-protocol'))
+        message.error(t('preferences.invalid-proxy-url'))
         return
       }
 

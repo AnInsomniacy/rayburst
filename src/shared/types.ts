@@ -289,6 +289,12 @@ export interface Aria2GlobalStat {
   numStoppedTotal: number
 }
 
+/** One engine read published by the native pump (`tasks:snapshot`). */
+export interface TaskSnapshot {
+  stat: Aria2GlobalStat
+  tasks: Aria2Task[]
+}
+
 /** Engine version information returned by aria2.getVersion. */
 export interface Aria2Version {
   version: string
@@ -350,18 +356,6 @@ export interface ClipboardConfig {
   btHash: boolean
 }
 
-/** Automatic local port conflict recovery policy. */
-export interface PortConflictRecoveryConfig {
-  enabled: boolean
-  rangeStart: number
-  rangeEnd: number
-  rpc: boolean
-  extensionApi: boolean
-  bt: boolean
-  ed2k: boolean
-  ed2kUdp: boolean
-}
-
 export type BtEncryptionMode = 'preferred' | 'required' | 'disabled'
 export type BtTransportMode = 'tcp' | 'utp' | 'both'
 export type BtBlocklistScope = 'peers' | 'peers-and-trackers' | 'all'
@@ -419,7 +413,6 @@ export interface AppConfig {
   dir: string
   rememberSaveLocation: boolean
   lastSaveLocation: string
-  streamMaxRangeSize: string
   streamMaxConnections: number
   maxConcurrentDownloads: number
   maxOverallDownloadLimit: string
@@ -527,8 +520,6 @@ export interface AppConfig {
   /** When true, aria2 RPC and the extension API listen on all network interfaces. */
   allowRemoteAccess: boolean
   /** Automatically switches locally bound ports when another process or OS reservation blocks them. */
-  autoChangeConflictingPorts: boolean
-  portConflictRecovery: PortConflictRecoveryConfig
   listenPort: number
   btExternalIp: string
   btExternalPort: number
@@ -812,6 +803,7 @@ export interface ResumeEligibleResult {
 export interface TaskApi {
   retryMedia: (gid: string) => Promise<string>
   fetchTaskList: (params: { type: string; limit?: number }) => Promise<Aria2Task[]>
+  refreshTasks: () => Promise<TaskSnapshot>
   fetchTaskItem: (params: { gid: string }) => Promise<Aria2Task>
   fetchTaskItemWithPeers: (params: { gid: string }) => Promise<Aria2Task & { peers: Aria2Peer[] }>
   fetchActiveTaskList: () => Promise<Aria2Task[]>

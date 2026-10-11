@@ -49,15 +49,17 @@ describe('buildEngineOptions', () => {
     customProxy: '',
     requestHeaders: [],
   }
-  it('includes the canonical stream connection limit', () => {
+  it('maps the connection limit to split and per-server connections', () => {
     const opts = buildEngineOptions(baseForm)
     expect(opts.dir).toBe('/downloads')
-    expect(opts['stream-max-connections']).toBe('16')
+    expect(opts.split).toBe('16')
+    expect(opts['max-connection-per-server']).toBe('16')
   })
 
   it('uses a per-task stream connection limit', () => {
     const opts = buildEngineOptions({ ...baseForm, streamMaxConnections: 8 })
-    expect(opts['stream-max-connections']).toBe('8')
+    expect(opts.split).toBe('8')
+    expect(opts['max-connection-per-server']).toBe('8')
   })
 
   it('includes out when non-empty', () => {
@@ -340,7 +342,7 @@ describe('submitBatchItems', () => {
     registerTorrentSource: vi.fn(),
   } as unknown as ReturnType<typeof import('@/stores/task').useTaskStore>
 
-  const baseOptions: Aria2EngineOptions = { dir: '/dl', 'stream-max-connections': '16' }
+  const baseOptions: Aria2EngineOptions = { dir: '/dl', split: '16' }
   const readyTorrent = (overrides: Partial<BatchItem> = {}): BatchItem => ({
     id: 'torrent-1',
     kind: 'torrent',
@@ -420,7 +422,7 @@ describe('submitBatchItems', () => {
 
     const passedOpts = (mockTaskStore.addTorrent as ReturnType<typeof vi.fn>).mock.calls[0][0].options
     expect(passedOpts.out).toBeUndefined()
-    expect(passedOpts['stream-max-connections']).toBeUndefined()
+    expect(passedOpts.split).toBeUndefined()
   })
 
   it('marks items as failed on error and returns failure count', async () => {

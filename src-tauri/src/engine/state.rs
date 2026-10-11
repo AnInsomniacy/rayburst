@@ -1,5 +1,5 @@
 use std::collections::VecDeque;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicU16, AtomicU32, Ordering};
 use std::sync::{Condvar, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 use tauri_plugin_shell::process::CommandChild;
@@ -42,6 +42,7 @@ pub struct EngineState {
     exited: Condvar,
     stderr_tail: Mutex<VecDeque<String>>,
     gen: AtomicU32,
+    rpc_port: AtomicU16,
 }
 
 impl EngineState {
@@ -52,6 +53,7 @@ impl EngineState {
             exited: Condvar::new(),
             stderr_tail: Mutex::new(VecDeque::with_capacity(STDERR_TAIL_LINES)),
             gen: AtomicU32::new(0),
+            rpc_port: AtomicU16::new(0),
         }
     }
 
@@ -75,14 +77,21 @@ impl EngineState {
         self.next_generation();
     }
 
-    pub(crate) fn attach(&self, child: CommandChild) {
+    pub(crate) fn attach(&self, child: CommandChild, rpc_port: u16) {
         let pid = child.pid();
+        self.rpc_port.store(rpc_port, Ordering::SeqCst);
         *lock(&self.child) = Some(child);
         *lock(&self.live_pid) = Some(pid);
     }
 
     pub fn pid(&self) -> Option<u32> {
         *lock(&self.live_pid)
+    }
+
+    /// The RPC port of the last started engine, which may differ from the
+    /// configured one when that was taken.
+    pub fn rpc_port(&self) -> Option<u16> {
+        Some(self.rpc_port.load(Ordering::SeqCst)).filter(|port| *port != 0)
     }
 
     pub fn is_running(&self) -> bool {

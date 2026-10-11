@@ -17,9 +17,7 @@ pub(crate) mod windows_process;
 
 pub(crate) use cleanup::clear_engine_runtime_state;
 pub(crate) use config::{non_hot_reloadable_keys, runtime_config_path, supported_engine_keys};
-pub(crate) use lifecycle::{
-    start_engine, stop_engine, wait_for_engine_ports_release, StartEngineOutcome,
-};
+pub(crate) use lifecycle::{start_engine, stop_engine, StartEngineOutcome, DEFAULT_RPC_PORT};
 pub(crate) use log_level::{valid_aria2_log_level, DEFAULT_ARIA2_LOG_LEVEL};
 pub(crate) use state::path_to_safe_string;
 pub use state::EngineState;

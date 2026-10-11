@@ -51,24 +51,18 @@ export function hasProxyScope(proxy: Pick<ProxyConfig, 'scope'>, scope: string):
   return Array.isArray(proxy.scope) && proxy.scope.includes(scope)
 }
 
-// ── aria2 proxy URL validation ──────────────────────────────────────
-
-/** Regex matching URI schemes that aria2 cannot handle as proxy. */
-export const UNSUPPORTED_PROXY_SCHEME_RE = /^socks[45a-z]*:\/\//i
+// ── Engine proxy URL validation ─────────────────────────────────────
 
 /**
- * Validates a proxy URL against aria2's `HttpProxyOptionHandler` whitelist.
- *
- * Aria2 Next accepts `http://`, `https://`, and bare `HOST:PORT`
- * values. SOCKS/custom schemes are rejected before they can crash the engine.
+ * Validates a download proxy URL. The engine hands it to libcurl, which
+ * accepts `http://`, `https://`, `socks4://`, `socks4a://`, `socks5://`,
+ * `socks5h://` and a bare `HOST:PORT` (HTTP).
  */
 export function isValidAria2ProxyUrl(url: string): boolean {
   if (!url || !url.trim()) return true
   const trimmed = url.trim()
 
-  if (UNSUPPORTED_PROXY_SCHEME_RE.test(trimmed)) return false
-
-  if (/^https?:\/\//i.test(trimmed)) {
+  if (/^(https?|socks4a?|socks5h?):\/\//i.test(trimmed)) {
     try {
       new URL(trimmed)
       return true
@@ -94,7 +88,7 @@ export function isValidBtProxyUrl(url: string): boolean {
   const normalized = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(url.trim()) ? url.trim() : `http://${url.trim()}`
   try {
     const parsed = new URL(normalized)
-    return ['http:', 'socks4:', 'socks5:'].includes(parsed.protocol) && !!parsed.hostname && !!parsed.port
+    return ['http:', 'socks4:', 'socks5:', 'socks5h:'].includes(parsed.protocol) && !!parsed.hostname && !!parsed.port
   } catch {
     return false
   }

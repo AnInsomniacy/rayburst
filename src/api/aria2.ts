@@ -10,6 +10,7 @@ import { changeKeysToCamelCase, formatOptionsForEngine } from '@shared/utils'
 import type {
   Aria2Task,
   Aria2RawGlobalStat,
+  TaskSnapshot,
   Aria2Peer,
   Aria2EngineOptions,
   Aria2File,
@@ -107,6 +108,11 @@ export async function replaceBtWebSeeds(params: { gid: string; webSeeds: string[
 
 export async function addBtPeers(params: { gid: string; peers: string[] }): Promise<Aria2BtPeerAddResult> {
   return invoke<Aria2BtPeerAddResult>('aria2_add_bt_peers', params)
+}
+
+/** Returns an engine snapshot read after this call. */
+export async function refreshTasks(): Promise<TaskSnapshot> {
+  return invoke<TaskSnapshot>('tasks_refresh')
 }
 
 /** Fetches only active tasks (no waiting). */
@@ -316,6 +322,7 @@ const api = {
   getBtTrackers,
   fetchActiveTaskList,
   fetchTaskList,
+  refreshTasks,
   fetchTaskItem,
   fetchTaskItemWithPeers,
   addUri,

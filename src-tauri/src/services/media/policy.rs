@@ -1,7 +1,6 @@
 //! Apply creation preferences to new tasks; restored tasks never auto-resume.
 use crate::{aria2::types::Aria2Task, services::tasks::TaskService};
 use std::{sync::Arc, time::Duration};
-use tauri::Emitter;
 
 fn should_continue(task: &Aria2Task) -> bool {
     task.status == "paused"
@@ -82,11 +81,8 @@ pub fn start_automatic_selection(app: tauri::AppHandle, engine: Arc<TaskService>
                     engine.tasks.set_automatic(gid, false).await;
                 }
             }
-            if let Some(gid) = changed {
-                let _ = app.emit(
-                    super::super::aria2_events::DOWNLOAD_PAUSE,
-                    super::super::aria2_events::DownloadPauseEvent { gid },
-                );
+            if changed.is_some() {
+                crate::services::pump::wake(&app);
             }
             tokio::time::sleep(Duration::from_secs(1)).await;
         }

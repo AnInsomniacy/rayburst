@@ -194,10 +194,6 @@ pub(crate) fn build_runtime_config(
             if keep_sharing && key == "seed-time" && !value.is_empty() {
                 continue;
             }
-            if key == "all-proxy" && value.to_ascii_lowercase().starts_with("socks") {
-                log::warn!("Skipping unsupported proxy protocol for all-proxy");
-                continue;
-            }
 
             let value = if key == "no-proxy" {
                 crate::proxy_bypass::normalize(&value).map_err(|error| error.to_string())?
@@ -378,7 +374,7 @@ mod tests {
         let content = build_runtime_config(
             &json!({
                 "dir": "/downloads",
-                "stream-max-connections": 16,
+                "split": 16,
                 "allow-remote-access": true,
                 "rpc-secret": "secret"
             }),
@@ -386,9 +382,9 @@ mod tests {
         )
         .expect("build config");
 
-        assert_eq!(option_value(&content, "disk-cache"), Some("64M"));
+        assert_eq!(option_value(&content, "state-save-interval"), Some("10"));
         assert_eq!(option_value(&content, "dir"), Some("/downloads"));
-        assert_eq!(option_value(&content, "stream-max-connections"), Some("16"));
+        assert_eq!(option_value(&content, "split"), Some("16"));
         assert_eq!(option_value(&content, "rpc-secret"), Some("secret"));
         assert_eq!(option_value(&content, "rpc-listen-all"), Some("true"));
         assert_eq!(
@@ -411,10 +407,11 @@ mod tests {
     }
 
     #[test]
-    fn bundled_config_matches_the_native_bt_contract() {
+    fn bundled_config_keeps_only_deliberate_bt_defaults() {
         let content = build_runtime_config(&json!({}), managed()).expect("build config");
 
-        assert_eq!(option_value(&content, "bt-encryption"), Some("preferred"));
+        assert_eq!(option_value(&content, "bt-max-peers"), Some("128"));
+        assert_eq!(option_value(&content, "bt-encryption"), None);
         assert_eq!(option_value(&content, "bt-tracker-connect-timeout"), None);
         assert_eq!(option_value(&content, "bt-tracker-timeout"), None);
     }
@@ -526,14 +523,17 @@ mod tests {
     }
 
     #[test]
-    fn runtime_config_skips_unsupported_socks_proxy() {
+    fn runtime_config_passes_socks_proxies_to_the_engine() {
         let content = build_runtime_config(
             &json!({ "all-proxy": "socks5://127.0.0.1:1080" }),
             managed(),
         )
         .expect("build config");
 
-        assert_eq!(option_value(&content, "all-proxy"), None);
+        assert_eq!(
+            option_value(&content, "all-proxy"),
+            Some("socks5://127.0.0.1:1080")
+        );
     }
 
     #[test]

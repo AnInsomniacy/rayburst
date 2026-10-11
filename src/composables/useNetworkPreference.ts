@@ -7,14 +7,9 @@
  * Proxy validation logic is co-located here since it is only used in
  * this tab's save flow.
  */
-import type { AppConfig, PortConflictRecoveryConfig, UserAgentProfile, UserAgentRule } from '@shared/types'
+import type { AppConfig, UserAgentProfile, UserAgentRule } from '@shared/types'
 import { PROXY_SCOPE_OPTIONS, DEFAULT_APP_CONFIG as D } from '@shared/constants'
-import {
-  hasProxyScope,
-  isValidAria2ProxyUrl,
-  isValidBtProxyUrl,
-  UNSUPPORTED_PROXY_SCHEME_RE,
-} from '@shared/utils/proxy'
+import { hasProxyScope, isValidAria2ProxyUrl, isValidBtProxyUrl } from '@shared/utils/proxy'
 import { buildDownloadProxyOptions, normalizeProxyMode, type EngineProxyMode } from '@shared/utils/proxy'
 import { PROXY_SCOPES } from '@shared/constants'
 
@@ -31,8 +26,6 @@ export interface NetworkForm {
     scope: string[]
   }
   enableUpnp: boolean
-  autoChangeConflictingPorts: boolean
-  portConflictRecovery: PortConflictRecoveryConfig
   connectTimeout: number
   timeout: number
   fileAllocation: string
@@ -59,8 +52,6 @@ export function buildNetworkForm(config: AppConfig): NetworkForm {
       scope: proxy.scope ?? [...PROXY_SCOPE_OPTIONS],
     },
     enableUpnp: config.enableUpnp,
-    autoChangeConflictingPorts: config.autoChangeConflictingPorts,
-    portConflictRecovery: { ...config.portConflictRecovery },
     connectTimeout: config.connectTimeout,
     timeout: config.timeout,
     fileAllocation: config.fileAllocation,
@@ -82,6 +73,7 @@ export function buildNetworkSystemConfig(f: NetworkForm): Record<string, string>
     timeout: String(f.timeout),
     'file-allocation': f.fileAllocation || D.fileAllocation,
     'bt-port-mapping': String(!!f.enableUpnp),
+    'ed2k-port-mapping': String(!!f.enableUpnp),
     ...buildDownloadProxyOptions(f.proxy),
   }
 
@@ -93,10 +85,7 @@ export function buildNetworkSystemConfig(f: NetworkForm): Record<string, string>
  * Preserves port values as numbers and proxy as nested object.
  */
 export function transformNetworkForStore(f: NetworkForm): Partial<AppConfig> {
-  return {
-    ...f,
-    autoChangeConflictingPorts: f.portConflictRecovery.enabled,
-  }
+  return { ...f }
 }
 
 // ── Form Validation ─────────────────────────────────────────────────
@@ -106,24 +95,11 @@ export function transformNetworkForStore(f: NetworkForm): Partial<AppConfig> {
  * Returns null if valid, or an i18n error key if invalid.
  */
 export function validateNetworkForm(f: NetworkForm): string | null {
-  const recovery = f.portConflictRecovery
-  if (
-    recovery.enabled &&
-    (!Number.isInteger(recovery.rangeStart) ||
-      !Number.isInteger(recovery.rangeEnd) ||
-      recovery.rangeStart < 1024 ||
-      recovery.rangeEnd > 65535 ||
-      recovery.rangeStart > recovery.rangeEnd)
-  ) {
-    return 'preferences.port-conflict-recovery-invalid-range'
-  }
   if (f.proxy.mode === 'manual' && f.proxy.server) {
     const regularDownloads = hasProxyScope(f.proxy, PROXY_SCOPES.DOWNLOAD)
     const bittorrent = hasProxyScope(f.proxy, PROXY_SCOPES.BITTORRENT)
     if ((!bittorrent || regularDownloads) && !isValidAria2ProxyUrl(f.proxy.server)) {
-      return UNSUPPORTED_PROXY_SCHEME_RE.test(f.proxy.server.trim())
-        ? 'preferences.proxy-unsupported-protocol'
-        : 'preferences.invalid-proxy-url'
+      return 'preferences.invalid-proxy-url'
     }
     if (bittorrent && !isValidBtProxyUrl(f.proxy.server)) {
       return 'preferences.bt-proxy-unsupported-protocol'

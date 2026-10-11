@@ -147,7 +147,7 @@ describe('filterHotReloadableKeys', () => {
   it('passes through hot-reloadable keys unchanged', () => {
     const config = {
       'max-concurrent-downloads': '10',
-      'stream-max-connections': '16',
+      split: '16',
       'max-overall-download-limit': '0',
       dir: '/downloads',
     }

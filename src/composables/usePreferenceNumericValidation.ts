@@ -1,7 +1,6 @@
 import { useI18n } from 'vue-i18n'
 import {
   NUMERIC_CONFIG_CONSTRAINTS,
-  PORT_RECOVERY_CONSTRAINT,
   isNumericValueValid,
   type NumericConfigKey,
   type NumericConstraint,
@@ -32,6 +31,5 @@ export function usePreferenceNumericValidation() {
     fieldProps,
     configFieldProps,
     areConfigFieldsValid,
-    portRecoveryConstraint: PORT_RECOVERY_CONSTRAINT,
   }
 }

@@ -1,7 +1,8 @@
 //! Task lifecycle persistence and active-state monitoring.
 //!
-//! Aria2 Next WebSocket events drive terminal task processing. A lightweight
-//! poll remains for aggregate active state and ED2K sharing transitions.
+//! Aria2 Next WebSocket events drive terminal task processing. Each pump
+//! snapshot is observed for aggregate state, ED2K sharing transitions, missing
+//! files and the shutdown-when-complete policy.
 //!
 //! Persists history records to the Rust-side `Database` directly,
 //! ensuring task completion data survives even when the WebView is
@@ -19,14 +20,12 @@ use crate::database::DatabaseState;
 use crate::error::AppError;
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tauri::Emitter;
 use tauri::Manager;
-use tokio::sync::watch;
 
-/// Default polling interval in milliseconds.
-const DEFAULT_INTERVAL_MS: u64 = 2000;
+/// File presence is checked on disk, so it runs less often than the pump.
+const FILE_CHECK_INTERVAL: Duration = Duration::from_secs(2);
 
 static COMPLETION_GENERATION: AtomicU64 = AtomicU64::new(0);
 
@@ -174,7 +173,7 @@ impl TaskEvent {
     }
 
     /// Best-effort task name extraction matching the TS `getTaskName()`.
-    fn extract_name(task: &Aria2Task) -> String {
+    pub(crate) fn extract_name(task: &Aria2Task) -> String {
         // BT: prefer bittorrent.info.name
         if let Some(bt) = &task.bittorrent {
             if let Some(info) = &bt.info {
@@ -624,122 +623,68 @@ fn ed2k_sharing_keys(task: &Aria2Task) -> Vec<String> {
     keys
 }
 
-/// Handle for controlling the background monitor task.
-pub struct TaskMonitorHandle {
-    /// Send `true` to stop the monitor.
-    stop_tx: watch::Sender<bool>,
+/// Lifecycle policy applied to every pump snapshot.
+pub struct Monitor {
+    sharing: Ed2kSharingNotifier,
+    completion_generation: u64,
+    /// Whether downloads existed during this engine run, so an empty queue
+    /// at launch does not count as "all downloads complete".
+    had_active_downloads: bool,
+    shutdown_triggered: bool,
+    file_states: std::collections::HashMap<String, super::tasks::files::FileState>,
+    files_checked_at: Option<Instant>,
 }
 
-impl TaskMonitorHandle {
-    /// Signal the monitor to stop.
-    pub fn stop(&self) {
-        let _ = self.stop_tx.send(true);
-    }
-}
-
-/// Spawns the task monitor as a background tokio task.
-///
-/// Returns a handle that can signal the monitor to stop.
-pub fn spawn_task_monitor(
-    app: tauri::AppHandle,
-    aria2: Arc<crate::services::tasks::TaskService>,
-) -> TaskMonitorHandle {
-    let (stop_tx, stop_rx) = watch::channel(false);
-
-    tokio::spawn(async move {
-        monitor_loop(app, aria2, stop_rx).await;
-    });
-
-    TaskMonitorHandle { stop_tx }
-}
-
-async fn monitor_loop(
-    app: tauri::AppHandle,
-    aria2: Arc<crate::services::tasks::TaskService>,
-    mut stop_rx: watch::Receiver<bool>,
-) {
-    let mut sharing_notifier = Ed2kSharingNotifier::new();
-    let mut completion_generation = COMPLETION_GENERATION.load(Ordering::Relaxed);
-    let interval = Duration::from_millis(DEFAULT_INTERVAL_MS);
-
-    // ── Auto-shutdown state ─────────────────────────────────────────
-    // Tracks whether active downloads existed during this engine cycle,
-    // preventing false triggers on app launch with an empty queue.
-    let mut had_active_downloads = false;
-    let mut shutdown_triggered = false;
-    let mut file_states = std::collections::HashMap::new();
-
-    match aria2.tell_active().await {
-        Ok(tasks) => {
-            sharing_notifier.scan(&tasks);
-        }
-        Err(error) => {
-            log::debug!("task_monitor: initial tell_active failed: {error}");
-            sharing_notifier.scan(&[]);
+impl Monitor {
+    /// `initial` is the first snapshot; tasks already sharing in it were
+    /// restored, not finished during this run.
+    pub fn new(initial: &[Aria2Task]) -> Self {
+        let mut sharing = Ed2kSharingNotifier::new();
+        let active: Vec<_> = initial
+            .iter()
+            .filter(|task| task.status == "active")
+            .cloned()
+            .collect();
+        sharing.scan(&active);
+        Self {
+            sharing,
+            completion_generation: COMPLETION_GENERATION.load(Ordering::Relaxed),
+            had_active_downloads: false,
+            shutdown_triggered: false,
+            file_states: std::collections::HashMap::new(),
+            files_checked_at: None,
         }
     }
 
-    loop {
-        tokio::select! {
-            _ = tokio::time::sleep(interval) => {},
-            _ = stop_rx.changed() => {
-                if *stop_rx.borrow() {
-                    log::info!("task_monitor: stopped");
-                    return;
-                }
-            }
-        }
-
-        // Active-task polling remains necessary for aggregate state, ED2K
-        // sharing detection, and auto-shutdown. Terminal task events arrive
-        // through Aria2 Next's native WebSocket notifications.
-        let tasks = match aria2.tell_task_snapshot(false).await {
-            Ok(tasks) => tasks,
-            Err(e) => {
-                log::debug!("task_monitor: tell_active failed: {e}");
-                continue;
-            }
-        };
-
-        if let Err(error) = super::tasks::bittorrent::reconcile(&app, &aria2, &tasks).await {
+    /// `tasks` holds the active and waiting tasks of one snapshot.
+    pub async fn observe(
+        &mut self,
+        app: &tauri::AppHandle,
+        aria2: &crate::services::tasks::TaskService,
+        tasks: &[Aria2Task],
+    ) {
+        if let Err(error) = super::tasks::bittorrent::reconcile(app, aria2, tasks).await {
             log::warn!("bt_selection: reconciliation failed: {error}");
         }
-        match super::tasks::files::inspect(&aria2, tasks.clone(), false).await {
-            Ok(states) => {
-                for task in &tasks {
-                    if task.status == "active"
-                        && task.seeder.as_deref() == Some("true")
-                        && matches!(
-                            states.get(&task.gid),
-                            Some(
-                                super::tasks::files::FileState::Missing
-                                    | super::tasks::files::FileState::Inaccessible
-                            )
-                        )
-                    {
-                        if let Err(error) = aria2.force_pause(&task.gid).await {
-                            log::warn!("task_files: pause failed gid={} error={error}", task.gid);
-                        }
-                    }
-                }
-                if states != file_states {
-                    let _ = app.emit("task-files:changed", &states);
-                    file_states = states;
-                }
-            }
-            Err(error) => log::warn!("task_files: inspection failed: {error}"),
+        if self
+            .files_checked_at
+            .is_none_or(|at| at.elapsed() >= FILE_CHECK_INTERVAL)
+        {
+            self.files_checked_at = Some(Instant::now());
+            self.check_files(app, aria2, tasks).await;
         }
+
         let active: Vec<_> = tasks
-            .into_iter()
+            .iter()
             .filter(|task| task.status == "active")
+            .cloned()
             .collect();
-        let sharing_events = sharing_notifier.scan(&active);
-        super::notification::notify_started_tasks(&app, &aria2, &active).await;
+        let sharing_events = self.sharing.scan(&active);
+        super::notification::notify_started_tasks(app, aria2, &active).await;
         for payload in sharing_events {
-            let task = active.iter().find(|task| task.gid == payload.gid);
-            if let Some(task) = task {
+            if let Some(task) = active.iter().find(|task| task.gid == payload.gid) {
                 if let Err(error) =
-                    process_lifecycle_task(&app, events::P2P_DOWNLOAD_COMPLETE, task, true).await
+                    process_lifecycle_task(app, events::P2P_DOWNLOAD_COMPLETE, task, true).await
                 {
                     log::warn!(
                         "task_monitor: ED2K sharing lifecycle failed gid={}: {error}",
@@ -748,81 +693,96 @@ async fn monitor_loop(
                 }
             }
         }
-        let current_completion_generation = COMPLETION_GENERATION.load(Ordering::Relaxed);
-        let has_new_completion = current_completion_generation != completion_generation;
-        completion_generation = current_completion_generation;
 
-        // ── Auto-shutdown detection ─────────────────────────────────
-        // Active-download tracking runs unconditionally so that
-        // `shutdown_triggered` can reset when new downloads appear
-        // after a previous trigger (cancelled or completed).
-        {
-            let active_dl = count_active_downloads(&active);
-            let waiting: usize = aria2.tell_waiting(0, 1).await.map(|w| w.len()).unwrap_or(0);
+        let waiting = tasks.iter().filter(|task| task.status == "waiting").count();
+        self.check_shutdown(app, count_active_downloads(&active), waiting);
+    }
 
-            if active_dl > 0 || waiting > 0 {
-                had_active_downloads = true;
-                // New downloads appeared — allow re-detection.
-                shutdown_triggered = false;
+    /// Seeding tasks whose files disappeared are paused; the UI learns about
+    /// missing files from `task-files:changed`.
+    async fn check_files(
+        &mut self,
+        app: &tauri::AppHandle,
+        aria2: &crate::services::tasks::TaskService,
+        tasks: &[Aria2Task],
+    ) {
+        use super::tasks::files::FileState;
+        let states = match super::tasks::files::inspect(aria2, tasks.to_vec(), false).await {
+            Ok(states) => states,
+            Err(error) => {
+                log::warn!("task_files: inspection failed: {error}");
+                return;
             }
-
-            // A new completion event means a task went through its full lifecycle
-            // (waiting → active → complete) even if we never observed it as active
-            // in the 2s poll window (instant download). Treat this as equivalent to
-            // "had active downloads" and allow re-triggering.
-            if shutdown_triggered && has_new_completion {
-                shutdown_triggered = false;
-            }
-
-            if has_new_completion {
-                had_active_downloads = true;
-            }
-
-            if !shutdown_triggered && had_active_downloads && active_dl == 0 && waiting == 0 {
-                let should_shutdown = app
-                    .try_state::<super::config::RuntimeConfigState>()
-                    .map(|rc| rc.0.try_read().is_ok_and(|cfg| cfg.shutdown_when_complete))
-                    .unwrap_or(false);
-
-                if should_shutdown {
-                    shutdown_triggered = true;
-                    log::info!("task_monitor: all downloads complete, shutdown requested");
-
-                    // Reset the cancel flag for this new shutdown sequence.
-                    // Previous cancellations must not suppress this trigger.
-                    if let Some(cancel) = app
-                        .try_state::<std::sync::Arc<crate::commands::power::ShutdownCancelState>>()
-                    {
-                        cancel.reset();
-                    }
-
-                    // Notify frontend to show 60s countdown dialog.
-                    let _ = app.emit("power:countdown", ());
-
-                    // Lightweight-mode safety net: if the WebView is destroyed,
-                    // the frontend can't show a countdown or invoke the command.
-                    // Wait 70s (> 60s frontend countdown) then execute directly.
-                    let app_clone = app.clone();
-                    tokio::spawn(async move {
-                        tokio::time::sleep(Duration::from_secs(70)).await;
-                        // Check cancel flag — set by frontend's cancel_shutdown command
-                        let was_cancelled = app_clone
-                            .try_state::<std::sync::Arc<crate::commands::power::ShutdownCancelState>>()
-                            .map(|s| s.is_cancelled())
-                            .unwrap_or(true); // if state missing, assume cancelled (safe default)
-
-                        if !was_cancelled {
-                            log::info!("power: lightweight fallback — executing shutdown");
-                            if let Err(e) = crate::commands::power::do_shutdown_internal() {
-                                log::error!("power: shutdown failed: {e}");
-                            }
-                        } else {
-                            log::info!("power: shutdown cancelled by user");
-                        }
-                    });
+        };
+        for task in tasks {
+            if task.status == "active"
+                && task.seeder.as_deref() == Some("true")
+                && matches!(
+                    states.get(&task.gid),
+                    Some(FileState::Missing | FileState::Inaccessible)
+                )
+            {
+                if let Err(error) = aria2.force_pause(&task.gid).await {
+                    log::warn!("task_files: pause failed gid={} error={error}", task.gid);
                 }
             }
         }
+        if states != self.file_states {
+            let _ = app.emit("task-files:changed", &states);
+            self.file_states = states;
+        }
+    }
+
+    fn check_shutdown(&mut self, app: &tauri::AppHandle, active: usize, waiting: usize) {
+        let generation = COMPLETION_GENERATION.load(Ordering::Relaxed);
+        // A completion means a task went through its whole lifecycle even if
+        // no snapshot saw it active (instant downloads).
+        let completed = generation != self.completion_generation;
+        self.completion_generation = generation;
+
+        if active > 0 || waiting > 0 || completed {
+            self.had_active_downloads = true;
+            self.shutdown_triggered = false;
+        }
+        if self.shutdown_triggered || !self.had_active_downloads || active > 0 || waiting > 0 {
+            return;
+        }
+        let should_shutdown = app
+            .try_state::<super::config::RuntimeConfigState>()
+            .map(|rc| rc.0.try_read().is_ok_and(|cfg| cfg.shutdown_when_complete))
+            .unwrap_or(false);
+        if !should_shutdown {
+            return;
+        }
+        self.shutdown_triggered = true;
+        log::info!("task_monitor: all downloads complete, shutdown requested");
+
+        // A previous cancellation must not suppress this sequence.
+        if let Some(cancel) =
+            app.try_state::<std::sync::Arc<crate::commands::power::ShutdownCancelState>>()
+        {
+            cancel.reset();
+        }
+        // The window shows a 60 s countdown. Without a window (lightweight
+        // mode) nothing can cancel or confirm, so shut down after 70 s unless
+        // cancelled.
+        let _ = app.emit("power:countdown", ());
+        let app = app.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(70)).await;
+            let cancelled = app
+                .try_state::<std::sync::Arc<crate::commands::power::ShutdownCancelState>>()
+                .map(|state| state.is_cancelled())
+                .unwrap_or(true);
+            if cancelled {
+                log::info!("power: shutdown cancelled by user");
+                return;
+            }
+            log::info!("power: lightweight fallback — executing shutdown");
+            if let Err(e) = crate::commands::power::do_shutdown_internal() {
+                log::error!("power: shutdown failed: {e}");
+            }
+        });
     }
 }
 
@@ -832,15 +792,6 @@ fn count_active_downloads(tasks: &[Aria2Task]) -> usize {
         .iter()
         .filter(|t| t.status == "active" && sharing_kind(t).is_none())
         .count()
-}
-
-/// Managed state wrapper for the monitor handle.
-pub struct TaskMonitorState(pub Arc<tokio::sync::Mutex<Option<TaskMonitorHandle>>>);
-
-impl TaskMonitorState {
-    pub fn new() -> Self {
-        Self(Arc::new(tokio::sync::Mutex::new(None)))
-    }
 }
 
 #[cfg(test)]

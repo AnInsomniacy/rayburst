@@ -17,7 +17,7 @@ import type {
   MagnetFileSelectionPolicy,
 } from '@shared/types'
 import { DEFAULT_APP_CONFIG as D } from '@shared/constants'
-import { PORT_RECOVERY_RANGE_END, PORT_RECOVERY_RANGE_START } from '@shared/constants'
+import { RANDOM_PORT_RANGE_END, RANDOM_PORT_RANGE_START } from '@shared/constants'
 import { convertCommaToLine, convertLineToComma, generateRandomInt } from '@shared/utils'
 import { isValidOptionalIpAddress } from '@shared/utils/ipAddress'
 
@@ -164,7 +164,7 @@ export function validateBtEndpoint(f: BtForm): string | null {
 }
 
 export function randomBtPort(): number {
-  return generateRandomInt(PORT_RECOVERY_RANGE_START, PORT_RECOVERY_RANGE_END + 1)
+  return generateRandomInt(RANDOM_PORT_RANGE_START, RANDOM_PORT_RANGE_END + 1)
 }
 
 /**

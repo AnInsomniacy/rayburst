@@ -2,12 +2,11 @@
 //!
 //! Embeds an Axum HTTP server inside the Tauri process, sharing the existing
 //! tokio runtime.  Provides a local REST API for browser extension → desktop
-//! communication.
-//!
+//! communication: download handoff (`/add`), the popup's task list
+//! (`/tasks`) and controls, and media capture (`/media/v2`).
 use crate::commands::remote_file::summarize_url_for_log;
 use crate::error::AppError;
 use crate::services::config::{RuntimeConfigState, DEFAULT_EXTENSION_API_PORT};
-use crate::services::port_guard;
 use crate::services::tasks::TaskServiceState;
 use axum::{
     extract::{Request, State},
@@ -19,7 +18,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_store::StoreExt;
 use tokio::sync::Mutex;
 use tower_http::cors::CorsLayer;
@@ -54,6 +53,43 @@ pub struct StatResponse {
     pub num_stopped: String,
     pub num_stopped_total: String,
 }
+
+impl From<crate::aria2::types::Aria2GlobalStat> for StatResponse {
+    fn from(stat: crate::aria2::types::Aria2GlobalStat) -> Self {
+        Self {
+            download_speed: stat.download_speed,
+            upload_speed: stat.upload_speed,
+            num_active: stat.num_active,
+            num_waiting: stat.num_waiting,
+            num_stopped: stat.num_stopped,
+            num_stopped_total: stat.num_stopped_total,
+        }
+    }
+}
+
+/// One row of the extension popup's task list.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PopupTask {
+    pub gid: String,
+    pub name: String,
+    pub status: String,
+    pub total_length: String,
+    pub completed_length: String,
+    pub download_speed: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_message: Option<String>,
+}
+
+/// GET /tasks response.
+#[derive(Debug, Serialize)]
+pub struct TasksResponse {
+    pub stat: StatResponse,
+    pub tasks: Vec<PopupTask>,
+}
+
+/// Finished tasks the popup lists after the unfinished ones, newest first.
+const POPUP_FINISHED_TASKS: usize = 10;
 
 /// Generic action response for control endpoints (pause-all, resume-all).
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -121,6 +157,9 @@ pub fn build_router(ctx: Arc<ApiContext>) -> Router {
         .route("/downloads/capabilities", get(handle_download_capabilities))
         .route("/version", get(handle_version))
         .route("/stat", get(handle_stat))
+        .route("/tasks", get(handle_tasks))
+        .route("/tasks/{gid}/pause", post(handle_task_pause))
+        .route("/tasks/{gid}/resume", post(handle_task_resume))
         .route("/pause-all", post(handle_pause_all))
         .route("/resume-all", post(handle_resume_all))
         .layer(axum::extract::DefaultBodyLimit::max(256 * 1024))
@@ -181,23 +220,15 @@ async fn handle_download_capabilities(
         .app
         .try_state::<TaskServiceState>()
         .ok_or_else(|| engine_unavailable(&ctx.app))?;
-    let version = engine
+    engine
         .0
         .get_version()
         .await
         .map_err(|_| engine_unavailable(&ctx.app))?;
-    if !version["downloadFeatures"]
-        .as_array()
-        .is_some_and(|features| {
-            features
-                .iter()
-                .any(|feature| feature.as_str() == Some("filename-hints"))
-        })
-    {
-        return Err(engine_unavailable(&ctx.app));
-    }
+    // 3: browser downloads are verified by the engine and held until /add
+    // answers; no receipts.
     Ok(Json(
-        serde_json::json!({"product":"rayburst","protocolVersion":2,"filenameHints":true}),
+        serde_json::json!({"product":"rayburst","protocolVersion":3}),
     ))
 }
 
@@ -210,7 +241,7 @@ async fn handle_add(
     validate_bearer_token(&headers, &secret)?;
 
     log::info!(
-        "http_api: POST /add url={} final_url={} header_count={} has_user_agent={} has_cookie={} source=http-api filename={}",
+        "http_api: POST /add url={} final_url={} header_count={} has_user_agent={} has_cookie={} verify={} filename={}",
         summarize_url_for_log(&body.url),
         body.final_url
             .as_deref()
@@ -219,6 +250,7 @@ async fn handle_add(
         body.request_headers.len(),
         body.user_agent.as_ref().is_some_and(|v| !v.is_empty()),
         body.cookie.as_ref().is_some_and(|v| !v.is_empty()),
+        body.verify,
         if body.filename.as_ref().is_some_and(|v| !v.is_empty()) {
             "present"
         } else {
@@ -267,19 +299,98 @@ async fn handle_stat(
         .ok_or_else(|| engine_unavailable(&ctx.app))?;
 
     match aria2.0.get_global_stat().await {
-        Ok(stat) => Ok(Json(StatResponse {
-            download_speed: stat.download_speed,
-            upload_speed: stat.upload_speed,
-            num_active: stat.num_active,
-            num_waiting: stat.num_waiting,
-            num_stopped: stat.num_stopped,
-            num_stopped_total: stat.num_stopped_total,
-        })),
+        Ok(stat) => Ok(Json(stat.into())),
         Err(e) => {
             log::error!("http_api: get_global_stat failed: {e}");
             Err(engine_unavailable(&ctx.app))
         }
     }
+}
+
+/// GET /tasks — unfinished tasks in queue order, then the latest finished.
+async fn handle_tasks(
+    State(ctx): State<Arc<ApiContext>>,
+    headers: HeaderMap,
+) -> Result<Json<TasksResponse>, (StatusCode, Json<serde_json::Value>)> {
+    validate_bearer_token(&headers, &read_api_secret(&ctx.app))
+        .map_err(|status| (status, Json(serde_json::Value::Null)))?;
+    let aria2 = ctx
+        .app
+        .try_state::<TaskServiceState>()
+        .ok_or_else(|| engine_unavailable(&ctx.app))?;
+    let (stat, tasks) = aria2
+        .0
+        .snapshot(true)
+        .await
+        .map_err(|_| engine_unavailable(&ctx.app))?;
+    let (finished, unfinished): (Vec<_>, Vec<_>) = tasks
+        .into_iter()
+        .partition(|task| matches!(task.status.as_str(), "complete" | "error" | "removed"));
+    let tasks = unfinished
+        .into_iter()
+        .chain(finished.into_iter().rev().take(POPUP_FINISHED_TASKS))
+        .map(|task| PopupTask {
+            name: super::monitor::TaskEvent::extract_name(&task),
+            gid: task.gid,
+            status: task.status,
+            total_length: task.total_length,
+            completed_length: task.completed_length,
+            download_speed: task.download_speed,
+            error_message: task.error_message.filter(|message| !message.is_empty()),
+        })
+        .collect();
+    Ok(Json(TasksResponse {
+        stat: stat.into(),
+        tasks,
+    }))
+}
+
+/// POST /tasks/{gid}/pause
+async fn handle_task_pause(
+    State(ctx): State<Arc<ApiContext>>,
+    headers: HeaderMap,
+    axum::extract::Path(gid): axum::extract::Path<String>,
+) -> Result<Json<ActionResponse>, (StatusCode, Json<serde_json::Value>)> {
+    task_action(&ctx, &headers, &gid, false).await
+}
+
+/// POST /tasks/{gid}/resume
+async fn handle_task_resume(
+    State(ctx): State<Arc<ApiContext>>,
+    headers: HeaderMap,
+    axum::extract::Path(gid): axum::extract::Path<String>,
+) -> Result<Json<ActionResponse>, (StatusCode, Json<serde_json::Value>)> {
+    task_action(&ctx, &headers, &gid, true).await
+}
+
+async fn task_action(
+    ctx: &ApiContext,
+    headers: &HeaderMap,
+    gid: &str,
+    resume: bool,
+) -> Result<Json<ActionResponse>, (StatusCode, Json<serde_json::Value>)> {
+    validate_bearer_token(headers, &read_api_secret(&ctx.app))
+        .map_err(|status| (status, Json(serde_json::Value::Null)))?;
+    let aria2 = ctx
+        .app
+        .try_state::<TaskServiceState>()
+        .ok_or_else(|| engine_unavailable(&ctx.app))?;
+    let result = if resume {
+        super::tasks::bittorrent::resume(&ctx.app, &aria2.0, gid).await
+    } else {
+        super::tasks::bittorrent::pause(&ctx.app, &aria2.0, Some(gid), false).await
+    };
+    super::pump::wake(&ctx.app);
+    Ok(Json(match result {
+        Ok(_) => ActionResponse {
+            status: "ok".to_string(),
+            error: None,
+        },
+        Err(error) => ActionResponse {
+            status: "error".to_string(),
+            error: Some(error.to_string()),
+        },
+    }))
 }
 
 fn engine_phase(app: &AppHandle) -> crate::engine::supervisor::EnginePhase {
@@ -291,12 +402,7 @@ fn engine_phase(app: &AppHandle) -> crate::engine::supervisor::EnginePhase {
 fn engine_unavailable(app: &AppHandle) -> (StatusCode, Json<serde_json::Value>) {
     use crate::engine::supervisor::EnginePhase;
     let error = match engine_phase(app) {
-        EnginePhase::Preparing
-        | EnginePhase::Starting
-        | EnginePhase::Probing
-        | EnginePhase::Initializing
-        | EnginePhase::Stabilizing
-        | EnginePhase::Recovering => "engine_starting",
+        EnginePhase::Starting | EnginePhase::Probing | EnginePhase::Recovering => "engine_starting",
         _ => "engine_unavailable",
     };
     (
@@ -501,29 +607,20 @@ pub async fn restart_on_port(app: &AppHandle, new_port: u16) -> Result<u16, AppE
 
     let allow_remote_access = read_extension_api_allow_remote_access(app).await;
 
-    // Spawn on the new port, then recover once if the chosen port is busy.
-    let handle = match spawn_http_api(app.clone(), new_port, allow_remote_access).await {
-        Ok(handle) => handle,
-        Err(e) => {
-            log::warn!("http_api: bind failed on port {new_port}: {e}");
-            let fallback = port_guard::recover_extension_api_port(app, new_port).await?;
-            match spawn_http_api(app.clone(), fallback, allow_remote_access).await {
-                Ok(handle) => handle,
-                Err(e) => {
-                    port_guard::emit_bind_failed(
-                        app,
-                        port_guard::PortKind::ExtensionApi,
-                        fallback,
-                        port_guard::PortSwitchFailureSource::ExtensionApi,
-                    );
-                    return Err(e);
-                }
-            }
-        }
-    };
+    // The extension knows only the configured port, so a taken port is
+    // reported rather than replaced.
+    let handle = spawn_http_api(app.clone(), new_port, allow_remote_access).await?;
     let port = handle.port();
     *guard = Some(handle);
     Ok(port)
+}
+
+/// Tells the UI that the extension API could not listen on its port.
+pub fn emit_bind_failed(app: &AppHandle, port: u16) {
+    let _ = app.emit(
+        "extension-api:bind-failed",
+        serde_json::json!({ "port": port }),
+    );
 }
 
 // ── Read extension API port from RuntimeConfig ─────────────────────

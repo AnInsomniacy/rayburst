@@ -81,26 +81,21 @@ describe('Network preference contract', () => {
 
   it('persists the form-owned network settings', () => {
     const form = buildNetworkForm(createDefaultAppConfig())
-    form.portConflictRecovery.enabled = false
     const stored = transformNetworkForStore(form)
 
-    expect(stored.autoChangeConflictingPorts).toBe(false)
-    expect(stored.portConflictRecovery).toEqual(form.portConflictRecovery)
+    expect(stored).not.toHaveProperty('portConflictRecovery')
     expect(stored.proxy).toEqual(form.proxy)
     expect(stored).not.toHaveProperty('listenPort')
   })
 
-  it('validates active proxy and port recovery settings', () => {
+  it('validates the active proxy', () => {
     const form = buildNetworkForm(createDefaultAppConfig())
     expect(validateNetworkForm(form)).toBeNull()
 
-    form.portConflictRecovery.rangeStart = 29999
-    form.portConflictRecovery.rangeEnd = 29000
-    expect(validateNetworkForm(form)).toBe('preferences.port-conflict-recovery-invalid-range')
-
-    form.portConflictRecovery.enabled = false
     form.proxy.mode = 'manual'
     form.proxy.server = 'socks5://127.0.0.1:1080'
-    expect(validateNetworkForm(form)).toBe('preferences.proxy-unsupported-protocol')
+    expect(validateNetworkForm(form)).toBeNull()
+    form.proxy.server = 'ftp://127.0.0.1:21'
+    expect(validateNetworkForm(form)).toBe('preferences.invalid-proxy-url')
   })
 })

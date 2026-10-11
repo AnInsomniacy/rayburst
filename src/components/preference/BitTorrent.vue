@@ -53,7 +53,6 @@ const { constraint, configFieldProps, areConfigFieldsValid } = usePreferenceNume
 const syncingTracker = ref(false)
 const syncingBlocklist = ref(false)
 const customTrackerInput = ref('')
-const pendingPortSwitch = ref<{ from: number; to: number } | null>(null)
 interface BtPeerBlocklistStatus {
   ruleCount: number
   fileSize: number
@@ -217,7 +216,6 @@ const { form, isDirty, handleSave, handleReset, resetSnapshot, patchSnapshot } =
         }
       : null,
   beforeSave: async (f) => {
-    pendingPortSwitch.value = null
     if (!isValidBtUserAgent(f.btUserAgent)) {
       message.error(t('preferences.bt-user-agent-invalid'))
       return false
@@ -236,22 +234,6 @@ const { form, isDirty, handleSave, handleReset, resetSnapshot, patchSnapshot } =
       return false
     }
     f.btExternalIp = f.btExternalIp.trim()
-    if (Number(f.listenPort) !== Number(preferenceStore.config.listenPort)) {
-      const requestedPort = Number(f.listenPort)
-      try {
-        const resolvedPort = await invoke<number>('resolve_bt_listen_port', {
-          requestedPort: f.listenPort,
-        })
-        if (resolvedPort !== requestedPort) {
-          pendingPortSwitch.value = { from: requestedPort, to: resolvedPort }
-        }
-        f.listenPort = resolvedPort
-      } catch (e) {
-        logger.warn('BT.listenPort', getErrorMessage(e))
-        message.error(t('preferences.bt-port-unavailable'))
-        return false
-      }
-    }
     if (!isValidTrackerSourceUrl(String(f.btPeerBlocklistUrl))) {
       message.warning(t('preferences.bt-peer-blocklist-invalid-url'))
       return false
@@ -264,12 +246,6 @@ const { form, isDirty, handleSave, handleReset, resetSnapshot, patchSnapshot } =
     return true
   },
   afterSave: async () => {
-    if (pendingPortSwitch.value) {
-      const { from, to } = pendingPortSwitch.value
-      pendingPortSwitch.value = null
-      const ports = `${t('preferences.bt-port')} ${from} -> ${to}`
-      message.info(t('preferences.port-auto-switched', { ports }))
-    }
     reconcileBlocklistInBackground()
   },
 })

@@ -317,25 +317,35 @@ describe('useTaskDetailOptions', () => {
       expect(mocks.changeTaskOption.mock.calls[0][0].options['proxy-mode']).toBeUndefined()
     })
 
-    it('blocks socks5 custom proxy with error toast', async () => {
+    it('blocks an unsupported custom proxy with error toast', async () => {
+      const mocks = createMocks()
+      const { form, applyOptions } = setup(mocks)
+      await nextTick()
+      form.proxyMode = 'manual'
+      form.customProxy = 'ftp://10.0.0.1:21'
+      await applyOptions()
+      expect(mocks.changeTaskOption).not.toHaveBeenCalled()
+      expect(mocks.errorFn).toHaveBeenCalledWith('preferences.invalid-proxy-url')
+    })
+
+    it('keeps dirty after a proxy rejection', async () => {
+      const mocks = createMocks()
+      const { form, applyOptions, dirty } = setup(mocks)
+      await nextTick()
+      form.proxyMode = 'manual'
+      form.customProxy = 'ftp://10.0.0.1:21'
+      await applyOptions()
+      expect(dirty.value).toBe(true)
+    })
+
+    it('applies a SOCKS5 custom proxy', async () => {
       const mocks = createMocks()
       const { form, applyOptions } = setup(mocks)
       await nextTick()
       form.proxyMode = 'manual'
       form.customProxy = 'socks5://10.0.0.1:1080'
       await applyOptions()
-      expect(mocks.changeTaskOption).not.toHaveBeenCalled()
-      expect(mocks.errorFn).toHaveBeenCalledWith('task.proxy-unsupported-protocol')
-    })
-
-    it('keeps dirty after socks5 proxy rejection', async () => {
-      const mocks = createMocks()
-      const { form, applyOptions, dirty } = setup(mocks)
-      await nextTick()
-      form.proxyMode = 'manual'
-      form.customProxy = 'socks5://10.0.0.1:1080'
-      await applyOptions()
-      expect(dirty.value).toBe(true)
+      expect(mocks.changeTaskOption).toHaveBeenCalled()
     })
 
     it('sends direct proxy mode when proxyMode is direct', async () => {

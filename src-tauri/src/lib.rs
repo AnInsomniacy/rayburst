@@ -17,7 +17,6 @@ mod native_messaging;
 mod proxy_bypass;
 mod services;
 mod tray;
-mod upnp;
 
 #[cfg(windows)]
 pub use engine::windows_process::prepare_install;
@@ -28,12 +27,11 @@ mod association_cleanup;
 use crate::commands::power::ShutdownCancelState;
 use crate::commands::updater::{DownloadedUpdate, UpdateCancelState};
 use engine::EngineState;
-use services::port_guard::DEFAULT_RPC_PORT;
+use engine::DEFAULT_RPC_PORT;
 use tauri::{Emitter, Manager};
 #[cfg(target_os = "macos")]
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_store::StoreExt;
-use upnp::UpnpState;
 
 /// Pre-reads the user's log-level preference from the raw config.json file.
 ///
@@ -262,14 +260,13 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 
     // Background services — handles stored here so on_engine_ready can
     // stop old tasks before spawning new ones on restart.
-    app.manage(services::stat::StatServiceState::new());
+    app.manage(std::sync::Arc::new(services::pump::Pump::new()));
     app.manage(services::speed::SpeedSchedulerState::new());
-    app.manage(services::monitor::TaskMonitorState::new());
     app.manage(services::aria2_events::Aria2EventState::new());
     app.manage(services::bt_blocklist::BtPeerBlocklistServiceState::new());
     app.manage(commands::bt_blocklist::BtPeerBlocklistUpdateState::new());
     app.manage(services::http_api::HttpApiState::new());
-    app.manage(services::downloads::SubmissionGate::default());
+    app.manage(services::downloads::Handoffs::default());
     app.manage(commands::FilenameProbeState::default());
     #[cfg(target_os = "linux")]
     app.manage(services::notification::LinuxNotificationRegistry::new());
@@ -287,12 +284,8 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     )));
     let database_app = app.handle().clone();
     tauri::async_runtime::spawn(async move {
-        if let Err(error) = commands::database_initialize(database_app.clone()).await {
+        if let Err(error) = commands::database_initialize(database_app).await {
             log::error!("database: initialization failed: {error}");
-            return;
-        }
-        if let Err(error) = services::downloads::restore_pending(&database_app).await {
-            log::error!("downloads: pending confirmations could not be restored: {error}");
         }
     });
 
@@ -530,16 +523,6 @@ fn handle_run_event(app: &tauri::AppHandle, event: tauri::RunEvent) {
                 });
                 log::info!("http_api: stopped");
             }
-            // Clean up UPnP port mappings on exit.
-            if let Some(state) = app.try_state::<UpnpState>() {
-                tauri::async_runtime::block_on(async {
-                    let _ = tokio::time::timeout(
-                        std::time::Duration::from_secs(2),
-                        upnp::stop_mapping(state.inner()),
-                    )
-                    .await;
-                });
-            }
         }
         #[cfg(target_os = "macos")]
         tauri::RunEvent::Reopen { .. } => {
@@ -649,7 +632,6 @@ pub fn run() {
         .manage(EngineState::new())
         .manage(services::media::MediaState::new())
         .manage(engine::supervisor::EngineSupervisor::new())
-        .manage(UpnpState::new())
         .manage(std::sync::Arc::new(UpdateCancelState::new()))
         .manage(std::sync::Arc::new(DownloadedUpdate::new()))
         .manage(std::sync::Arc::new(ShutdownCancelState::new()))
@@ -663,7 +645,6 @@ pub fn run() {
             commands::engine_stop,
             commands::engine_cancel,
             commands::engine_recover_runtime_state,
-            commands::resolve_bt_listen_port,
             commands::factory_reset,
             commands::database_initialize,
             commands::database_reset,
@@ -677,9 +658,6 @@ pub fn run() {
             commands::download_update,
             commands::apply_update,
             commands::cancel_update,
-            commands::start_upnp_mapping,
-            commands::stop_upnp_mapping,
-            commands::get_upnp_status,
             commands::get_ed2k_bootstrap_status,
             commands::sync_ed2k_bootstrap_files,
             commands::get_bt_peer_blocklist_status,
@@ -734,6 +712,7 @@ pub fn run() {
             commands::history_load_births,
             commands::history_check_integrity,
             commands::aria2_fetch_task_list,
+            commands::tasks_refresh,
             commands::aria2_fetch_active_task_list,
             commands::aria2_fetch_task_item,
             commands::aria2_fetch_task_item_with_peers,

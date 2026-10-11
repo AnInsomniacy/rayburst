@@ -126,9 +126,6 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
     optForm.proxyMode = 'manual'
     message.success(t('preferences.proxy-detected-success'))
   },
-  onSocks() {
-    message.warning(t('preferences.proxy-system-socks-rejected'))
-  },
   onNotFound() {
     message.info(t('preferences.proxy-system-not-detected'))
   },

@@ -141,8 +141,8 @@ async fn submit(
     authorize(&ctx, &headers)?;
     let Json(request) = body.map_err(|_| Error::UnsupportedSelection)?;
     let receipt = service(&ctx.app).await?.submit(id, request).await?;
-    if let Some(gid) = receipt["gid"].as_str() {
-        crate::services::tasks::notify_changed(&ctx.app, gid);
+    if receipt["gid"].is_string() {
+        crate::services::pump::wake(&ctx.app);
     }
     reply(receipt)
 }

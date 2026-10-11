@@ -48,7 +48,6 @@ url = "2.5.8"
 urlencoding = "2"
 regex = "1"
 tauri-plugin-window-state = "2.4.1"
-igd-next = { version = "0.15", features = ["aio_tokio"] }
 ipnet = "2"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 tokio-tungstenite = "0.28"
@@ -74,8 +73,6 @@ fluent-langneg = { version = "0.14.2", features = ["cldr"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = [
-    "Win32_NetworkManagement_IpHelper",
-    "Win32_Networking_WinSock",
     "Win32_System_Power",
     "Win32_System_Com",
     "Win32_System_Registry",

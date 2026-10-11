@@ -1,6 +1,3 @@
-/** Fixed cadence for the live task snapshot (ms). */
-export const TASK_REFRESH_INTERVAL = 500
-
 /** Time the successful engine recovery state remains visible (ms). */
 export const ENGINE_RECOVERY_SUCCESS_DURATION = 1200
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { invoke } from '@tauri-apps/api/core'
 /** @fileoverview Add task dialog: dual-tab layout (URI / Torrent) with AutoAnimate list transitions. */
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
@@ -422,7 +423,31 @@ function onDirInput(value: string) {
 
 // ── Lifecycle ───────────────────────────────────────────────────────
 
+// A held browser download that was not confirmed in time went back to the
+// browser; adding it now would download it twice.
+function withdrawRequest(id: string) {
+  draftRequestIds.delete(id)
+  const before = batch.value.length
+  appStore.pendingBatch = batch.value.filter((item) => item.browserContext?.requestId !== id)
+  const contexts = form.value.uriRequestContexts ?? {}
+  const withdrawn = new Set(Object.keys(contexts).filter((uri) => contexts[uri]?.requestId === id))
+  if (withdrawn.size > 0) {
+    form.value.uriRequestContexts = Object.fromEntries(Object.entries(contexts).filter(([uri]) => !withdrawn.has(uri)))
+    form.value.uris = form.value.uris
+      .split('\n')
+      .filter((line) => !withdrawn.has(line.trim()))
+      .join('\n')
+  }
+  if (withdrawn.size > 0 || appStore.pendingBatch.length !== before) message.info(t('task.browser-kept-download'))
+}
+
+let unlistenWithdrawn: UnlistenFn | null = null
+onBeforeUnmount(() => unlistenWithdrawn?.())
+
 onMounted(async () => {
+  unlistenWithdrawn = await listen<{ id: string }>('downloads:handoff-expired', ({ payload }) =>
+    withdrawRequest(payload.id),
+  )
   if (!form.value.dir) {
     try {
       const resolvedDir = await resolveUserVisibleDownloadDir({ configuredDir: preferenceStore.config.dir })
@@ -663,7 +688,7 @@ async function handleSubmit() {
     // Validate custom proxy before building options
     if (form.value.proxyMode === 'manual' && form.value.customProxy) {
       if (!isValidAria2ProxyUrl(form.value.customProxy)) {
-        message.error(t('task.proxy-unsupported-protocol'), { closable: true })
+        message.error(t('preferences.invalid-proxy-url'), { closable: true })
         submitting.value = false
         return
       }

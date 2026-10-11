@@ -2,7 +2,8 @@
 //!
 //! Groups all background services that share the engine lifecycle:
 //! - `config` — RuntimeConfig cache (refreshed on engine ready)
-//! - `stat` — Global stat polling (download/upload speed)
+//! - `pump` — the single reader of engine state (statistics and task queues)
+//! - `stat` — native effects of the statistics (tray, Dock, taskbar, keep-awake)
 //! - `speed` — Speed limit scheduler (time-of-day limits)
 //! - `monitor` — lifecycle persistence and active-state policy
 //! - `aria2_events` — native WebSocket lifecycle event source
@@ -23,8 +24,8 @@ pub mod http_api;
 pub mod media;
 pub mod monitor;
 pub mod notification;
-pub mod port_guard;
 pub mod power;
+pub mod pump;
 pub mod speed;
 pub mod stat;
 
@@ -32,7 +33,6 @@ use crate::engine::{non_hot_reloadable_keys, supported_engine_keys};
 use crate::error::AppError;
 use crate::services::tasks::TaskServiceState;
 use config::RuntimeConfigState;
-use port_guard::DEFAULT_RPC_PORT;
 use tauri::Manager;
 use tauri_plugin_store::StoreExt;
 
@@ -174,90 +174,31 @@ pub async fn on_engine_ready(app: &tauri::AppHandle) -> Result<(), AppError> {
     Ok(())
 }
 
-/// Stops any running background services and spawns fresh ones.
-///
-/// Safe to call multiple times — idempotent stop + fresh spawn.
+/// Replaces the services bound to the engine process with fresh ones.
 async fn spawn_background_services(app: &tauri::AppHandle) {
-    use bt_blocklist::{self, BtPeerBlocklistServiceState};
-    use monitor::{self, TaskMonitorState};
-    use speed::{self, SpeedSchedulerState};
-    use stat::{self, StatServiceState};
-
-    let aria2_arc = match app.try_state::<TaskServiceState>() {
-        Some(s) => s.0.clone(),
-        None => {
-            log::warn!("runtime_services: TaskServiceState not available, skipping service spawn");
-            return;
-        }
+    let Some(aria2) = app
+        .try_state::<TaskServiceState>()
+        .map(|state| state.0.clone())
+    else {
+        log::warn!("runtime_services: TaskServiceState not available, skipping service spawn");
+        return;
     };
+    stop_engine_services(app).await;
 
-    // Stop existing services (handles restart scenario)
-    if let Some(ss) = app.try_state::<StatServiceState>() {
-        let old = {
-            let mut guard = ss.0.lock().await;
-            guard.take()
-        };
-        if let Some(old) = old {
-            old.stop().await;
-            log::debug!("runtime_services: stopped old stat_service");
-        }
+    if let Some(pump) = app.try_state::<std::sync::Arc<pump::Pump>>() {
+        pump.start(app.clone(), aria2.clone());
     }
-    if let Some(ss) = app.try_state::<SpeedSchedulerState>() {
-        let mut guard = ss.0.lock().await;
-        if let Some(old) = guard.take() {
-            old.stop();
-            log::debug!("runtime_services: stopped old speed_scheduler");
-        }
+    if let Some(state) = app.try_state::<speed::SpeedSchedulerState>() {
+        *state.0.lock().await = Some(speed::spawn_speed_scheduler(app.clone(), aria2.clone()));
     }
-    if let Some(ts) = app.try_state::<TaskMonitorState>() {
-        let mut guard = ts.0.lock().await;
-        if let Some(old) = guard.take() {
-            old.stop();
-            log::debug!("runtime_services: stopped old task_monitor");
-        }
+    if let Some(state) = app.try_state::<bt_blocklist::BtPeerBlocklistServiceState>() {
+        *state.0.lock().await = Some(bt_blocklist::spawn_bt_peer_blocklist_service(
+            app.clone(),
+            aria2.clone(),
+        ));
     }
-    if let Some(es) = app.try_state::<aria2_events::Aria2EventState>() {
-        let mut guard = es.0.lock().await;
-        if let Some(old) = guard.take() {
-            old.stop();
-            log::debug!("runtime_services: stopped old aria2_event_listener");
-        }
-    }
-    if let Some(bs) = app.try_state::<BtPeerBlocklistServiceState>() {
-        let mut guard = bs.0.lock().await;
-        if let Some(old) = guard.take() {
-            old.stop();
-            log::debug!("runtime_services: stopped old bt_peer_blocklist service");
-        }
-    }
-
-    // Spawn fresh services
-    let stat_handle = stat::spawn_stat_service(app.clone(), aria2_arc.clone());
-    if let Some(ss) = app.try_state::<StatServiceState>() {
-        *ss.0.lock().await = Some(stat_handle);
-    }
-
-    let scheduler_handle = speed::spawn_speed_scheduler(app.clone(), aria2_arc.clone());
-    if let Some(ss) = app.try_state::<SpeedSchedulerState>() {
-        *ss.0.lock().await = Some(scheduler_handle);
-    }
-
-    let blocklist_handle =
-        bt_blocklist::spawn_bt_peer_blocklist_service(app.clone(), aria2_arc.clone());
-    if let Some(bs) = app.try_state::<BtPeerBlocklistServiceState>() {
-        *bs.0.lock().await = Some(blocklist_handle);
-    }
-
-    let monitor_handle = monitor::spawn_task_monitor(app.clone(), aria2_arc);
-    if let Some(ts) = app.try_state::<TaskMonitorState>() {
-        *ts.0.lock().await = Some(monitor_handle);
-    }
-
-    if let Some(aria2) = app.try_state::<TaskServiceState>() {
-        let event_handle = aria2_events::spawn_aria2_event_listener(app.clone(), aria2.0.clone());
-        if let Some(es) = app.try_state::<aria2_events::Aria2EventState>() {
-            *es.0.lock().await = Some(event_handle);
-        }
+    if let Some(state) = app.try_state::<aria2_events::Aria2EventState>() {
+        *state.0.lock().await = Some(aria2_events::spawn_aria2_event_listener(app.clone(), aria2));
     }
 
     // HTTP API — keep running across engine restarts.  Idempotent: skips
@@ -283,35 +224,21 @@ async fn spawn_background_services(app: &tauri::AppHandle) {
                     log::warn!(
                         "runtime_services: HTTP API bind failed on port {desired_port}: {e}"
                     );
-                    port_guard::emit_bind_failed(
-                        app,
-                        port_guard::PortKind::ExtensionApi,
-                        desired_port,
-                        port_guard::PortSwitchFailureSource::Startup,
-                    );
+                    http_api::emit_bind_failed(app, desired_port);
                 }
             }
         }
     }
 
-    log::info!(
-        "runtime_services: spawned stat_service + speed_scheduler + task_monitor + bt_peer_blocklist"
-    );
+    log::info!("runtime_services: spawned pump + speed_scheduler + events + bt_peer_blocklist");
 }
 
 /// Stops every service whose lifetime is bound to the engine process.
 pub async fn stop_engine_services(app: &tauri::AppHandle) {
-    if let Some(state) = app.try_state::<stat::StatServiceState>() {
-        if let Some(handle) = state.0.lock().await.take() {
-            handle.stop().await;
-        }
+    if let Some(pump) = app.try_state::<std::sync::Arc<pump::Pump>>() {
+        pump.stop().await;
     }
     if let Some(state) = app.try_state::<speed::SpeedSchedulerState>() {
-        if let Some(handle) = state.0.lock().await.take() {
-            handle.stop();
-        }
-    }
-    if let Some(state) = app.try_state::<monitor::TaskMonitorState>() {
         if let Some(handle) = state.0.lock().await.take() {
             handle.stop();
         }
@@ -345,7 +272,12 @@ fn read_engine_credentials(app: &tauri::AppHandle) -> Result<(u16, String), AppE
                     .or_else(|| v.as_str().and_then(|s| s.parse().ok()))
             })
         })
-        .unwrap_or(DEFAULT_RPC_PORT);
+        .unwrap_or(crate::engine::DEFAULT_RPC_PORT);
+    // The engine may run on another port when the configured one was taken.
+    let port = app
+        .try_state::<crate::engine::EngineState>()
+        .and_then(|state| state.rpc_port())
+        .unwrap_or(port);
 
     let secret = prefs
         .as_ref()

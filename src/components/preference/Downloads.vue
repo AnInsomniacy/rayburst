@@ -378,14 +378,6 @@ onMounted(async () => {
           />
           <NText depth="3" class="pref-inline-note">{{ t('preferences.unit-seconds') }}</NText>
         </NFormItem>
-        <NFormItem>
-          <template #label
-            ><PreferenceHintLabel
-              :label="t('preferences.stream-max-range-size')"
-              :hint="t('preferences.stream-max-range-size-hint')"
-          /></template>
-          <NInput v-model:value="form.streamMaxRangeSize" class="pref-control-auto" placeholder="0" />
-        </NFormItem>
         <NFormItem :label="t('preferences.continue')">
           <NSwitch v-model:value="form.continue" />
         </NFormItem>

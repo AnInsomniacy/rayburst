@@ -35,7 +35,7 @@ vi.mock('@/stores/history', () => ({
 // ── Helpers ────────────────────────────────────────────────────────
 
 function createMockApi(): TaskApi {
-  return {
+  const api = {
     fetchTaskList: vi.fn().mockResolvedValue([]),
     fetchTaskItem: vi.fn().mockResolvedValue({}),
     fetchTaskItemWithPeers: vi.fn().mockResolvedValue({}),
@@ -60,7 +60,13 @@ function createMockApi(): TaskApi {
     removeTaskRecord: vi.fn().mockResolvedValue('OK'),
     purgeTaskRecords: vi.fn().mockResolvedValue(undefined),
     saveSession: vi.fn().mockResolvedValue('OK'),
+    // The pump's snapshot reads the same engine list.
+    refreshTasks: vi.fn(async () => ({
+      stat: { downloadSpeed: 0, uploadSpeed: 0, numActive: 0, numWaiting: 0, numStopped: 0, numStoppedTotal: 0 },
+      tasks: await api.fetchTaskList({ type: 'all' }),
+    })),
   }
+  return api
 }
 
 function makeTask(overrides: Record<string, unknown> = {}): Aria2Task {

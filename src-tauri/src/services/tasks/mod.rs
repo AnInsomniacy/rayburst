@@ -22,14 +22,6 @@ pub struct TaskService {
 }
 pub struct TaskServiceState(pub Arc<TaskService>);
 
-pub const TASKS_CHANGED: &str = "tasks:changed";
-
-pub fn notify_changed(app: &tauri::AppHandle, gid: &str) {
-    use tauri::Emitter;
-    if let Err(error) = app.emit(TASKS_CHANGED, serde_json::json!({ "gid": gid })) {
-        log::warn!("tasks: failed to publish task change: {error}");
-    }
-}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResumeEligibleResult {
@@ -149,10 +141,42 @@ impl TaskService {
     }
 
     async fn raw_task_snapshot(&self, include_stopped: bool) -> Result<Vec<Aria2Task>, AppError> {
-        // aria2 clamps the requested range to the queue length, without allocating
-        // the requested capacity. Avoid silently dropping tasks after entry 1000.
+        Ok(self.raw_snapshot(include_stopped).await?.1)
+    }
+
+    /// Global statistics and the visible task queues from one engine read;
+    /// the counts exclude internal tasks.
+    pub async fn snapshot(
+        &self,
+        include_stopped: bool,
+    ) -> Result<(Aria2GlobalStat, Vec<Aria2Task>), AppError> {
+        let (mut stat, tasks) = self.raw_snapshot(include_stopped).await?;
+        let internal = self.tasks.has_internal().await;
+        let tasks = self.tasks.visible_tasks(tasks).await;
+        if internal {
+            let count = |states: &[&str]| {
+                tasks
+                    .iter()
+                    .filter(|task| states.contains(&task.status.as_str()))
+                    .count()
+                    .to_string()
+            };
+            stat.num_active = count(&["active"]);
+            stat.num_waiting = count(&["waiting", "paused"]);
+        }
+        Ok((stat, tasks))
+    }
+
+    /// One multicall: getGlobalStat, tellActive, tellWaiting and optionally
+    /// tellStopped. aria2 clamps the ranges to the queue lengths without
+    /// allocating the requested capacity.
+    async fn raw_snapshot(
+        &self,
+        include_stopped: bool,
+    ) -> Result<(Aria2GlobalStat, Vec<Aria2Task>), AppError> {
         let range = vec![0.into(), i32::MAX.into()];
         let mut calls = vec![
+            ("getGlobalStat".into(), vec![]),
             ("tellActive".into(), vec![]),
             ("tellWaiting".into(), range.clone()),
         ];
@@ -164,22 +188,30 @@ impl TaskService {
         if results.len() != expected {
             return Err(AppError::Aria2("Incomplete task snapshot".into()));
         }
+        let invalid = |detail: String| AppError::Aria2(format!("Invalid task snapshot: {detail}"));
+        let mut values = Vec::with_capacity(expected);
+        for result in results {
+            match result {
+                serde_json::Value::Array(mut row) if row.len() == 1 => {
+                    values.push(row.pop().unwrap_or_default())
+                }
+                other => return Err(invalid(other.to_string())),
+            }
+        }
+        let mut values = values.into_iter();
+        let stat: Aria2GlobalStat = serde_json::from_value(values.next().unwrap_or_default())
+            .map_err(|error| invalid(error.to_string()))?;
         let mut tasks = Vec::new();
         let mut seen = std::collections::HashSet::new();
-        for result in results {
-            let value = result
-                .as_array()
-                .filter(|row| row.len() == 1)
-                .and_then(|row| row.first())
-                .ok_or_else(|| AppError::Aria2(format!("Invalid task snapshot: {result}")))?;
-            let page: Vec<Aria2Task> = serde_json::from_value(value.clone())
-                .map_err(|error| AppError::Aria2(format!("Invalid task snapshot: {error}")))?;
+        for value in values {
+            let page: Vec<Aria2Task> =
+                serde_json::from_value(value).map_err(|error| invalid(error.to_string()))?;
             tasks.extend(
                 page.into_iter()
                     .filter(|task| seen.insert(task.gid.clone())),
             );
         }
-        Ok(tasks)
+        Ok((stat, tasks))
     }
 
     /// Returns waiting tasks starting at `offset` up to `num` entries.
@@ -362,6 +394,25 @@ impl TaskService {
             crate::proxy_bypass::normalize_options(options)?;
         }
         self.call("addUri", vec![serde_json::json!(uris), opts])
+            .await
+    }
+
+    /// Requests the first byte of `url` the way a task with `opts` would.
+    pub async fn probe(
+        &self,
+        url: &str,
+        mut opts: serde_json::Value,
+    ) -> Result<Aria2Probe, AppError> {
+        if let Some(options) = opts.as_object_mut() {
+            crate::proxy_bypass::normalize_options(options)?;
+        }
+        // The engine answers within 20 s.
+        self.rpc
+            .call_within(
+                "aria2.probe",
+                vec![url.into(), opts],
+                std::time::Duration::from_secs(25),
+            )
             .await
     }
 
