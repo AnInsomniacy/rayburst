@@ -123,13 +123,13 @@ and stays outside download lists, history, notifications and bulk resume/pause.
 Confirmation validates native track IDs and starts that GID without another desktop
 selection dialog. Native container/codec validation remains authoritative.
 
-`media-operations.db` stores bounded operation identities and submission receipts
-using SQLite transactions. It contains request fingerprints, not source URLs or
-browser credentials. Inspections expire after five minutes; cancellation tombstones
-and submission receipts remain for at least 24 hours. Repeated submissions return
-the same GID. A lost RPC reply preserves the submission intent for reconciliation.
-Restart invalidates unsubmitted inspections and preserves acknowledged submissions.
-The journal has its own native lifecycle and does not require the history webview.
+Operations live in memory, bounded to 8 active and 4096 retained. Inspections
+expire after five minutes; cancellation tombstones and submission receipts remain
+for ten minutes, so repeated submissions return the same GID. A lost RPC reply keeps
+the submission intent, which maintenance completes on the same GID. Nothing is
+persisted: the hidden engine task is the durable part. After a desktop restart an
+unsubmitted inspection appears in the task list awaiting selection, and the
+extension's next request for the operation answers `not_found`.
 
 Transport ambiguity returns HTTP 503; the current extension preserves its operation
 identity on that response and can reconcile by polling. It does not mean that the
@@ -144,7 +144,7 @@ contract's terminal error codes. No legacy media endpoints or raw RPC proxy exis
   automatic selection and browser submissions.
 - `services/tasks/policy.rs` owns probe visibility and automatic-selection admission.
 - `media/runtime.rs` binds the service to Tauri and publishes confirmed events.
-- `media/journal.rs` persists operation identities and receipts using SQLite.
+- `media/operation.rs` defines operation state and its wire representation.
 
 The wire state `submitting` includes the immutable submission ID. Clients keep
 polling the same operation while native confirmation is unresolved. Inspection
@@ -173,7 +173,7 @@ FFmpeg, external downloader or new transcoding process.
 Capture files are stored under the application local-data directory. Hourly cleanup
 removes unclaimed captures older than 24 hours, retaining inputs referenced by
 pending native tasks. A failed inventory skips deletion. Capture IDs are recorded
-with operation receipts; raw bytes and keys are excluded from history.
+with their operations; raw bytes and keys are excluded from history.
 
 The managed engine RPC request limit is 16 MiB to accommodate bounded inline
 manifests after JSON encoding. The extension API JSON limit is 4 MiB. Compile the

@@ -12,17 +12,16 @@ Rayburst does **not** collect, store, or transmit telemetry, analytics, usage pr
 
 Application data is stored locally on your device and is not synced by Rayburst:
 
-| Data                  | Location                                | Purpose                                     |
-| --------------------- | --------------------------------------- | ------------------------------------------- |
-| Preferences           | `config.json` (app data directory)      | User settings                               |
-| Engine options        | `system.json` (app data directory)      | Aria2 Next runtime configuration            |
-| Download history      | `history.db` (local SQLite database)    | Task records                                |
-| Engine task manifest  | `download.session` (app data directory) | Restore the task list                       |
-| Engine transfer state | `engine/state` (app data directory)     | Restore protocol progress and sharing state |
-| Media receipts        | `media-operations.db` (app local-data directory) | Reconcile media submissions |
-| Browser captures      | `media-captures/` (app local-data directory) | Store captured media for native processing |
-| Application logs      | app log directory                       | Diagnostics and troubleshooting             |
-| Download files        | User-specified directory                | Downloaded content                          |
+| Data                  | Location                                     | Purpose                                     |
+| --------------------- | -------------------------------------------- | ------------------------------------------- |
+| Preferences           | `config.json` (app data directory)           | User settings                               |
+| Engine options        | `system.json` (app data directory)           | Aria2 Next runtime configuration            |
+| Download history      | `history.db` (local SQLite database)         | Task records                                |
+| Engine task manifest  | `download.session` (app data directory)      | Restore the task list                       |
+| Engine transfer state | `engine/state` (app data directory)          | Restore protocol progress and sharing state |
+| Browser captures      | `media-captures/` (app local-data directory) | Store captured media for native processing  |
+| Application logs      | app log directory                            | Diagnostics and troubleshooting             |
+| Download files        | User-specified directory                     | Downloaded content                          |
 
 Diagnostic log exports are created only when the user chooses **Advanced Settings → Export Diagnostic Logs**. The exported ZIP contains the Rayburst and Aria2 Next logs plus `diagnostics.json`, which combines system/runtime metadata with sanitized configuration. RPC secrets, Extension API secrets, cookies, and proxy credentials are redacted before export.
 

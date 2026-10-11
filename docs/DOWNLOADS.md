@@ -6,12 +6,12 @@ workspace. No shared runtime package or cross-repository test harness is require
 
 ## Responsibilities
 
-| Owner             | Responsibility                                                                                                           |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Browser extension | Intercept browser intent, capture observed names and request context, preserve handoff identity until a receipt arrives. |
-| Rust desktop      | Apply application preferences, manage confirmation and submission receipts, create/control tasks and persist history.    |
-| Vue desktop       | Edit user intent, present native task state, select content and invoke named commands.                                   |
-| Aria2 Next        | Resolve final output names and paths, handle conflicts and recovery, transfer data and publish completed media.          |
+| Owner             | Responsibility                                                                                                             |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Browser extension | Intercept browser intent, capture observed names and request context, hold the browser download until the desktop answers. |
+| Rust desktop      | Apply application preferences, verify handoffs with the engine, hold confirmations, create/control tasks, persist history. |
+| Vue desktop       | Edit user intent, present native task state, select content and invoke named commands.                                     |
+| Aria2 Next        | Resolve final output names and paths, handle conflicts and recovery, transfer data and publish completed media.            |
 
 `aria2/rpc.rs` owns HTTP JSON-RPC framing, authentication and structured errors.
 `services/tasks/` owns task queries, controls and visibility policy.
@@ -64,62 +64,67 @@ The existing aria2 header parser and libcurl handle protocol decoding. A bounded
 encoded-word adapter is confined to HTTP header values from nonconforming servers;
 it is not a general charset detector or a second pass over browser names.
 
-## Ordinary browser API, protocol 2
+## Ordinary browser API, protocol 3
 
 The desktop owns the contract in `services/downloads/contracts.rs`. The extension
 validates the fields it consumes in its own repository. Both endpoints use the
 configured Extension API authentication and origin policy; the body limit is 256 KiB.
 
-`GET /downloads/capabilities` returns:
-
-```json
-{ "protocolVersion": 2, "filenameHints": true }
-```
-
-This requires the running engine's `downloadFeatures` to contain `filename-hints`.
-A client must check support before its first mutation. Old `/add` responses are not
-accepted and there is no legacy fallback protocol.
+`GET /downloads/capabilities` answers `{ "product": "rayburst", "protocolVersion": 3 }`
+once the engine responds. A client checks it before each handoff; there is no legacy
+fallback protocol.
 
 `POST /add` accepts this shape (optional fields may be omitted):
 
 ```json
 {
-  "id": "49d78689-14a7-4761-8695-23df58c3605d",
   "url": "https://example.com/download",
   "filename": "report%20.pdf",
   "filenameSource": "browser",
-  "requestHeaders": []
+  "requestHeaders": [],
+  "verify": true,
+  "mime": "application/pdf",
+  "size": 1048576
 }
 ```
 
-`id` is 1–128 ASCII letters, digits, hyphens or colons. Optional fields are
-`finalUrl`, `referer`, `cookie`, `userAgent`, `filename`, `filenameSource`
-(`browser` or `suggested`, default `suggested`), and `requestHeaders`
-(`{name,value}` pairs). Supported inputs are HTTP(S), SFTP, magnet, ED2K and Thunder;
-the engine's aria2 compatibility adapter remains responsible for legacy link formats.
+Optional fields are `finalUrl`, `referer`, `cookie`, `userAgent`, `filename`,
+`filenameSource` (`browser` or `suggested`, default `suggested`), `requestHeaders`
+(`{name,value}` pairs) and, for downloads the browser holds, `verify` with the MIME
+type and size the browser received. Supported inputs are HTTP(S), SFTP, magnet, ED2K
+and Thunder.
 
-A receipt always echoes `id`. Its `action` is `submitted` (with `gid`),
-`needs-confirmation`, or `cancelled`. `needs-confirmation` acknowledges a persisted
-intent, not task creation. Submitted means the engine task/session and native receipt
-have been saved. A replay with the same ID/body retains the GID; a different body
-with that ID returns 409. Invalid input returns 400; unresolved native/storage work
-returns 503. A lost reply is not proof that task creation failed.
+The browser keeps holding its download until the answer, and only the answer
+decides who downloads it:
 
-The browser retains unresolved requests in native `storage.session` and replays the
-same ID on worker startup, only against the original connection. Session storage
-survives worker suspension, not browser restart or extension reload. After an
-ambiguous POST, it does not start a second browser download. Definitive preflight
-failures may use the existing browser fallback.
+- `{ "action": "added", "gid": … }`: the engine owns the download.
+- `{ "action": "cancelled" }`: the user declined it in the add dialog.
+- `{ "action": "fallback", "reason": … }`: the browser continues. Reasons are
+  `unreachable` (no response), `rejected` (HTTP error), `web-page` (the engine got
+  HTML where the browser got a file, typically a missing session), `size-mismatch`
+  and `unconfirmed` (the dialog was not answered within 120 s).
+
+With `verify`, the engine requests the first byte of the URL with the browser's
+request context (`aria2.probe`) before anything is created. With the confirm
+behavior, or for `.torrent` links, the request stays open while the add dialog shows
+the download; closing the dialog answers `cancelled`, and a request that times out
+or whose extension disconnects is withdrawn from the dialog. Nothing is persisted:
+an error or a lost answer leaves the download to the browser, so no download is
+lost. Invalid input returns 400; an unavailable engine returns 503.
+
+`GET /tasks` lists unfinished tasks in queue order and the ten latest finished
+ones with the global statistics; `POST /tasks/{gid}/pause` and `…/resume` control
+one task. These serve the extension popup.
 
 ## Native storage and recovery
 
 `database/` is the single connection owner for `history.db`: history, birth records,
-HTTP credentials and ordinary submission receipts. `schema.sql` defines the current
+HTTP credentials, rename journal and BitTorrent selections. `schema.sql` defines the current
 schema; `PRAGMA user_version` records it. Initialization runs from Rust startup.
-Frontend stores expose named IPC operations and never execute SQL. The media
-operation journal remains separate because it has a different lifecycle and lease.
+Frontend stores expose named IPC operations and never execute SQL. Media
+operations live in memory; their hidden engine task is the durable part.
 
-SQLite transactions serialize history page/count queries and submission updates.
+SQLite transactions serialize history page/count queries.
 History snapshots are unordered; the task store owns presentation sorting and reuses
 the snapshot during periodic live refreshes. Only explicit invalidation reloads history.
 Database browsing uses indexed default ordering with an ID tie-breaker for stable pages.
@@ -127,11 +132,6 @@ The current database layout is retained when opening existing data; unsupported
 layouts fail explicitly. There is no legacy migration runner or automatic reset.
 Only the user's explicit reset removes the database.
 
-Pending confirmations retain the request locally so desktop restart can reopen them.
-Submitting or cancelling clears that request body, including browser credentials.
-Receipts retain request ID, fingerprint, GID and state until the database is reset.
-These identities prevent retries from creating another task after a lost reply.
-They are not a distributed transaction across arbitrary machine power loss.
 Saved HTTP passwords remain plaintext local data as before and are never URL decoded.
 
 ## Save locations and task files
@@ -201,7 +201,7 @@ requests without that header are rejected. Native clients without an Origin head
 continue to authenticate with the Extension API secret.
 
 The `rayburst://` scheme activates the desktop only. It never creates a download or
-transports cookies. Downloads use the authenticated HTTP handoff and its receipts.
+transports cookies. Downloads use the authenticated HTTP handoff.
 
 ## Activation and installation
 
@@ -212,7 +212,7 @@ key. Protocol state is included in the Windows diagnostic export.
 
 All native wake requests use one serialized background window creation path.
 WebView readiness controls delivery of pending UI actions; creating a window never
-blocks a browser download receipt. Non-silent automatic submissions honor the
+blocks a browser handoff answer. Non-silent automatic submissions honor the
 Open Downloads preference.
 
 The engine receives `stop-with-process` for the desktop PID. Windows installer hooks
