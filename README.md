@@ -110,7 +110,7 @@ chmod +x Rayburst_x.x.x_amd64.AppImage
 ./Rayburst_x.x.x_amd64.AppImage
 ```
 
-All formats are available for both x64 and ARM64.
+All formats are available for both x64 and ARM64. If the window is blank, partly drawn or does not appear, see [Linux display problems](docs/LINUX.md).
 
 **Flatpak (FlatPark, x64):**
 
