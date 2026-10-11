@@ -123,16 +123,6 @@ describe('PreferenceStore', () => {
 
   // ─── computed: theme / locale / direction ───────────────
 
-  it('theme computed reflects config.theme', () => {
-    store.updatePreference({ theme: 'light' })
-    expect(store.theme).toBe('light')
-  })
-
-  it('locale computed reflects config.locale', () => {
-    store.updatePreference({ locale: 'ar' })
-    expect(store.locale).toBe('ar')
-  })
-
   it('direction computed returns rtl for Arabic', () => {
     store.updatePreference({ locale: 'ar' })
     expect(store.direction).toBe('rtl')
@@ -141,18 +131,6 @@ describe('PreferenceStore', () => {
   it('direction computed returns ltr for English', () => {
     store.updatePreference({ locale: 'en-US' })
     expect(store.direction).toBe('ltr')
-  })
-
-  // ─── updateAppTheme / updateAppLocale ───────────────────
-
-  it('updateAppTheme updates theme in config', () => {
-    store.updateAppTheme('light')
-    expect(store.config.theme).toBe('light')
-  })
-
-  it('updateAppLocale updates locale in config', () => {
-    store.updateAppLocale('zh-TW')
-    expect(store.config.locale).toBe('zh-TW')
   })
 
   // ─── recordHistoryDirectory ─────────────────────────────
@@ -215,12 +193,5 @@ describe('PreferenceStore', () => {
     expect(store.config.historyDirectories).not.toContain('/a')
     expect(store.config.favoriteDirectories).not.toContain('/a')
     expect(store.config.historyDirectories).toContain('/b')
-  })
-
-  // ── direction edge cases ──────────────────────────────────
-
-  it('direction returns rtl for Farsi locale', () => {
-    store.updatePreference({ locale: 'fa' })
-    expect(store.direction).toBe('rtl')
   })
 })

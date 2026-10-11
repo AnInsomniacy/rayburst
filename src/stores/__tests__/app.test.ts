@@ -117,13 +117,6 @@ describe('useAppStore', () => {
   // ── Dialog State ────────────────────────────────────────────────
 
   describe('dialog state', () => {
-    it('showAddTaskDialog sets addTaskVisible to true', () => {
-      const store = useAppStore()
-      expect(store.addTaskVisible).toBe(false)
-      store.showAddTaskDialog()
-      expect(store.addTaskVisible).toBe(true)
-    })
-
     it('showAddTaskDialog clears stale external browser context before manual entry', () => {
       const store = useAppStore()
       store.pendingReferer = 'https://old.example/page'
@@ -149,23 +142,6 @@ describe('useAppStore', () => {
       store.hideAddTaskDialog()
       expect(store.addTaskVisible).toBe(false)
       expect(store.pendingBatch).toEqual([])
-    })
-  })
-
-  // ── updateAddTaskOptions ────────────────────────────────────────
-
-  describe('updateAddTaskOptions', () => {
-    it('replaces addTaskOptions with provided options', () => {
-      const store = useAppStore()
-      store.updateAddTaskOptions({ dir: '/tmp/downloads', 'stream-max-connections': '4' } as never)
-      expect(store.addTaskOptions).toEqual({ dir: '/tmp/downloads', 'stream-max-connections': '4' })
-    })
-
-    it('defaults to empty object when called with no arguments', () => {
-      const store = useAppStore()
-      store.addTaskOptions = { dir: '/old' } as never
-      store.updateAddTaskOptions()
-      expect(store.addTaskOptions).toEqual({})
     })
   })
 

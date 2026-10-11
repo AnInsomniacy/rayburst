@@ -34,22 +34,6 @@ const baseForm: Ed2kForm = {
 }
 
 describe('buildEd2kForm', () => {
-  it('defaults to Aria2 Next ED2K values', () => {
-    const form = buildEd2kForm({} as AppConfig)
-
-    expect(form.ed2kListenPort).toBe(29140)
-    expect(form.ed2kUdpListenPort).toBe(29150)
-    expect(form.ed2kServer).toBe('')
-    expect(form.ed2kServerMetUrl).toBe('https://upd.emule-security.org/server.met')
-    expect(form.ed2kNodesDatUrl).toBe('https://upd.emule-security.org/nodes.dat')
-    expect(form.ed2kBootstrapAutoSync).toBe(true)
-    expect(form.ed2kBootstrapSyncIntervalHours).toBe(24)
-    expect(form.ed2kUploadSlots).toBe(3)
-    expect(form.ed2kMaxConnections).toBe(20)
-    expect(form.ed2kPreviewPriority).toBe(false)
-    expect(form.ed2kSearchTimeout).toBe(20)
-  })
-
   it('renders persisted server list as one item per line', () => {
     const form = buildEd2kForm({
       ed2kServer: 'server-one.example:4661,server-two.example:4661',

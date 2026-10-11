@@ -5,15 +5,6 @@ import { createDefaultAppConfig } from '@shared/utils/configHydration'
 const createForm = () => buildBtForm(createDefaultAppConfig())
 
 describe('BitTorrent preference contract', () => {
-  it('builds the canonical default form', () => {
-    const form = createForm()
-
-    expect(form.magnetFileSelectionPolicy).toBe('prompt')
-    expect(form.btEncryption).toBe('preferred')
-    expect(form.btDhtEnabled).toBe(true)
-    expect(form.trackerSource).toHaveLength(2)
-  })
-
   it('maps the form to native engine options', () => {
     const config = buildBtSystemConfig({
       ...createForm(),

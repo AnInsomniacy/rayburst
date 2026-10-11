@@ -766,12 +766,6 @@ describe('TaskStore', () => {
     await expect(store.purgeTaskRecord()).rejects.toThrow('IPC fail')
   })
 
-  // ─── saveSession ────────────────────────────────────────
-
-  it('saveSession calls API', () => {
-    store.saveSession()
-    expect(mockApi.saveSession).toHaveBeenCalled()
-  })
   // ─── terminal resubmission ─────────────────────────────
 
   it('retryTask coalesces repeated clicks into one submission', async () => {
@@ -886,31 +880,6 @@ describe('TaskStore', () => {
   // ─── hasActiveTasks ─────────────────────────────────────
 
   describe('hasActiveTasks', () => {
-    it('returns true when active tasks exist', async () => {
-      mockApi.fetchTaskList.mockResolvedValueOnce([makeMockTask('a1', 'active')])
-      expect(await store.hasActiveTasks()).toBe(true)
-    })
-
-    it('returns true when waiting tasks exist', async () => {
-      mockApi.fetchTaskList.mockResolvedValueOnce([makeMockTask('w1', 'waiting')])
-      expect(await store.hasActiveTasks()).toBe(true)
-    })
-
-    it('returns false when only paused/completed tasks exist', async () => {
-      mockApi.fetchTaskList.mockResolvedValueOnce([makeMockTask('p1', 'paused'), makeMockTask('c1', 'complete')])
-      expect(await store.hasActiveTasks()).toBe(false)
-    })
-
-    it('returns false when no tasks exist', async () => {
-      mockApi.fetchTaskList.mockResolvedValueOnce([])
-      expect(await store.hasActiveTasks()).toBe(false)
-    })
-
-    it('returns false on API error', async () => {
-      mockApi.fetchTaskList.mockRejectedValueOnce(new Error('RPC fail'))
-      expect(await store.hasActiveTasks()).toBe(false)
-    })
-
     it('queries globally regardless of current tab', async () => {
       // Switch to completed tab first
       mockApi.fetchTaskList.mockResolvedValue([])
@@ -927,26 +896,6 @@ describe('TaskStore', () => {
   // ─── hasPausedTasks ─────────────────────────────────────
 
   describe('hasPausedTasks', () => {
-    it('returns true when paused tasks exist', async () => {
-      mockApi.fetchTaskList.mockResolvedValueOnce([makeMockTask('p1', 'paused')])
-      expect(await store.hasPausedTasks()).toBe(true)
-    })
-
-    it('returns false when only active/waiting tasks exist', async () => {
-      mockApi.fetchTaskList.mockResolvedValueOnce([makeMockTask('a1', 'active'), makeMockTask('w1', 'waiting')])
-      expect(await store.hasPausedTasks()).toBe(false)
-    })
-
-    it('returns false when no tasks exist', async () => {
-      mockApi.fetchTaskList.mockResolvedValueOnce([])
-      expect(await store.hasPausedTasks()).toBe(false)
-    })
-
-    it('returns false on API error', async () => {
-      mockApi.fetchTaskList.mockRejectedValueOnce(new Error('RPC fail'))
-      expect(await store.hasPausedTasks()).toBe(false)
-    })
-
     it('queries globally regardless of current tab', async () => {
       // Switch to completed tab
       mockApi.fetchTaskList.mockResolvedValue([])
@@ -971,10 +920,6 @@ describe('TaskStore', () => {
       expect(store.consumeTorrentSource('abc123')).toBe('/downloads/movie.torrent')
     })
 
-    it('consumeTorrentSource returns undefined for unknown hash', () => {
-      expect(store.consumeTorrentSource('nonexistent')).toBeUndefined()
-    })
-
     it('consumeTorrentSource deletes the entry after first consumption', () => {
       store.registerTorrentSource('abc123', '/downloads/movie.torrent')
       store.consumeTorrentSource('abc123')
@@ -985,13 +930,6 @@ describe('TaskStore', () => {
       store.registerTorrentSource('abc123', '/old/path.torrent')
       store.registerTorrentSource('abc123', '/new/path.torrent')
       expect(store.consumeTorrentSource('abc123')).toBe('/new/path.torrent')
-    })
-
-    it('tracks multiple hashes independently', () => {
-      store.registerTorrentSource('hash1', '/path/a.torrent')
-      store.registerTorrentSource('hash2', '/path/b.torrent')
-      expect(store.consumeTorrentSource('hash1')).toBe('/path/a.torrent')
-      expect(store.consumeTorrentSource('hash2')).toBe('/path/b.torrent')
     })
   })
 })

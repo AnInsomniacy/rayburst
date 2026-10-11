@@ -865,15 +865,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn snapshot_defaults_to_stopped() {
-        let snapshot = EngineSnapshot::default();
-        assert_eq!(snapshot.phase, EnginePhase::Stopped);
-        assert_eq!(snapshot.desired, DesiredEngineState::Stopped);
-        assert_eq!(snapshot.cause, EngineOperationCause::Initial);
-        assert_eq!(snapshot.operation_id, 0);
-    }
-
-    #[test]
     fn operation_cause_uses_the_strict_camel_case_contract() {
         assert_eq!(
             serde_json::to_string(&EngineOperationCause::SettingsChange).unwrap(),

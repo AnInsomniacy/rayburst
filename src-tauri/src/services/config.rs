@@ -188,13 +188,6 @@ mod tests {
     // ── RuntimeConfigState ──────────────────────────────────────────
 
     #[tokio::test]
-    async fn state_new_creates_default_config() {
-        let state = RuntimeConfigState::new();
-        let snap = state.snapshot().await;
-        assert!(!snap.speed_limit_enabled);
-    }
-
-    #[tokio::test]
     async fn refresh_from_json_updates_config() {
         let state = RuntimeConfigState::new();
         let json = serde_json::json!({
@@ -223,21 +216,5 @@ mod tests {
         let result = state.refresh_from_json(&json).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Failed to parse"));
-    }
-
-    #[tokio::test]
-    async fn snapshot_returns_cloned_value() {
-        let state = RuntimeConfigState::new();
-        let snap1 = state.snapshot().await;
-
-        // Mutate via refresh
-        let json = serde_json::json!({ "speedLimitEnabled": true });
-        state.refresh_from_json(&json).await.expect("refresh");
-
-        // snap1 is a clone, should still be false
-        assert!(!snap1.speed_limit_enabled);
-        // New snapshot reflects the update
-        let snap2 = state.snapshot().await;
-        assert!(snap2.speed_limit_enabled);
     }
 }

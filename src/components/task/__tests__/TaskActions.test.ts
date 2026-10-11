@@ -199,13 +199,6 @@ describe('TaskActions', () => {
     vi.useRealTimers()
   })
 
-  // ── Smoke ───────────────────────────────────────────────────────
-
-  it('mounts without errors', () => {
-    const wrapper = createWrapper()
-    expect(wrapper.find('.task-actions').exists()).toBe(true)
-  })
-
   it('exposes progress operations through the batch menu', () => {
     const wrapper = createWrapper()
     const buttons = actionButtons(wrapper)

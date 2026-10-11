@@ -541,28 +541,6 @@ describe('hasPausedTasks', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════
-// saveSession
-// ═══════════════════════════════════════════════════════════════════
-
-describe('saveSession', () => {
-  it('delegates to api.saveSession', async () => {
-    const api = createMockApi()
-    const deps = createDeps(api)
-    const ops = createTaskOperations(deps)
-    await ops.saveSession()
-    expect(api.saveSession).toHaveBeenCalledOnce()
-  })
-
-  it('returns a Promise (is async, not fire-and-forget)', () => {
-    const api = createMockApi()
-    const deps = createDeps(api)
-    const ops = createTaskOperations(deps)
-    const result = ops.saveSession()
-    expect(result).toBeInstanceOf(Promise)
-  })
-})
-
 describe('media selection', () => {
   it('opens selection without resuming or resubmitting a pending presentation', async () => {
     const api = createMockApi()

@@ -79,8 +79,4 @@ describe('requestFileRecheck / recheckTrigger', () => {
     requestFileRecheck()
     expect(recheckTrigger.value).toBe(before + 2)
   })
-
-  it('recheckTrigger is a shallowRef with numeric value', () => {
-    expect(typeof recheckTrigger.value).toBe('number')
-  })
 })

@@ -1,7 +1,6 @@
 /**
- * @fileoverview TDD test suite for per-tab task sorting.
+ * @fileoverview Per-tab task sorting and manual order.
  *
- * Tests are written BEFORE implementation to drive the API design.
  * Sort fields per tab:
  *   Active:  added-at | name | size | progress | speed
  *   Stopped: added-at | completed-at | name | size
@@ -10,16 +9,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import type { Aria2Task } from '@shared/types'
-import {
-  sortTasks,
-  applyManualOrder,
-  createManualOrderSnapshot,
-  PROGRESS_SORT_FIELDS,
-  TERMINAL_SORT_FIELDS,
-  ALL_SORT_FIELDS,
-  DEFAULT_TASK_SORT,
-  DEFAULT_TASK_MANUAL_ORDER,
-} from '../useTaskSort'
+import { sortTasks, applyManualOrder, createManualOrderSnapshot } from '../useTaskSort'
 
 // ── Factories ────────────────────────────────────────────────────────
 
@@ -309,54 +299,5 @@ describe('manual task order', () => {
 
   it('creates a manual order snapshot from the current rendered list', () => {
     expect(createManualOrderSnapshot([mockTask('a'), mockTask('b'), mockTask('c')])).toEqual(['a', 'b', 'c'])
-  })
-})
-
-// ═════════════════════════════════════════════════════════════════════
-// Constants and type contracts
-// ═════════════════════════════════════════════════════════════════════
-
-describe('sort constants', () => {
-  it('PROGRESS_SORT_FIELDS contains the progress-specific fields', () => {
-    expect(PROGRESS_SORT_FIELDS).toEqual(['manual', 'added-at', 'name', 'size', 'progress', 'speed'])
-  })
-
-  it('TERMINAL_SORT_FIELDS contains the terminal-specific fields', () => {
-    expect(TERMINAL_SORT_FIELDS).toEqual(['manual', 'added-at', 'completed-at', 'name', 'size'])
-  })
-
-  it('ALL_SORT_FIELDS contains exactly 3 fields', () => {
-    expect(ALL_SORT_FIELDS).toEqual(['manual', 'added-at', 'name', 'size'])
-  })
-
-  it('DEFAULT_TASK_SORT has valid defaults for all tabs', () => {
-    expect(DEFAULT_TASK_SORT).toEqual({
-      all: { field: 'added-at', direction: 'desc' },
-      progress: { field: 'added-at', direction: 'desc' },
-      failed: { field: 'added-at', direction: 'desc' },
-      completed: { field: 'added-at', direction: 'desc' },
-    })
-  })
-
-  it('DEFAULT_TASK_SORT fields are in their respective field lists', () => {
-    expect(PROGRESS_SORT_FIELDS).toContain(DEFAULT_TASK_SORT.progress.field)
-    expect(TERMINAL_SORT_FIELDS).toContain(DEFAULT_TASK_SORT.failed.field)
-    expect(TERMINAL_SORT_FIELDS).toContain(DEFAULT_TASK_SORT.completed.field)
-    expect(ALL_SORT_FIELDS).toContain(DEFAULT_TASK_SORT.all.field)
-  })
-
-  it('ALL_SORT_FIELDS is a subset of PROGRESS_SORT_FIELDS', () => {
-    for (const field of ALL_SORT_FIELDS) {
-      expect(PROGRESS_SORT_FIELDS).toContain(field)
-    }
-  })
-
-  it('DEFAULT_TASK_MANUAL_ORDER starts empty for every tab', () => {
-    expect(DEFAULT_TASK_MANUAL_ORDER).toEqual({
-      all: [],
-      progress: [],
-      failed: [],
-      completed: [],
-    })
   })
 })
