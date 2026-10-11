@@ -22,6 +22,7 @@ pub(crate) struct Preferences {
     user_agent: String,
     user_agent_profiles: Vec<Profile>,
     user_agent_rules: Vec<Rule>,
+    site_rules: Vec<SiteRule>,
 }
 #[derive(Default, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -43,6 +44,15 @@ struct Rule {
     host_pattern: String,
     profile_id: String,
     override_plugin: bool,
+}
+
+/// Limits connections to the hosts of a site that bans parallel downloads.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SiteRule {
+    enabled: bool,
+    host_pattern: String,
+    max_connection_per_server: u32,
 }
 
 pub(crate) fn load(app: &AppHandle) -> Result<Preferences, AppError> {
@@ -76,6 +86,54 @@ fn matches(pattern: &str, value: &str) -> bool {
         .case_insensitive(true)
         .build()
         .is_ok_and(|matcher| matcher.is_match(value))
+}
+
+/// A pattern without `*` names a domain and its subdomains.
+fn host_matches(pattern: &str, host: &str) -> bool {
+    let pattern = pattern.trim().trim_end_matches('.');
+    if pattern.contains('*') {
+        return matches(pattern, host);
+    }
+    host.eq_ignore_ascii_case(pattern)
+        || host.len() > pattern.len()
+            && host.as_bytes()[host.len() - pattern.len() - 1] == b'.'
+            && host[host.len() - pattern.len()..].eq_ignore_ascii_case(pattern)
+}
+
+/// Caps connections per server for URIs on a host a site rule names. The
+/// strictest of the matching rules and an explicit task value wins.
+pub(super) fn apply_site_rules(prefs: &Preferences, uris: &[String], options: &mut Value) {
+    if !options.is_object() {
+        return;
+    }
+    let hosts: Vec<String> = uris
+        .iter()
+        .filter_map(|uri| url::Url::parse(uri).ok())
+        .filter_map(|url| url.host_str().map(str::to_owned))
+        .collect();
+    let Some(limit) = prefs
+        .site_rules
+        .iter()
+        .filter(|rule| rule.enabled && rule.max_connection_per_server > 0)
+        .filter(|rule| {
+            hosts
+                .iter()
+                .any(|host| host_matches(&rule.host_pattern, host))
+        })
+        .map(|rule| rule.max_connection_per_server)
+        .min()
+    else {
+        return;
+    };
+    let current = options
+        .get("max-connection-per-server")
+        .and_then(|value| match value {
+            Value::String(value) => value.parse::<u32>().ok(),
+            value => value.as_u64().and_then(|value| u32::try_from(value).ok()),
+        })
+        .filter(|value| *value > 0);
+    let limit = current.map_or(limit, |current| current.min(limit));
+    options["max-connection-per-server"] = limit.to_string().into();
 }
 
 pub(super) fn options(prefs: &Preferences, request: &AddRequest) -> Result<Value, AppError> {
@@ -238,6 +296,41 @@ mod tests {
         assert!(headers.contains(&"user-agent: Site agent"));
         assert!(headers.contains(&"cookie: session=current"));
         assert!(headers.contains(&"x-token: opaque"));
+    }
+
+    #[test]
+    fn site_rules_cap_connections_for_matching_hosts() {
+        let prefs: Preferences = serde_json::from_value(json!({
+            "siteRules":[
+                {"enabled":true,"hostPattern":"amd.com","maxConnectionPerServer":2},
+                {"enabled":true,"hostPattern":"*.cdn.test","maxConnectionPerServer":4},
+                {"enabled":false,"hostPattern":"example.test","maxConnectionPerServer":1}
+            ]
+        }))
+        .unwrap();
+        let apply = |uri: &str, options: Value| {
+            let mut options = options;
+            apply_site_rules(&prefs, &[uri.to_owned()], &mut options);
+            options
+        };
+        let capped = apply(
+            "https://drivers.AMD.com/a.exe",
+            json!({"max-connection-per-server":"16"}),
+        );
+        assert_eq!(capped["max-connection-per-server"], "2");
+        assert_eq!(
+            apply("https://amd.com/a.exe", json!({}))["max-connection-per-server"],
+            "2"
+        );
+        assert_eq!(apply("https://notamd.com/a.exe", json!({})), json!({}));
+        assert_eq!(
+            apply(
+                "https://x.cdn.test/a",
+                json!({"max-connection-per-server":"1"})
+            )["max-connection-per-server"],
+            "1"
+        );
+        assert_eq!(apply("https://example.test/a", json!({})), json!({}));
     }
 
     #[test]

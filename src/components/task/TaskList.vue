@@ -237,6 +237,38 @@ function handlePageSwapAfterEnter() {
   void nextTick(mountSortable)
 }
 
+// Ctrl/Cmd-click picks one task, Shift-click a range; a plain click on a card
+// ends the picking.
+function handleItemClick(event: MouseEvent, task: Aria2Task) {
+  const picking = event.ctrlKey || event.metaKey || event.shiftKey
+  if (!picking) {
+    taskStore.clearChecked()
+    return
+  }
+  event.preventDefault()
+  event.stopPropagation()
+  if (event.shiftKey) {
+    taskStore.checkRange(
+      task.gid,
+      taskList.value.map((item) => item.gid),
+    )
+  } else taskStore.toggleChecked(task.gid)
+}
+
+function handleKeydown(event: KeyboardEvent) {
+  const target = event.target as HTMLElement | null
+  if (target?.closest('input, textarea, [contenteditable="true"], .n-modal, .n-drawer')) return
+  if (event.key === 'Escape' && taskStore.checkedGids.length) {
+    taskStore.clearChecked()
+  } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+    event.preventDefault()
+    taskStore.checkAll(visibleTaskList.value.map((task) => task.gid))
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', handleKeydown))
+onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown))
+
 function handleCardBeforeLeave(element: Element) {
   if (containerTransitioning.value) return
   if (!(element instanceof HTMLElement)) return
@@ -266,7 +298,13 @@ function handleCardBeforeLeave(element: Element) {
         class="task-list-inner"
         @before-leave="handleCardBeforeLeave"
       >
-        <div v-for="item in visibleTaskList" :key="item.gid" class="task-list-item">
+        <div
+          v-for="item in visibleTaskList"
+          :key="item.gid"
+          class="task-list-item"
+          :class="{ 'task-list-item--checked': taskStore.checkedGids.includes(item.gid) }"
+          @click.capture="handleItemClick($event, item)"
+        >
           <component
             :is="taskCardComponent"
             :task="item"
@@ -371,6 +409,11 @@ function handleCardBeforeLeave(element: Element) {
   height: 0;
   margin-bottom: 0;
   transform: none;
+}
+.task-list-item--checked {
+  border-radius: var(--border-radius);
+  outline: 2px solid var(--m3-primary);
+  outline-offset: 2px;
 }
 .task-list-item--ghost {
   overflow: hidden;

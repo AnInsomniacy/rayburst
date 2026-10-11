@@ -40,6 +40,8 @@ import {
   SearchOutline,
 } from '@vicons/ionicons5'
 import { useTaskDetailOptions } from '@/composables/useTaskDetailOptions'
+import { replaceTaskUri } from '@/api/aria2'
+import SpeedLimitInput from '@/components/common/SpeedLimitInput.vue'
 import {
   buildBtHealthSummary,
   buildMediaDetailRows,
@@ -108,6 +110,8 @@ async function recheckTask() {
 const {
   form: optForm,
   canModify: optCanModify,
+  canReplaceUri: optCanReplaceUri,
+  retriesWithUri: optRetriesWithUri,
   dirty: optDirty,
   applying: optApplying,
   applyOptions: optApplyFn,
@@ -115,6 +119,11 @@ const {
   task: taskRef,
   getTaskOption: (gid) => taskStore.getTaskOption(gid),
   changeTaskOption: (payload) => taskStore.changeTaskOption(payload),
+  replaceTaskUri,
+  retryTaskWithUri: async (task, uri) => {
+    await taskStore.retryTask(task, uri)
+    emit('close')
+  },
   proxyConfig: () => preferenceStore.config.proxy,
   message,
   t,
@@ -604,6 +613,28 @@ async function onFileRenamed() {
 
           <div v-else-if="activeTab === 'options'" key="options" class="tab-content">
             <NForm label-placement="left" label-width="110px" class="options-form">
+              <NFormItem v-if="optForm.uri" :label="t('task.source-url') + ':'">
+                <NInput
+                  v-model:value="optForm.uri"
+                  type="textarea"
+                  :autosize="{ minRows: 1, maxRows: 3 }"
+                  :readonly="!optCanReplaceUri"
+                />
+              </NFormItem>
+              <NFormItem v-if="!isTerminal" :label="t('task.speed-limit') + ':'">
+                <SpeedLimitInput
+                  v-model:value="optForm.maxDownloadLimit"
+                  :disabled="!optCanModify"
+                  :placeholder="t('task.speed-limit-unlimited')"
+                />
+              </NFormItem>
+              <NFormItem v-if="!isTerminal && isBT" :label="t('task.upload-limit') + ':'">
+                <SpeedLimitInput
+                  v-model:value="optForm.maxUploadLimit"
+                  :disabled="!optCanModify"
+                  :placeholder="t('task.speed-limit-unlimited')"
+                />
+              </NFormItem>
               <NFormItem :label="t('task.task-user-agent') + ':'">
                 <NInputGroup class="detail-ua-row">
                   <NInput
@@ -704,7 +735,7 @@ async function onFileRenamed() {
                   </div>
                 </NCollapseTransition>
               </NFormItem>
-              <div v-if="optCanModify" class="options-apply-bar">
+              <div v-if="optCanModify || optCanReplaceUri" class="options-apply-bar">
                 <NButton
                   :type="optDirty ? 'primary' : 'default'"
                   :disabled="!optDirty"
@@ -712,7 +743,13 @@ async function onFileRenamed() {
                   class="apply-btn"
                   @click="optApplyFn"
                 >
-                  {{ optDirty ? t('task.apply-changes') : t('task.no-changes') }}
+                  {{
+                    optRetriesWithUri
+                      ? t('task.source-url-retry')
+                      : optDirty
+                        ? t('task.apply-changes')
+                        : t('task.no-changes')
+                  }}
                 </NButton>
               </div>
             </NForm>

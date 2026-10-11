@@ -352,6 +352,8 @@ export interface ClipboardConfig {
   ed2k: boolean
   /** Detect thunder:// (迅雷) links. */
   thunder: boolean
+  /** Ignore HTTP(S) links whose path names a web page rather than a file. */
+  httpFilesOnly: boolean
   /** Detect bare BitTorrent v1 and v2 info hashes. */
   btHash: boolean
 }
@@ -397,6 +399,15 @@ export interface UserAgentRule {
   overridePlugin: boolean
   createdAt: number
   updatedAt: number
+}
+
+/** Limits connections to the hosts of a site that bans parallel downloads. */
+export interface SiteRule {
+  id: string
+  enabled: boolean
+  /** `example.com` names the domain and its subdomains; `*` matches any characters. */
+  hostPattern: string
+  maxConnectionPerServer: number
 }
 
 /** Application user preferences with full type coverage. */
@@ -507,6 +518,13 @@ export interface AppConfig {
   userAgentProfiles: UserAgentProfile[]
   userAgentRules: UserAgentRule[]
   recentUserAgentProfileIds: string[]
+  siteRules: SiteRule[]
+  /** DNS-over-HTTPS resolver URL for downloads; empty uses the system resolver. */
+  dnsOverHttps: string
+  /** Program run on every finished download, e.g. a virus scanner. Empty runs nothing. */
+  postDownloadProgram: string
+  /** Its arguments; `{file}`, `{dir}` and `{name}` name the download. Empty passes `"{file}"`. */
+  postDownloadArguments: string
   rpcListenPort: number
   /** Port for the embedded HTTP API that browser extensions use to submit
    *  downloads. Defaults to 29110. */

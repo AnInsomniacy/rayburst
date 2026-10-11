@@ -17,6 +17,7 @@ import {
 import { getAllowedColorSchemeIds, normalizeCustomColorScheme } from '@shared/utils/colorSchemeConfig'
 import { normalizeProxyMode } from '@shared/utils/proxy'
 import type { AppConfig, ClipboardConfig, ProxyConfig } from '@shared/types'
+import { normalizeSiteRules } from './siteRules'
 import { normalizeFileCategory } from '@shared/utils/fileCategory'
 import { isValidOptionalIpAddress } from '@shared/utils/ipAddress'
 import { isValidBtPeerIdPrefix, isValidBtUserAgent } from '@shared/utils/btIdentity'
@@ -130,6 +131,7 @@ function normalizeClipboard(value: unknown): ClipboardConfig {
     ed2k: typeof saved.ed2k === 'boolean' ? saved.ed2k : defaults.ed2k,
     thunder: typeof saved.thunder === 'boolean' ? saved.thunder : defaults.thunder,
     btHash: typeof saved.btHash === 'boolean' ? saved.btHash : defaults.btHash,
+    httpFilesOnly: typeof saved.httpFilesOnly === 'boolean' ? saved.httpFilesOnly : defaults.httpFilesOnly,
   }
 }
 
@@ -349,6 +351,13 @@ export function hydrateAppConfig(saved?: Partial<AppConfig> | null): HydratedApp
   normalizeSecrets(merged, input, repairs)
   normalizeFileCategories(merged, repairs)
   normalizeUserAgentConfig(merged, repairs)
+  const siteRulesBefore = JSON.stringify(merged.siteRules)
+  merged.siteRules = normalizeSiteRules(merged.siteRules)
+  if (JSON.stringify(merged.siteRules) !== siteRulesBefore) repairs.push('siteRules')
+  if (merged.dnsOverHttps && !/^https:\/\/[^\s/]+/i.test(merged.dnsOverHttps)) {
+    merged.dnsOverHttps = ''
+    repairs.push('dnsOverHttps')
+  }
 
   return {
     config: merged,

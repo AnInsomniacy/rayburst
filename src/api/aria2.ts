@@ -189,6 +189,24 @@ export async function addUri(params: {
   return gids
 }
 
+/** A task that already downloads, or downloaded, one of the requested URIs. */
+export interface DuplicateTask {
+  uri: string
+  gid: string
+  name: string
+  status: string
+}
+
+/** Finds unfinished tasks for `uris` and finished ones whose file still exists. */
+export async function findDuplicateTasks(uris: string[]): Promise<DuplicateTask[]> {
+  return invoke<DuplicateTask[]>('tasks_find_duplicates', { uris })
+}
+
+/** Replaces the source URL of an unfinished single-file download, keeping its data. */
+export async function replaceTaskUri(params: { gid: string; uri: string }): Promise<void> {
+  await invoke('aria2_replace_uri', params)
+}
+
 /**
  * Adds a single download with all URIs as mirrors (alternative sources).
  */

@@ -103,7 +103,23 @@ pub fn route_external_inputs(
         log::debug!("external_input:route source={source} count=0 skipped=true");
         return;
     }
+    if !silent && super::add_window::wanted(app) {
+        let batch = super::add_window::AddWindowInputs {
+            inputs,
+            links: Vec::new(),
+        };
+        super::add_window::route(app, batch, source);
+        return;
+    }
+    route_to_main_window(app, inputs, source, silent);
+}
 
+pub(super) fn route_to_main_window(
+    app: &AppHandle,
+    inputs: Vec<ExternalDownloadInput>,
+    source: &'static str,
+    silent: bool,
+) {
     let window_was_alive = app.get_webview_window("main").is_some();
     log::debug!(
         "external_input:route source={source} count={} window_alive={window_was_alive} silent={silent}",

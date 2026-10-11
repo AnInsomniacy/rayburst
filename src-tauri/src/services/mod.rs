@@ -14,6 +14,7 @@
 //! 3. Syncs global options to aria2 via `changeGlobalOption`
 //! 4. Stops old background services and spawns fresh ones
 
+pub mod add_window;
 pub mod aria2_events;
 pub mod bt_blocklist;
 pub mod config;
@@ -24,6 +25,7 @@ pub mod http_api;
 pub mod media;
 pub mod monitor;
 pub mod notification;
+pub mod post_download;
 pub mod power;
 pub mod pump;
 pub mod speed;

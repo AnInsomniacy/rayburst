@@ -98,6 +98,40 @@ export function createTaskOperations(deps: TaskOperationsDeps) {
     }
   }
 
+  /** Pauses the unfinished tasks among `tasks`; returns how many failed. */
+  async function pauseTasks(tasks: Aria2Task[]): Promise<number> {
+    const live = tasks.filter((task) => task.status === TASK_STATUS.ACTIVE || task.status === TASK_STATUS.WAITING)
+    try {
+      const results = await Promise.allSettled(
+        live.map((task) =>
+          checkTaskIsBT(task) ? api.forcePauseTask({ gid: task.gid }) : api.pauseTask({ gid: task.gid }),
+        ),
+      )
+      const failed = results.filter((result) => result.status === 'rejected').length
+      logger.info('TaskOps.pauseTasks', `paused=${live.length - failed} failed=${failed}`)
+      return failed
+    } finally {
+      await fetchList()
+    }
+  }
+
+  /** Resumes the paused tasks among `tasks`; a task awaiting file selection asks for it. */
+  async function resumeTasks(tasks: Aria2Task[]): Promise<number> {
+    const paused = tasks.filter((task) => task.status === TASK_STATUS.PAUSED)
+    let failed = 0
+    try {
+      for (const task of paused) {
+        if (task.media?.state === 'awaiting-selection') deps.requestMediaSelection?.(task)
+        else if (isAwaitingBtFileSelection(task)) deps.requestMagnetSelection?.(task.gid)
+        else await api.resumeTask({ gid: task.gid }).catch(() => failed++)
+      }
+      logger.info('TaskOps.resumeTasks', `resumed=${paused.length - failed} failed=${failed}`)
+      return failed
+    } finally {
+      await fetchList()
+    }
+  }
+
   async function pauseAllTask() {
     try {
       await api.forcePauseAll()
@@ -184,6 +218,8 @@ export function createTaskOperations(deps: TaskOperationsDeps) {
     resumeTask,
     pauseAllTask,
     resumeAllTask,
+    pauseTasks,
+    resumeTasks,
     toggleTask,
     removeTaskRecord,
     purgeTaskRecord,

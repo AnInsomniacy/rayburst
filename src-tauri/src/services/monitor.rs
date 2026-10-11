@@ -172,6 +172,22 @@ impl TaskEvent {
         }
     }
 
+    /// The downloaded file, or the folder of a multi-file task.
+    pub(crate) fn output_path(&self) -> std::path::PathBuf {
+        let selected: Vec<_> = self
+            .files
+            .iter()
+            .filter(|file| !file.path.is_empty() && file.selected != "false")
+            .collect();
+        match selected.as_slice() {
+            [file] => std::path::PathBuf::from(&file.path),
+            _ if (self.is_bt || self.files.len() > 1) && self.name != "Unknown" => {
+                std::path::Path::new(&self.dir).join(&self.name)
+            }
+            _ => std::path::PathBuf::from(&self.dir),
+        }
+    }
+
     /// Best-effort task name extraction matching the TS `getTaskName()`.
     pub(crate) fn extract_name(task: &Aria2Task) -> String {
         // BT: prefer bittorrent.info.name
@@ -491,6 +507,12 @@ pub async fn process_lifecycle_task(
         log::warn!("task_lifecycle: failed to emit {event_name}: {error}");
     }
     send_task_notification(app, event_name, &payload, &runtime_config).await;
+    if matches!(
+        event_name,
+        events::TASK_COMPLETE | events::P2P_DOWNLOAD_COMPLETE
+    ) {
+        super::post_download::run(&runtime_config, &payload);
+    }
     Ok(())
 }
 

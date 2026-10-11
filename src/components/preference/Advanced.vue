@@ -650,6 +650,9 @@ onMounted(async () => {
           <NFormItem label=" ">
             <PreferenceCheckboxGrid v-model:value="selectedClipboardTypes" :options="clipboardTypeOptions" />
           </NFormItem>
+          <NFormItem v-if="form.clipboardHttp" :label="t('preferences.clipboard-http-files-only')">
+            <NSwitch v-model:value="form.clipboardHttpFilesOnly" />
+          </NFormItem>
         </NCollapseTransition>
 
         <PreferenceAssociations />

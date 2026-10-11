@@ -31,6 +31,7 @@
     "continue",
     "detach-share-only",
     "dir",
+    "dns-over-https",
     "dry-run",
     "ed2k-listen-port",
     "ed2k-max-connections",

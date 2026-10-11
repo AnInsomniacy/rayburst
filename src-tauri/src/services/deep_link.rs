@@ -110,23 +110,32 @@ pub fn mark_frontend_unready(app: &AppHandle) {
     }
 }
 
-/// Route external inputs to the active frontend, or queue them before waking a
-/// destroyed lightweight-mode window.
+/// Route external inputs to the add window while the main window is out of
+/// sight, otherwise to the main window.
 pub fn route_external_inputs(app: &AppHandle, urls: Vec<String>, source: &'static str) {
-    route_external_inputs_with_intent(app, urls, source, false);
+    if urls.is_empty() {
+        log::debug!("deep_link:route source={source} count=0 skipped=true");
+        return;
+    }
+    if super::add_window::wanted(app) {
+        let batch = super::add_window::AddWindowInputs {
+            inputs: Vec::new(),
+            links: urls,
+        };
+        super::add_window::route(app, batch, source);
+        return;
+    }
+    route_to_main_window(app, urls, source, false);
 }
 
-fn route_external_inputs_with_intent(
+/// Route external inputs to the active frontend, or queue them before waking a
+/// destroyed lightweight-mode window.
+pub(super) fn route_to_main_window(
     app: &AppHandle,
     urls: Vec<String>,
     source: &'static str,
     silent: bool,
 ) {
-    if urls.is_empty() {
-        log::debug!("deep_link:route source={source} count=0 skipped=true");
-        return;
-    }
-
     let window_was_alive = app.get_webview_window("main").is_some();
     log::info!(
         "deep_link:route source={source} count={} window_alive={window_was_alive}",

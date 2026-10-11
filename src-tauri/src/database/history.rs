@@ -154,6 +154,22 @@ impl Database {
         Ok(exists)
     }
 
+    /// Completed records downloaded from any of `uris`.
+    pub async fn completed_from(&self, uris: &[String]) -> Result<Vec<HistoryRecord>, AppError> {
+        if uris.is_empty() {
+            return Ok(Vec::new());
+        }
+        let conn = self.connection().await?;
+        let placeholders = vec!["?"; uris.len()].join(",");
+        let mut statement = conn.prepare(&format!(
+            "SELECT * FROM download_history WHERE status = 'complete' AND uri IN ({placeholders})"
+        ))?;
+        let records = statement
+            .query_map(rusqlite::params_from_iter(uris), Self::row_to_record)?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(records)
+    }
+
     /// Read an unordered history snapshot. Presentation owns list ordering.
     pub async fn get_records(&self, status: Option<&str>) -> Result<Vec<HistoryRecord>, AppError> {
         let conn = self.connection().await?;

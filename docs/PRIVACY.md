@@ -59,6 +59,8 @@ When you add a download task, Rayburst and its Aria2 Next sidecar connect to the
 
 The engine resolves filenames from the actual download response. The desktop does not issue separate requests just to guess filenames. Torrent file inspection and media manifest inspection may fetch metadata before content selection.
 
+If you choose a DNS-over-HTTPS resolver, the engine sends the host names of your downloads to that resolver instead of the system resolver.
+
 If UPnP is enabled, the app may contact your local network gateway to map BitTorrent ports. If system proxy detection is used, the app reads operating-system proxy settings locally.
 
 ## Browser Extension API

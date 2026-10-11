@@ -22,6 +22,7 @@ export interface AdvancedForm {
   clipboardEd2k: boolean
   clipboardThunder: boolean
   clipboardBtHash: boolean
+  clipboardHttpFilesOnly: boolean
 }
 
 export function buildAdvancedForm(config: AppConfig): AdvancedForm {
@@ -43,6 +44,7 @@ export function buildAdvancedForm(config: AppConfig): AdvancedForm {
     clipboardEd2k: config.clipboard.ed2k,
     clipboardThunder: config.clipboard.thunder,
     clipboardBtHash: config.clipboard.btHash,
+    clipboardHttpFilesOnly: config.clipboard.httpFilesOnly,
   }
 }
 
@@ -63,6 +65,7 @@ export function transformAdvancedForStore(form: AdvancedForm): Partial<AppConfig
     clipboardEd2k,
     clipboardThunder,
     clipboardBtHash,
+    clipboardHttpFilesOnly,
     ...rest
   } = form
   return {
@@ -75,6 +78,7 @@ export function transformAdvancedForStore(form: AdvancedForm): Partial<AppConfig
       ed2k: clipboardEd2k,
       thunder: clipboardThunder,
       btHash: clipboardBtHash,
+      httpFilesOnly: clipboardHttpFilesOnly,
     },
   }
 }

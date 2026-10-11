@@ -20,6 +20,11 @@ export function useFilenamePreview(
     const urls = normalizeUriLines(form.value.uris)
     return urls.length === 1 && /^https?:\/\//i.test(urls[0]) ? urls[0] : ''
   })
+  const extensionOf = (name: string) => /\.[A-Za-z0-9]{1,8}$/.exec(name)?.[0] ?? ''
+  /** The detected extension a typed name without one keeps. */
+  const missingExtension = computed(() =>
+    edited.value && form.value.out.trim() && !extensionOf(form.value.out.trim()) ? extensionOf(suggested.value) : '',
+  )
   const clean = (name: string) => sanitizeFilename(name.replace(/^.*[/\\]/, ''), { replacement: '_' })
   function cancel() {
     const id = pending.value
@@ -90,6 +95,9 @@ export function useFilenamePreview(
   }
   return {
     filename,
+    missingExtension,
+    /** The name to submit: the typed name, with the detected extension when it has none. */
+    outputName: () => (form.value.out.trim() ? form.value.out.trim() + missingExtension.value : form.value.out),
     resolvingFilename: computed(() => pending.value !== null),
     canResolveFilename: computed(() => !!singleUrl.value),
     resolveFilename: resolve,

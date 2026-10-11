@@ -162,17 +162,19 @@ async function onRefresh() {
 }
 
 function onDeleteAll() {
+  // In 'all' view, clear only live aria2 tasks, not DB-only history items.
+  deleteTasks(currentList.value === 'all' ? [...liveGids.value] : [...allGids.value], t('task.delete-task-queue'))
+}
+
+function deleteTasks(gids: string[], title: string) {
   if (!isEngineReady()) {
     message.warning(t('app.engine-not-ready'))
     return
   }
-  // In 'all' view, clear only live aria2 tasks, not DB-only history items.
-  const targetGids = currentList.value === 'all' ? [...liveGids.value] : [...allGids.value]
-  if (targetGids.length === 0) return
-  const gids = targetGids
+  if (gids.length === 0) return
   const deleteFiles = ref(false)
   const d = dialog.error({
-    title: t('task.delete-task-queue'),
+    title,
     content: () =>
       h('div', {}, [
         h('p', { style: 'margin: 0 0 12px;' }, t('task.batch-delete-task-confirm', { count: gids.length })),
@@ -203,6 +205,7 @@ function onDeleteAll() {
         } else {
           message.success(t('task.batch-delete-task-success'))
         }
+        taskStore.clearChecked()
       } catch (error) {
         logger.warn('TaskActions.onDeleteAll', getErrorMessage(error))
         message.error(t('task.batch-delete-task-fail'))
@@ -402,7 +405,65 @@ type BatchAction = DropdownOption & {
   action: () => unknown
 }
 
+// ── Picked tasks ──────────────────────────────────────────────────
+const checkedTasks = computed(() => {
+  const checked = new Set(taskStore.checkedGids)
+  return taskStore.taskList.filter((task) => checked.has(task.gid))
+})
+
+async function runOnChecked(action: (tasks: Aria2Task[]) => Promise<number>, failKey: I18nKey) {
+  if (!isEngineReady()) {
+    message.warning(t('app.engine-not-ready'))
+    return
+  }
+  try {
+    const failed = await action(checkedTasks.value)
+    if (failed > 0) message.warning(t(failKey))
+  } catch (error) {
+    logger.warn('TaskActions.checked', getErrorMessage(error))
+    message.error(t(failKey))
+  }
+}
+
+function checkedOptions(): BatchAction[] {
+  const tasks = checkedTasks.value
+  return [
+    {
+      key: 'checked-resume',
+      label: t('task.resume-selected'),
+      icon: menuIcon(PlayOutline),
+      disabled: !tasks.some((task) => task.status === TASK_STATUS.PAUSED),
+      action: () => runOnChecked(taskStore.resumeTasks, 'task.resume-all-task-fail'),
+    },
+    {
+      key: 'checked-pause',
+      label: t('task.pause-selected'),
+      icon: menuIcon(PauseOutline),
+      disabled: !tasks.some((task) => task.status === TASK_STATUS.ACTIVE || task.status === TASK_STATUS.WAITING),
+      action: () => runOnChecked(taskStore.pauseTasks, 'task.pause-all-task-fail'),
+    },
+    {
+      key: 'checked-delete',
+      label: t('task.delete-selected'),
+      icon: menuIcon(TrashOutline),
+      disabled: tasks.length === 0,
+      action: () =>
+        deleteTasks(
+          tasks.map((task) => task.gid),
+          t('task.delete-selected'),
+        ),
+    },
+    {
+      key: 'checked-clear',
+      label: t('task.clear-selection'),
+      icon: menuIcon(CloseOutline),
+      action: () => taskStore.clearChecked(),
+    },
+  ]
+}
+
 const batchOptions = computed<BatchAction[]>(() => {
+  if (checkedTasks.value.length > 0) return checkedOptions()
   const options: BatchAction[] = []
   if (showActiveActions.value) {
     options.push(
@@ -507,6 +568,9 @@ function selectBatchAction(key: string | number) {
         {{ t('task.refresh-list') || 'Refresh' }}
       </MTooltip></span
     >
+    <span v-if="checkedTasks.length" key="checked-count" class="toolbar-action checked-count">
+      {{ t('task.selected-count', { count: checkedTasks.length }) }}
+    </span>
     <span v-for="action in batchOptions" :key="action.key" class="toolbar-action">
       <MTooltip>
         <template #trigger>
@@ -541,6 +605,13 @@ function selectBatchAction(key: string | number) {
 .toolbar-action {
   display: inline-flex;
   flex-shrink: 0;
+}
+.checked-count {
+  align-items: center;
+  padding: 0 6px;
+  color: var(--m3-primary);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
 }
 .toolbar-action-move,
 .toolbar-action-enter-active,

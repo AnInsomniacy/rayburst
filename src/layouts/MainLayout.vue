@@ -2,7 +2,7 @@
 /** @fileoverview Main application layout with application shell and IPC event handling. */
 import { computed, ref, nextTick, watch } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
@@ -47,10 +47,15 @@ import { loadAddedAtFromRecords } from '@/composables/useTaskOrder'
 
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const appStore = useAppStore()
 const engineStore = useEngineStore()
 const taskStore = useTaskStore()
 const preferenceStore = usePreferenceStore()
+
+function showDownloadsAfterSubmit() {
+  if (preferenceStore.config.newTaskShowDownloading !== false) router.push({ path: '/task/all' }).catch(() => {})
+}
 const navDialog = useDialog()
 const message = useAppMessage()
 const database = useDatabaseStore()
@@ -808,6 +813,7 @@ onUnmounted(() => {
       :show="appStore.addTaskVisible"
       @close="appStore.hideAddTaskDialog()"
       @after-leave="addTaskClosing = false"
+      @submitted="showDownloadsAfterSubmit"
     />
     <UpdateDialog ref="updateDialogRef" />
     <EngineRecoveryDialog />

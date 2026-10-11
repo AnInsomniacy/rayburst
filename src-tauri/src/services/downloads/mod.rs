@@ -197,6 +197,9 @@ pub async fn submit(
     let handoffs = app.state::<Handoffs>();
     let claim = request_id.map(|id| handoffs.claim(id)).transpose()?;
     preferences::validate_save_location(app, &options)?;
+    if let TaskInput::Uris(uris) = &input {
+        preferences::apply_site_rules(&preferences::load(app)?, uris, &mut options);
+    }
     let automatic = if let TaskInput::Uris(uris) = &input {
         native::prepare(app, &engine, uris, &mut options).await?
     } else {

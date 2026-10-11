@@ -1,8 +1,8 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
-  "windows": ["main"],
+  "description": "Capability for the main and add-task windows",
+  "windows": ["main", "add"],
   "permissions": [
     "core:default",
     "core:window:allow-start-dragging",
@@ -14,6 +14,7 @@
     "core:window:allow-show",
     "core:window:allow-hide",
     "core:window:allow-set-focus",
+    "core:window:allow-set-title",
     "opener:default",
     "store:default",
     "dialog:default",

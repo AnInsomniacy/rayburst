@@ -226,6 +226,96 @@ pub async fn aria2_add_bt_peers(
     state.0.add_bt_peers(&gid, peers).await
 }
 
+/// A task that already downloads, or downloaded, one of the requested URIs.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DuplicateTask {
+    uri: String,
+    gid: String,
+    name: String,
+    status: String,
+}
+
+fn without_fragment(uri: &str) -> &str {
+    let uri = uri.trim();
+    uri.split_once('#').map_or(uri, |(base, _)| base)
+}
+
+/// Finds unfinished tasks for `uris` and finished ones whose file still exists.
+#[tauri::command]
+pub async fn tasks_find_duplicates(
+    state: State<'_, TaskServiceState>,
+    history: State<'_, DatabaseState>,
+    uris: Vec<String>,
+) -> Result<Vec<DuplicateTask>, AppError> {
+    let wanted: HashMap<&str, &str> = uris
+        .iter()
+        .map(|uri| (without_fragment(uri), uri.as_str()))
+        .collect();
+    let mut found = Vec::new();
+    let mut reported = HashSet::new();
+    let (_, tasks) = state.0.snapshot(false).await?;
+    for task in &tasks {
+        let source = task
+            .files
+            .iter()
+            .flat_map(|file| &file.uris)
+            .find_map(|uri| wanted.get(without_fragment(&uri.uri)));
+        if let Some(uri) = source.filter(|uri| reported.insert(**uri)) {
+            found.push(DuplicateTask {
+                uri: (*uri).to_owned(),
+                gid: task.gid.clone(),
+                name: crate::services::monitor::TaskEvent::extract_name(task),
+                status: task.status.clone(),
+            });
+        }
+    }
+    let candidates: Vec<String> = wanted.keys().map(|uri| (*uri).to_owned()).collect();
+    for record in history.0.completed_from(&candidates).await? {
+        let Some(uri) = record.uri.as_deref().and_then(|uri| wanted.get(uri)) else {
+            continue;
+        };
+        let exists = record
+            .dir
+            .as_deref()
+            .is_some_and(|dir| Path::new(dir).join(&record.name).exists());
+        if exists && reported.insert(*uri) {
+            found.push(DuplicateTask {
+                uri: (*uri).to_owned(),
+                gid: record.gid,
+                name: record.name,
+                status: record.status,
+            });
+        }
+    }
+    Ok(found)
+}
+
+/// Replaces the source URL of an unfinished single-file download; the
+/// downloaded data is kept.
+#[tauri::command]
+pub async fn aria2_replace_uri(
+    app: AppHandle,
+    state: State<'_, TaskServiceState>,
+    gid: String,
+    uri: String,
+) -> Result<(), AppError> {
+    let parsed = url::Url::parse(uri.trim())
+        .map_err(|error| AppError::InvalidInput(format!("Invalid URL: {error}")))?;
+    if !matches!(parsed.scheme(), "http" | "https" | "ftp" | "sftp") {
+        return Err(AppError::InvalidInput(
+            "Only HTTP, FTP and SFTP sources can be replaced".into(),
+        ));
+    }
+    state
+        .0
+        .replace_uris(&gid, vec![uri.trim().to_owned()])
+        .await?;
+    log::info!("aria2:replace-uri gid={gid}");
+    crate::services::pump::wake(&app);
+    Ok(())
+}
+
 /// Add URI download(s). Each URI gets its own aria2 task with optional
 /// per-URI `out` filename override and file-category directory resolution.
 #[tauri::command]

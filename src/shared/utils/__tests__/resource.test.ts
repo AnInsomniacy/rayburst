@@ -11,6 +11,7 @@ const allProtocols: ClipboardConfig = {
   ed2k: true,
   thunder: true,
   btHash: true,
+  httpFilesOnly: false,
 }
 
 describe('Resource detection contract', () => {
@@ -57,6 +58,17 @@ describe('Resource detection contract', () => {
     expect(detectResource('https://example.com/file.zip', { ...allProtocols, http: false })).toBe(false)
     expect(detectResource('magnet:?xt=urn:btih:abc123', { ...allProtocols, magnet: false })).toBe(false)
     expect(detectResource('d8988e034cb5de79d319242e3365bf30a7741a6e', { ...allProtocols, btHash: false })).toBe(false)
+  })
+
+  it('ignores links to web pages when asked to', () => {
+    const files = { ...allProtocols, httpFilesOnly: true }
+    expect(detectResource('https://example.com/file.zip?token=1', files)).toBe(true)
+    expect(detectResource('https://example.com/news/article', files)).toBe(false)
+    expect(detectResource('https://example.com/', files)).toBe(false)
+    expect(detectResource('https://example.com/index.php', files)).toBe(false)
+    expect(detectResource('https://example.com/a.iso\nhttps://example.com/about', files)).toBe(false)
+    expect(detectResource('magnet:?xt=urn:btih:abc123', files)).toBe(true)
+    expect(detectResource('https://example.com/news/article', allProtocols)).toBe(true)
   })
 
   it('keeps valid multi-line aria2 input while rejecting mixed prose', () => {

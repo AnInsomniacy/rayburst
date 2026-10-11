@@ -75,6 +75,9 @@ export const useTaskStore = defineStore('task', () => {
   const currentTaskPeers = ref<Aria2Peer[]>([])
   const taskList = ref<Aria2Task[]>([])
   const removingGids = ref<string[]>([])
+  /** Tasks the user picked in the current list for a batch action. */
+  const checkedGids = ref<string[]>([])
+  let checkAnchor = ''
   const resubmittingGids = ref<string[]>([])
   const taskCounts = reactive<TaskCounts>({ all: 0, progress: 0, failed: 0, completed: 0 })
   const isCurrentListEmpty = computed(() => taskList.value.length === 0)
@@ -129,6 +132,7 @@ export const useTaskStore = defineStore('task', () => {
     const sameList = currentList.value === scope
     currentList.value = scope
     if (!sameList) {
+      clearChecked()
       const tab = currentTaskTab()
       if (taskPagination[tab].loaded) refreshCurrentTaskPageCount()
     }
@@ -255,6 +259,11 @@ export const useTaskStore = defineStore('task', () => {
       sortTasks(data, field, direction, addedAtIndex, completedAtIndex)
     }
     taskList.value = data
+    if (checkedGids.value.length) {
+      const present = new Set(data.map((task) => task.gid))
+      const kept = checkedGids.value.filter((gid) => present.has(gid))
+      if (kept.length !== checkedGids.value.length) checkedGids.value = kept
+    }
     updateCurrentTaskTotal(data.length)
     clampCurrentTaskPage()
     refreshCurrentTaskPageCount()
@@ -329,6 +338,31 @@ export const useTaskStore = defineStore('task', () => {
       refreshWork = undefined
     })
     return refreshWork
+  }
+
+  function toggleChecked(gid: string) {
+    checkAnchor = gid
+    checkedGids.value = checkedGids.value.includes(gid)
+      ? checkedGids.value.filter((item) => item !== gid)
+      : [...checkedGids.value, gid]
+  }
+
+  /** Checks every task between the last toggled one and `gid` in `order`. */
+  function checkRange(gid: string, order: string[]) {
+    const from = order.indexOf(checkAnchor)
+    const to = order.indexOf(gid)
+    if (from < 0 || to < 0) return toggleChecked(gid)
+    const range = order.slice(Math.min(from, to), Math.max(from, to) + 1)
+    checkedGids.value = [...new Set([...checkedGids.value, ...range])]
+  }
+
+  function checkAll(gids: string[]) {
+    checkedGids.value = [...gids]
+  }
+
+  function clearChecked() {
+    checkAnchor = ''
+    if (checkedGids.value.length) checkedGids.value = []
   }
 
   function setTaskRemoving(gid: string, removing: boolean) {
@@ -517,7 +551,7 @@ export const useTaskStore = defineStore('task', () => {
   // The ops object is populated when setApi() is called.
   const taskOps = {} as ReturnType<typeof createTaskOperations>
 
-  function resubmitTerminalTask(task: Aria2Task, mode: TaskResubmissionMode): Promise<void> {
+  function resubmitTerminalTask(task: Aria2Task, mode: TaskResubmissionMode, source?: string): Promise<void> {
     const existing = resubmissionPromises.get(task.gid)
     if (existing) return existing
 
@@ -526,7 +560,7 @@ export const useTaskStore = defineStore('task', () => {
     const operation = (
       task.media && mode === 'retry'
         ? api.retryMedia(task.gid).then((gid) => [gid])
-        : resubmitTask(task, mode, api, historyStore)
+        : resubmitTask(task, mode, api, historyStore, source)
     )
       .then(async (gids) => {
         if (task.media) gids.forEach((gid) => useTaskSelectionStore().register(gid, true))
@@ -574,6 +608,11 @@ export const useTaskStore = defineStore('task', () => {
     taskList,
     removingGids,
     resubmittingGids,
+    checkedGids,
+    toggleChecked,
+    checkRange,
+    checkAll,
+    clearChecked,
     taskPagination,
     currentTaskPageCount,
     setApi,
@@ -609,13 +648,15 @@ export const useTaskStore = defineStore('task', () => {
     resumeTask: (task: Aria2Task) => taskOps.resumeTask(task),
     pauseAllTask: () => taskOps.pauseAllTask(),
     resumeAllTask: () => taskOps.resumeAllTask(),
+    pauseTasks: (tasks: Aria2Task[]) => taskOps.pauseTasks(tasks),
+    resumeTasks: (tasks: Aria2Task[]) => taskOps.resumeTasks(tasks),
     toggleTask: (task: Aria2Task) => taskOps.toggleTask(task),
     removeTaskRecord: (task: Aria2Task) => taskOps.removeTaskRecord(task),
     purgeTaskRecord: () => taskOps.purgeTaskRecord(),
     saveSession: () => taskOps.saveSession(),
     batchRemoveTask: (gids: string[], options?: import('@shared/types').TaskDeletionOptions) =>
       taskOps.batchRemoveTask(gids, options),
-    retryTask: (task: Aria2Task) => resubmitTerminalTask(task, 'retry'),
+    retryTask: (task: Aria2Task, source?: string) => resubmitTerminalTask(task, 'retry', source),
     redownloadTask: (task: Aria2Task) => resubmitTerminalTask(task, 'redownload'),
 
     registerTorrentSource,

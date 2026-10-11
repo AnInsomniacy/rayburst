@@ -34,8 +34,42 @@ function buildAllowedTags(filter?: ClipboardConfig): string[] {
   return tags
 }
 
-function lineMatchesAllowedResource(line: string, allowedTags: string[], allowHash: boolean): boolean {
+const WEB_PAGE_EXTENSIONS = new Set([
+  'html',
+  'htm',
+  'xhtml',
+  'shtml',
+  'php',
+  'asp',
+  'aspx',
+  'jsp',
+  'jspx',
+  'cfm',
+  'cgi',
+  'do',
+  'action',
+])
+
+/** Whether an HTTP(S) URL names a file rather than a web page: its last path segment has a non-page extension. */
+export function isLikelyFileUrl(url: string): boolean {
+  let path: string
+  try {
+    path = new URL(url).pathname
+  } catch {
+    return false
+  }
+  const extension = /\.([A-Za-z0-9]{1,8})$/.exec(path.slice(path.lastIndexOf('/') + 1))?.[1]
+  return !!extension && !WEB_PAGE_EXTENSIONS.has(extension.toLowerCase())
+}
+
+function lineMatchesAllowedResource(
+  line: string,
+  allowedTags: string[],
+  allowHash: boolean,
+  httpFilesOnly = false,
+): boolean {
   const lower = line.toLowerCase()
+  if (httpFilesOnly && /^https?:\/\//.test(lower) && !isLikelyFileUrl(line)) return false
   return (
     allowedTags.some((tag) => lower.startsWith(tag) && line.length > tag.length) ||
     (allowHash && BARE_INFO_HASH_RE.test(line))
@@ -63,8 +97,9 @@ function countMeaningfulInputLines(content: string): number {
  *    (`http://`, `https://`, `sftp://`, `magnet:`, `thunder://`)
  *    OR be a bare BitTorrent v1 or v2 info hash.
  *
- * When a `filter` is provided, only the enabled protocol families are matched.
- * The `enable` master switch short-circuits to false when off.
+ * When a `filter` is provided, only the enabled protocol families are matched,
+ * and `httpFilesOnly` ignores HTTP(S) links to web pages. The `enable` master
+ * switch short-circuits to false when off.
  *
  * This rejects embedded URLs inside prose, code comments, JSON, HTML,
  * log lines, and mixed multi-line content.
@@ -82,13 +117,20 @@ export const detectResource = (content: string, filter?: ClipboardConfig): boole
 
   const allowedTags = buildAllowedTags(filter)
   const allowHash = filter ? filter.btHash : true
+  const httpFilesOnly = filter?.httpFilesOnly ?? false
 
-  if (lines.length === 1) return lineMatchesAllowedResource(lines[0], allowedTags, allowHash)
+  if (lines.length === 1) return lineMatchesAllowedResource(lines[0], allowedTags, allowHash, httpFilesOnly)
 
   const parsed = parseAria2Input(content)
   if (parsed.entries.length === 0) return false
 
   if (parsed.validLineCount !== countMeaningfulInputLines(content)) return false
 
-  return parsed.entries.every((entry) => entry.uris.length > 0 && entry.uris.every(lineMatchesAnyResource))
+  return parsed.entries.every(
+    (entry) =>
+      entry.uris.length > 0 &&
+      entry.uris.every(
+        (uri) => lineMatchesAnyResource(uri) && (!httpFilesOnly || !/^https?:\/\//i.test(uri) || isLikelyFileUrl(uri)),
+      ),
+  )
 }

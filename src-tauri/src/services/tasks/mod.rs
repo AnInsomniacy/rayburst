@@ -502,6 +502,32 @@ impl TaskService {
         }
     }
 
+    /// Replaces every source of a single-file download with `uris`. Sources
+    /// with open connections stay until those connections end.
+    pub async fn replace_uris(&self, gid: &str, uris: Vec<String>) -> Result<(), AppError> {
+        let files = self.get_files(gid).await?;
+        let [file] = files.as_slice() else {
+            return Err(AppError::InvalidInput(
+                "Only single-file downloads have replaceable sources".into(),
+            ));
+        };
+        let mut current: Vec<String> = file.uris.iter().map(|uri| uri.uri.clone()).collect();
+        current.sort();
+        current.dedup();
+        let _: serde_json::Value = self
+            .call(
+                "changeUri",
+                vec![
+                    gid.into(),
+                    1.into(),
+                    serde_json::json!(current),
+                    serde_json::json!(uris),
+                ],
+            )
+            .await?;
+        Ok(())
+    }
+
     /// Gracefully pauses a task (waits for piece boundary).
     pub async fn pause(&self, gid: &str) -> Result<String, AppError> {
         self.call("pause", vec![gid.into()]).await

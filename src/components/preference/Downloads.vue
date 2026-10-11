@@ -221,6 +221,12 @@ async function handleCategoryManagerSave(categories: typeof form.value.fileCateg
   }
   patchSnapshot({ fileCategories: categories } as Partial<typeof form.value>)
 }
+/** Argument placeholders, passed so translations show them verbatim. */
+const POST_DOWNLOAD_PLACEHOLDERS = { file: '{file}', dir: '{dir}', name: '{name}' }
+async function handleSelectPostDownloadProgram() {
+  const selected = await openDialog({ directory: false, multiple: false })
+  if (typeof selected === 'string') form.value.postDownloadProgram = selected
+}
 async function handleSelectDir() {
   const selected = await openDialog({ directory: true, multiple: false })
   if (typeof selected === 'string') form.value.dir = selected
@@ -530,6 +536,31 @@ onMounted(async () => {
         <NFormItem :label="t('preferences.keep-awake')">
           <NSwitch v-model:value="form.keepAwake" />
         </NFormItem>
+        <NFormItem>
+          <template #label>
+            <PreferenceHintLabel
+              :label="t('preferences.post-download-program')"
+              :hint="t('preferences.post-download-program-hint', POST_DOWNLOAD_PLACEHOLDERS)"
+            />
+          </template>
+          <NInputGroup>
+            <NInput
+              v-model:value="form.postDownloadProgram"
+              clearable
+              :placeholder="t('preferences.post-download-program-placeholder')"
+            />
+            <NButton @click="handleSelectPostDownloadProgram">
+              <template #icon>
+                <NIcon><FolderOpenOutline /></NIcon>
+              </template>
+            </NButton>
+          </NInputGroup>
+        </NFormItem>
+        <NCollapseTransition :show="!!form.postDownloadProgram.trim()">
+          <NFormItem :label="t('preferences.post-download-arguments')">
+            <NInput v-model:value="form.postDownloadArguments" placeholder='"{file}"' />
+          </NFormItem>
+        </NCollapseTransition>
 
         <!-- Auto Cleanup -->
         <NDivider title-placement="left">{{ t('preferences.auto-cleanup') }}</NDivider>

@@ -272,6 +272,7 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(services::notification::LinuxNotificationRegistry::new());
     app.manage(services::deep_link::PendingDeepLinkState::new());
     app.manage(services::external_input::PendingExternalInputState::new());
+    app.manage(services::add_window::AddWindowState::default());
     app.manage(services::frontend_action::PendingFrontendActionState::new());
 
     // App lifecycle — tracks cold-start vs runtime phase for autostart
@@ -491,7 +492,10 @@ fn handle_run_event(app: &tauri::AppHandle, event: tauri::RunEvent) {
         tauri::RunEvent::ExitRequested { ref api, code, .. } => {
             log::info!("app:exit-requested code={:?}", code);
 
-            if code.is_none() {
+            if code.is_none() && services::add_window::keeps_process(app) {
+                api.prevent_exit();
+                log::info!("app:exit-prevented reason=add-window-closed");
+            } else if code.is_none() {
                 let should_hide = read_pref_bool(app, "minimizeToTrayOnClose", false);
 
                 log::debug!("app:exit-requested minimizeToTrayOnClose={}", should_hide);
@@ -624,6 +628,7 @@ pub fn run() {
     builder = builder.plugin(
         tauri_plugin_window_state::Builder::new()
             .skip_initial_state("main")
+            .with_denylist(&[services::add_window::LABEL])
             .with_state_flags(window_state_flags())
             .build(),
     );
@@ -694,6 +699,8 @@ pub fn run() {
             commands::peek_pending_external_inputs_silent,
             commands::take_pending_deep_links,
             commands::take_pending_external_inputs,
+            commands::add_window_attach,
+            commands::add_window_detach,
             commands::take_pending_frontend_actions,
             commands::history_get_record,
             commands::rename_completed_file,
@@ -734,6 +741,8 @@ pub fn run() {
             commands::aria2_defer_bt_selection,
             commands::aria2_get_files,
             commands::aria2_add_uri,
+            commands::aria2_replace_uri,
+            commands::tasks_find_duplicates,
             commands::resolve_file_category,
             commands::validate_file_categories,
             commands::cancel_download_request,
@@ -817,6 +826,9 @@ pub fn run() {
             }
             tauri::WindowEvent::Destroyed => {
                 log::info!("window:destroyed label={}", window.label());
+                if window.label() == services::add_window::LABEL {
+                    services::add_window::destroyed(window.app_handle());
+                }
             }
             _ => {}
         })

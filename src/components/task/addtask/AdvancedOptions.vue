@@ -19,7 +19,9 @@ import { useAppMessage } from '@/composables/useAppMessage'
 import { SearchOutline } from '@vicons/ionicons5'
 import type { TaskProxyMode } from '@shared/utils/proxy'
 import UserAgentPopover from '@/components/common/UserAgentPopover.vue'
+import SpeedLimitInput from '@/components/common/SpeedLimitInput.vue'
 import type { UserAgentProfile, UserAgentRule } from '@shared/types'
+import { parseChecksum } from '@shared/utils/checksum'
 
 const { t } = useI18n()
 
@@ -39,6 +41,10 @@ const props = defineProps<{
   customProxy: string
   customProxyUsername?: string
   customProxyPassword?: string
+  speedLimit?: string
+  checksum?: string
+  /** A checksum names one file, so it needs exactly one download. */
+  checksumAvailable?: boolean
   sourceUrl?: string
   finalUrl?: string
   userAgentSource?: string
@@ -61,8 +67,16 @@ const emit = defineEmits<{
   'update:customProxy': [value: string]
   'update:customProxyUsername': [value: string]
   'update:customProxyPassword': [value: string]
+  'update:speedLimit': [value: string]
+  'update:checksum': [value: string]
   selectUserAgentProfile: [profile: UserAgentProfile]
 }>()
+
+const parsedChecksum = computed(() => (props.checksum?.trim() ? parseChecksum(props.checksum) : null))
+const checksumFeedback = computed(() => {
+  if (!props.checksum?.trim()) return t('task.checksum-hint')
+  return parsedChecksum.value ? parsedChecksum.value.algorithm.toUpperCase() : t('task.checksum-invalid')
+})
 
 const uaHasIssue = computed(() => !!props.userAgent && hasUnsafeHeaderChars(props.userAgent))
 
@@ -141,6 +155,26 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
             </div>
           </div>
         </div>
+      </NFormItem>
+      <NFormItem :label="t('task.speed-limit') + ':'">
+        <SpeedLimitInput
+          :value="speedLimit ?? ''"
+          :placeholder="t('task.speed-limit-unlimited')"
+          @update:value="$emit('update:speedLimit', $event)"
+        />
+      </NFormItem>
+      <NFormItem
+        :label="t('task.checksum') + ':'"
+        :validation-status="checksum?.trim() && !parsedChecksum ? 'error' : undefined"
+        :feedback="checksumAvailable ? checksumFeedback : t('task.checksum-single-only')"
+      >
+        <NInput
+          :value="checksum"
+          :disabled="!checksumAvailable"
+          :placeholder="t('task.checksum-placeholder')"
+          clearable
+          @update:value="$emit('update:checksum', $event)"
+        />
       </NFormItem>
       <NFormItem :label="t('task.task-authorization') + ':'">
         <NInput

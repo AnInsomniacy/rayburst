@@ -120,17 +120,25 @@ async function rollbackSubmissions(api: TaskResubmissionApi, gids: string[]): Pr
   }
 }
 
-/** Submits a terminal task with explicit retry or re-download semantics. */
+/**
+ * Submits a terminal task with explicit retry or re-download semantics.
+ * `source` replaces the URL of a single-file download; the data is kept.
+ */
 export async function resubmitTask(
   task: Aria2Task,
   mode: TaskResubmissionMode,
   api: TaskResubmissionApi,
   historyApi: TaskResubmissionHistoryApi,
+  source?: string,
 ): Promise<string[]> {
   assertModeMatchesTask(task, mode)
 
-  const descriptors = getRestartDescriptors(task)
+  let descriptors = getRestartDescriptors(task)
   if (descriptors.length === 0) throw new Error('Cannot resubmit: no download URIs found for this task')
+  if (source) {
+    if (descriptors.length !== 1 || checkTaskIsBT(task)) throw new Error('Only a single download can change its source')
+    descriptors = [{ ...descriptors[0], uris: [source] }]
+  }
 
   const isBt = checkTaskIsBT(task)
   const options = await readResubmissionOptions(task, api)

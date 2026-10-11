@@ -84,6 +84,7 @@ windows-sys = { version = "0.59", features = [
     "Win32_UI_WindowsAndMessaging",
 ] }
 winreg = "0.56"
+tauri-winrt-notification = "0.7"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

@@ -14,6 +14,7 @@ import { PROXY_SCOPE_OPTIONS, FILE_ALLOCATION_OPTIONS } from '@shared/constants'
 import {
   buildNetworkForm,
   buildNetworkSystemConfig,
+  DNS_OVER_HTTPS_PRESETS,
   transformNetworkForStore,
   validateNetworkForm,
 } from '@/composables/useNetworkPreference'
@@ -39,6 +40,7 @@ const showUserAgentManager = ref(false)
 import PreferenceActionRegistration from './PreferenceActionRegistration.vue'
 import PreferenceHintLabel from './PreferenceHintLabel.vue'
 import UserAgentManager from './UserAgentManager.vue'
+import SiteRulesEditor from './SiteRulesEditor.vue'
 import { SearchOutline } from '@vicons/ionicons5'
 
 const { t } = useI18n()
@@ -46,6 +48,11 @@ const preferenceStore = usePreferenceStore()
 const message = useAppMessage()
 const { constraint, configFieldProps, areConfigFieldsValid } = usePreferenceNumericValidation()
 const { isWindows } = usePlatform()
+
+const dnsOverHttpsOptions = computed(() => [
+  { label: t('preferences.dns-over-https-system'), value: '' },
+  ...DNS_OVER_HTTPS_PRESETS.map((preset) => ({ label: `${preset.label} — ${preset.value}`, value: preset.value })),
+])
 
 const proxyScopeOptions = PROXY_SCOPE_OPTIONS.map((s: string) => ({
   label: t(`preferences.proxy-scope-${s}`),
@@ -270,6 +277,31 @@ onMounted(() => {
             </NFormItem>
           </div>
         </div>
+
+        <!-- DNS -->
+        <NDivider title-placement="left">DNS</NDivider>
+        <NFormItem>
+          <template #label>
+            <PreferenceHintLabel
+              :label="t('preferences.dns-over-https')"
+              :hint="t('preferences.dns-over-https-hint')"
+            />
+          </template>
+          <NSelect
+            v-model:value="form.dnsOverHttps"
+            :options="dnsOverHttpsOptions"
+            filterable
+            tag
+            class="pref-control-full"
+            :placeholder="t('preferences.dns-over-https-system')"
+          />
+        </NFormItem>
+
+        <!-- Site rules -->
+        <NDivider title-placement="left">{{ t('preferences.site-rules') }}</NDivider>
+        <NFormItem :show-label="false">
+          <SiteRulesEditor v-model:value="form.siteRules" />
+        </NFormItem>
 
         <!-- Port mapping -->
         <NDivider title-placement="left">{{ t('preferences.port') }}</NDivider>

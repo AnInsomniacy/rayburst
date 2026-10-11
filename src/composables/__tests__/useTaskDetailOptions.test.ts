@@ -56,6 +56,8 @@ interface MockDeps {
   task: Ref<Aria2Task | null>
   getTaskOption: Mock
   changeTaskOption: Mock
+  replaceTaskUri: Mock
+  retryTaskWithUri: Mock
   proxyConfig: ProxyConfig
   successFn: Mock
   errorFn: Mock
@@ -67,6 +69,8 @@ function createMocks(overrides: Partial<MockDeps> = {}): MockDeps {
     task: ref<Aria2Task | null>(makeTask()),
     getTaskOption: vi.fn().mockResolvedValue({ userAgent: '', referer: '', proxyMode: 'direct' }),
     changeTaskOption: vi.fn().mockResolvedValue(undefined),
+    replaceTaskUri: vi.fn().mockResolvedValue(undefined),
+    retryTaskWithUri: vi.fn().mockResolvedValue(undefined),
     proxyConfig: makeProxy(),
     successFn: vi.fn(),
     errorFn: vi.fn(),
@@ -80,6 +84,8 @@ function setup(mocks: MockDeps) {
     task: mocks.task,
     getTaskOption: mocks.getTaskOption,
     changeTaskOption: mocks.changeTaskOption,
+    replaceTaskUri: mocks.replaceTaskUri,
+    retryTaskWithUri: mocks.retryTaskWithUri,
     proxyConfig: () => mocks.proxyConfig,
     message: { success: mocks.successFn, error: mocks.errorFn },
     t: mocks.t,
@@ -494,6 +500,69 @@ describe('useTaskDetailOptions', () => {
       const { applyOptions } = setup(mocks)
       await applyOptions()
       expect(mocks.changeTaskOption).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('speed limits and sources', () => {
+    const sourced = (status: string) =>
+      makeTask({
+        status: status as Aria2Task['status'],
+        files: [
+          {
+            index: '1',
+            path: '/downloads/file.zip',
+            length: '1000',
+            completedLength: '500',
+            selected: 'true',
+            uris: [{ uri: 'https://old.example/file.zip', status: 'used' }],
+          },
+        ],
+      })
+
+    it('applies a speed limit without announcing a restart', async () => {
+      const mocks = createMocks({
+        getTaskOption: vi.fn().mockResolvedValue({ maxDownloadLimit: '1048576' }),
+      })
+      const { form, applyOptions } = setup(mocks)
+      await nextTick()
+      await nextTick()
+      expect(form.maxDownloadLimit).toBe('1M')
+      form.maxDownloadLimit = '512K'
+      await applyOptions()
+      expect(mocks.changeTaskOption).toHaveBeenCalledWith({ gid: 'abc123', options: { 'max-download-limit': '512K' } })
+      expect(mocks.successFn).toHaveBeenCalledWith('task.options-applied')
+    })
+
+    it('replaces the source of an unfinished download', async () => {
+      const mocks = createMocks({ task: ref(sourced(TASK_STATUS.PAUSED)) })
+      const { form, applyOptions } = setup(mocks)
+      await nextTick()
+      expect(form.uri).toBe('https://old.example/file.zip')
+      form.uri = 'https://new.example/file.zip'
+      await applyOptions()
+      expect(mocks.replaceTaskUri).toHaveBeenCalledWith({ gid: 'abc123', uri: 'https://new.example/file.zip' })
+      expect(mocks.changeTaskOption).not.toHaveBeenCalled()
+    })
+
+    it('retries a failed download from the new source', async () => {
+      const task = sourced(TASK_STATUS.ERROR)
+      const mocks = createMocks({ task: ref(task) })
+      const { form, retriesWithUri, applyOptions } = setup(mocks)
+      form.uri = 'https://new.example/file.zip'
+      expect(retriesWithUri.value).toBe(true)
+      await applyOptions()
+      expect(mocks.retryTaskWithUri).toHaveBeenCalledWith(task, 'https://new.example/file.zip')
+      expect(mocks.replaceTaskUri).not.toHaveBeenCalled()
+    })
+
+    it('rejects a source the engine cannot replace', async () => {
+      const mocks = createMocks({ task: ref(sourced(TASK_STATUS.PAUSED)) })
+      const { form, applyOptions } = setup(mocks)
+      await nextTick()
+      form.uri = 'magnet:?xt=urn:btih:abc'
+      await applyOptions()
+      expect(mocks.errorFn).toHaveBeenCalledWith('task.source-url-invalid')
+      expect(mocks.replaceTaskUri).not.toHaveBeenCalled()
     })
   })
 })

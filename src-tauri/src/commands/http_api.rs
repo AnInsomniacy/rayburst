@@ -34,6 +34,20 @@ pub fn take_pending_external_inputs(
 }
 
 #[tauri::command]
+pub fn add_window_attach(
+    state: tauri::State<'_, crate::services::add_window::AddWindowState>,
+) -> crate::services::add_window::AddWindowInputs {
+    crate::services::add_window::attach(state.inner())
+}
+
+#[tauri::command]
+pub fn add_window_detach(
+    state: tauri::State<'_, crate::services::add_window::AddWindowState>,
+) -> crate::services::add_window::AddWindowInputs {
+    crate::services::add_window::detach(state.inner())
+}
+
+#[tauri::command]
 pub fn peek_pending_deep_links_silent(
     state: tauri::State<'_, deep_link::PendingDeepLinkState>,
 ) -> bool {

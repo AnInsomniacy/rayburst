@@ -33,6 +33,7 @@ import { getErrorMessage } from '@shared/utils/errorMessage'
 import { buildTaskProxyOptions, type TaskProxyMode } from '@shared/utils/proxy'
 import { resolveUserAgentFromContext } from '@shared/utils/userAgentPolicy'
 import { resolveDownloadDir, resolveFileSetCategory } from '@shared/utils/fileCategory'
+import { checksumOption, parseChecksum } from '@shared/utils/checksum'
 
 export { getDownloadProxy } from '@shared/utils/proxy'
 
@@ -62,6 +63,10 @@ export interface AddTaskForm {
   userAgentRules?: import('@shared/types').UserAgentRule[]
   requestHeaders: BrowserRequestHeader[]
   uriRequestContexts?: Record<string, ExternalDownloadContext>
+  /** Per-task download limit such as `512K`; `0` or empty is unlimited. */
+  speedLimit?: string
+  /** Expected digest of a single download; see `parseChecksum`. */
+  checksum?: string
 }
 
 export interface MagnetSubmitFailure {
@@ -104,6 +109,7 @@ async function buildTorrentTaskOptions(
   return {
     dir: category?.directory ?? options.dir,
     'select-file': [...selectedIndices].sort((a, b) => a - b).join(','),
+    ...(options['max-download-limit'] ? { 'max-download-limit': options['max-download-limit'] } : {}),
   }
 }
 
@@ -133,6 +139,9 @@ export function buildEngineOptions(form: AddTaskForm, context?: ExternalDownload
     'max-connection-per-server': String(form.streamMaxConnections),
   }
   if (form.out) options.out = form.out
+  if (form.speedLimit && form.speedLimit !== '0') options['max-download-limit'] = form.speedLimit
+  const checksum = form.checksum ? parseChecksum(form.checksum) : null
+  if (checksum) options.checksum = checksumOption(checksum)
   if (context?.filename) {
     options['filename-hint'] = context.filename
     options['filename-hint-source'] = context.filenameSource ?? 'suggested'
@@ -260,6 +269,7 @@ export async function submitManualUris(
   form: AddTaskForm,
   taskStore: ReturnType<typeof useTaskStore>,
   fileCategory?: FileCategoryPolicy,
+  skip: ReadonlySet<string> = new Set(),
 ): Promise<ManualUriSubmitResult> {
   if (!form.uris.trim()) return { submittedTaskNames: [], magnetGids: [], magnetFailures: [] }
   const parsedInput = parseAria2Input(form.uris)
@@ -277,7 +287,7 @@ export async function submitManualUris(
   const magnetUris = allUris.filter(isMagnetUri)
   const regularEntries: ManualRegularEntry[] = parsedInput.entries
     .map((entry) => ({
-      uris: entry.uris.filter((uri) => !isMagnetUri(uri)),
+      uris: entry.uris.filter((uri) => !isMagnetUri(uri) && !skip.has(uri)),
       inputOptions: entry.options,
       hasInputOptions: Object.keys(entry.options).length > 0,
     }))

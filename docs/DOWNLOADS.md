@@ -171,6 +171,36 @@ Authenticated readiness endpoints return `engine_starting` or `engine_unavailabl
 when the desktop is reachable but cannot provide engine services. Connect retains
 the desktop version and offers recovery instead of repeatedly activating the app.
 
+## Submission policy
+
+`services::downloads::submit` is the single entry for dialog and browser tasks.
+Site rules cap `max-connection-per-server` for matching hosts there: a plain
+pattern names a domain and its subdomains, `*` matches any characters, and the
+lowest matching limit wins over a larger requested value. The dialog's speed
+limit and checksum become `max-download-limit` and `checksum`; a checksum names
+one file, so it applies to a single non-magnet URI, and a mismatch fails the task.
+
+Before submitting, the dialog asks the desktop for duplicates: live tasks with the
+same source URI (ignoring fragments) and completed history records whose file still
+exists. The user skips them, adds them anyway or returns to the form. Independently,
+the engine never lets two unfinished tasks write one output path; the later task
+takes a numbered name, or fails without `auto-file-renaming`.
+
+An unfinished task's source can be replaced from task details. The desktop swaps
+the URIs of single-file HTTP, FTP or SFTP tasks through `changeUri`, keeping the
+downloaded data. A failed task is resubmitted with the new source instead.
+
+Downloads handed over while the main window is hidden or minimized open the
+standalone add-task window (`services/add_window.rs`) once the engine runs. It
+holds the same dialog, receives later handoffs while open, and closes after
+submission without raising the main window. Auto-submitted downloads use it
+invisibly and close it when the engine accepted them.
+
+When a task completes, the optional post-download program runs detached with the
+configured arguments. Arguments split at unquoted whitespace, double quotes group,
+and `{file}`, `{dir}` and `{name}` are replaced after splitting, so paths with
+spaces stay one argument. Its exit status is only logged.
+
 ## Verification and packaging
 
 Use `pnpm test --maxWorkers=4`, `pnpm build`, `pnpm lint`, `pnpm check:repo`,

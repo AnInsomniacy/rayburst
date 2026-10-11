@@ -1,5 +1,8 @@
-/** @fileoverview Application entry point: mounts Vue, initializes i18n, aria2 engine, and IPC listeners. */
-import { createApp } from 'vue'
+/**
+ * @fileoverview Application entry point: mounts Vue, initializes i18n, aria2 engine, and IPC listeners.
+ * The add-task window loads the same entry and mounts only the add-task dialog.
+ */
+import { createApp, h } from 'vue'
 import { createPinia } from 'pinia'
 import router from './router'
 import { i18n, loadLocale } from '@/composables/useLocale'
@@ -22,6 +25,8 @@ import { resolveAppProxyUrl } from '@shared/utils/proxy'
 import { checkSyncDue } from '@shared/utils/syncSchedule'
 import type { AppConfig, TauriUpdate } from '@shared/types'
 import App from './App.vue'
+import AppProviders from './AppProviders.vue'
+import AddWindow from './AddWindow.vue'
 import './styles/tokens.css'
 import './styles/base.css'
 import './styles/transitions.css'
@@ -33,10 +38,11 @@ import { getCurrentWindow } from '@tauri-apps/api/window'
 import { getLocale } from 'tauri-plugin-locale-api'
 import { resolveSystemLocale } from '@shared/utils/locale'
 
-const app = createApp(App)
+const isAddWindow = getCurrentWindow().label === 'add'
+const app = isAddWindow ? createApp(() => h(AppProviders, null, () => h(AddWindow))) : createApp(App)
 const pinia = createPinia()
 app.use(pinia)
-app.use(router)
+if (!isAddWindow) app.use(router)
 app.use(i18n)
 
 // ── Global error boundary — catch all uncaught exceptions to log file ──
@@ -59,9 +65,63 @@ if (import.meta.env.PROD) {
   document.addEventListener('contextmenu', (e) => e.preventDefault())
 }
 
-// ── Main window initialization ──────────────────────────────────────
+/** Resolves the persisted or system locale and loads its messages. */
+async function applyStartupLocale(): Promise<void> {
+  const preferenceStore = usePreferenceStore()
+  const storedLocale = preferenceStore.locale
+  let resolvedLocale: SupportedLocale
 
-{
+  if (!storedLocale || storedLocale === 'auto') {
+    // First install (empty/auto) or explicit Follow System mode:
+    // detect the OS locale and resolve to the closest available match.
+    try {
+      const raw = (await getLocale()) || 'en-US'
+      resolvedLocale = resolveSystemLocale(raw, SUPPORTED_LOCALES)
+    } catch (e) {
+      logger.debug('main.locale', e)
+      resolvedLocale = 'en-US'
+    }
+
+    if (!storedLocale) {
+      // Legacy first-install path (locale was ''): persist 'auto' so
+      // subsequent launches continue to follow the system language.
+      preferenceStore.updatePreference({ locale: 'auto' })
+      preferenceStore.savePreference()
+    }
+    // When storedLocale is already 'auto', we intentionally do NOT
+    // overwrite it — the config stays 'auto' across restarts.
+  } else {
+    // Explicit locale chosen by the user (e.g. 'zh-CN', 'ja').
+    resolvedLocale = isSupportedLocale(storedLocale) ? storedLocale : 'en-US'
+  }
+
+  // Apply resolved locale to vue-i18n and expose it on the store
+  // so downstream consumers (direction, General.vue) can read it.
+  // Locale messages are lazily loaded — only en-US ships in the main bundle.
+  await loadLocale(resolvedLocale)
+  setI18nLocale(i18n, resolvedLocale)
+}
+
+// ── Add-task window initialization ──────────────────────────────────
+
+async function bootstrapAddWindow(): Promise<void> {
+  await usePreferenceStore().loadPreference()
+  await applyStartupLocale()
+  useTaskStore().setApi(aria2Api)
+  app.mount('#app')
+}
+
+// ── Window initialization ───────────────────────────────────────────
+
+if (isAddWindow) {
+  void bootstrapAddWindow().catch(async (e) => {
+    logger.error('main.addWindow', e)
+    const { invoke } = await import('@tauri-apps/api/core')
+    // Drop the inputs so the desktop does not reopen a window that cannot start.
+    await invoke('add_window_attach').catch(() => undefined)
+    await getCurrentWindow().destroy()
+  })
+} else {
   const preferenceStore = usePreferenceStore()
   const taskStore = useTaskStore()
   const appStore = useAppStore()
@@ -280,44 +340,17 @@ if (import.meta.env.PROD) {
     // ── Phase 1: critical path → window visible ASAP ──────────────────────
     await preferenceStore.loadPreference()
 
-    const storedLocale = preferenceStore.locale
-    let resolvedLocale: SupportedLocale
-
-    if (!storedLocale || storedLocale === 'auto') {
-      // First install (empty/auto) or explicit Follow System mode:
-      // detect the OS locale and resolve to the closest available match.
-      try {
-        const raw = (await getLocale()) || 'en-US'
-        resolvedLocale = resolveSystemLocale(raw, SUPPORTED_LOCALES)
-      } catch (e) {
-        logger.debug('main.locale', e)
-        resolvedLocale = 'en-US'
-      }
-
-      if (!storedLocale) {
-        // Legacy first-install path (locale was ''): persist 'auto' so
-        // subsequent launches continue to follow the system language.
-        preferenceStore.updatePreference({ locale: 'auto' })
-        preferenceStore.savePreference()
-      }
-      // When storedLocale is already 'auto', we intentionally do NOT
-      // overwrite it — the config stays 'auto' across restarts.
-    } else {
-      // Explicit locale chosen by the user (e.g. 'zh-CN', 'ja').
-      resolvedLocale = isSupportedLocale(storedLocale) ? storedLocale : 'en-US'
-    }
-
-    // Apply resolved locale to vue-i18n and expose it on the store
-    // so downstream consumers (direction, General.vue) can read it.
-    // Locale messages are lazily loaded — only en-US ships in the main bundle.
-    await loadLocale(resolvedLocale)
-    setI18nLocale(i18n, resolvedLocale)
+    await applyStartupLocale()
 
     // Mount only after preference + locale hydration so root-level theme,
     // color-scheme, locale, and layout watchers see stable persisted values
     // on their first run. The native window is still hidden until
     // MainLayout.onMounted explicitly shows it.
     app.mount('#app')
+    // The add-task window saves directory history and remembered locations.
+    void import('@tauri-apps/api/event').then(({ listen }) =>
+      listen('add-window:closed', () => preferenceStore.reloadPreferenceFromDisk()),
+    )
     // The UI remains usable if database inspection fails.
     const database = useDatabaseStore()
     await database.init().catch(() => undefined)

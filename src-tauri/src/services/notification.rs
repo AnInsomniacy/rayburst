@@ -64,7 +64,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "macos")]
 use tauri_plugin_notification::NotificationExt;
 
 #[cfg(target_os = "linux")]
@@ -180,12 +180,20 @@ pub enum TaskNotificationKind {
     Error,
 }
 
+/// What clicking a notification opens, where the platform reports clicks.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NotificationTarget {
+    Window,
+    Reveal(std::path::PathBuf),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TaskNotificationContent {
     pub kind: TaskNotificationKind,
     pub title: String,
     pub body: String,
     pub locale: String,
+    pub target: NotificationTarget,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -246,6 +254,12 @@ pub fn build_task_notification(
     let locale = resolve_preferred_locale(&config.locale);
     let task_name = event.name.as_str();
 
+    let target = match kind {
+        TaskNotificationKind::Complete | TaskNotificationKind::P2pDownloadComplete => {
+            NotificationTarget::Reveal(event.output_path())
+        }
+        _ => NotificationTarget::Window,
+    };
     let message = match kind {
         TaskNotificationKind::Start => return None,
         TaskNotificationKind::Complete => download_complete(&locale, task_name),
@@ -266,6 +280,7 @@ pub fn build_task_notification(
         title: message.title,
         body: message.body,
         locale,
+        target,
     })
 }
 
@@ -289,6 +304,7 @@ pub fn build_task_start_notification(
         title: message.title,
         body: message.body,
         locale,
+        target: NotificationTarget::Window,
     })
 }
 
@@ -328,6 +344,7 @@ pub async fn send_app_notification(
         title: title.to_string(),
         body: body.to_string(),
         locale: "frontend".to_string(),
+        target: NotificationTarget::Window,
     };
     send_native_notification(app, &content).await
 }
@@ -465,7 +482,52 @@ async fn send_platform_notification(
     })
 }
 
-#[cfg(not(target_os = "linux"))]
+/// Opens what a clicked notification names.
+#[cfg(windows)]
+fn open_target(app: &tauri::AppHandle, target: &NotificationTarget) {
+    if let NotificationTarget::Reveal(path) = target {
+        if path.exists() {
+            match crate::commands::show_item_in_dir(path.to_string_lossy().into_owned()) {
+                Ok(()) => return,
+                Err(error) => log::warn!("notification:reveal-failed error={error}"),
+            }
+        }
+    }
+    crate::tray::request_main_window(app, "notification", true);
+}
+
+#[cfg(windows)]
+async fn send_platform_notification(
+    app: &tauri::AppHandle,
+    content: &TaskNotificationContent,
+) -> Result<NotificationDispatchResult, String> {
+    use tauri_winrt_notification::Toast;
+    // Development builds have no registered application identity.
+    let development = tauri::utils::platform::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(std::path::Path::to_path_buf))
+        .is_some_and(|dir| dir.ends_with("target/debug") || dir.ends_with("target/release"));
+    let app_id = if development {
+        Toast::POWERSHELL_APP_ID.to_owned()
+    } else {
+        app.config().identifier.clone()
+    };
+    let handle = app.clone();
+    let target = content.target.clone();
+    Toast::new(&app_id)
+        .title(&content.title)
+        .text1(&content.body)
+        .on_activated(move |_| {
+            open_target(&handle, &target);
+            Ok(())
+        })
+        .show()
+        .map_err(|error| error.to_string())?;
+
+    Ok(NotificationDispatchResult::Submitted)
+}
+
+#[cfg(target_os = "macos")]
 async fn send_platform_notification(
     app: &tauri::AppHandle,
     content: &TaskNotificationContent,
@@ -525,6 +587,10 @@ mod tests {
         assert_eq!(content.title, "Download Complete");
         assert_eq!(content.body, "Saved: file.zip");
         assert_eq!(content.locale, "en-US");
+        assert_eq!(
+            content.target,
+            NotificationTarget::Reveal(std::path::PathBuf::from("/tmp"))
+        );
     }
 
     #[test]

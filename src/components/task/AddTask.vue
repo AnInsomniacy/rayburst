@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { invoke } from '@tauri-apps/api/core'
-/** @fileoverview Add task dialog: dual-tab layout (URI / Torrent) with AutoAnimate list transitions. */
+/**
+ * @fileoverview Add task dialog: dual-tab layout (URI / Torrent) with AutoAnimate list transitions.
+ * Standalone, it fills the add-task window instead of opening as a modal.
+ */
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useTaskStore } from '@/stores/task'
 import { usePreferenceStore } from '@/stores/preference'
@@ -43,6 +45,8 @@ import {
 } from '@shared/utils/proxy'
 import { resolveUserVisibleDownloadDir } from '@shared/utils/userVisibleDirectory'
 import { findMatchingUserAgentRule, resolveUserAgent } from '@shared/utils/userAgentPolicy'
+import { parseChecksum } from '@shared/utils/checksum'
+import { findDuplicateTasks, type DuplicateTask } from '@/api/aria2'
 
 import {
   resolveUnresolvedItems,
@@ -64,6 +68,7 @@ import {
   NInputGroup,
   NTag,
   NEllipsis,
+  useDialog,
 } from 'naive-ui'
 import { useAppMessage } from '@/composables/useAppMessage'
 import type { BatchItem, BatchItemKind, BtFileSelectionItem, UserAgentProfile } from '@shared/types'
@@ -74,16 +79,16 @@ import AdvancedOptions from './addtask/AdvancedOptions.vue'
 import DirectoryPopover from '@/components/common/DirectoryPopover.vue'
 import BtFileSelector from '@/components/task/BtFileSelector.vue'
 
-const props = defineProps<{ show: boolean }>()
-const emit = defineEmits<{ close: []; afterLeave: [] }>()
+const props = defineProps<{ show: boolean; standalone?: boolean }>()
+const emit = defineEmits<{ close: []; afterLeave: []; submitted: [] }>()
 
 const { t } = useI18n()
-const router = useRouter()
 const appStore = useAppStore()
 const taskStore = useTaskStore()
 const preferenceStore = usePreferenceStore()
 const httpAuthStore = useHttpAuthStore()
 const message = useAppMessage()
+const dialog = useDialog()
 const { constraint, configFieldProps, areConfigFieldsValid } = usePreferenceNumericValidation()
 /** Tracks whether the user manually edited the download directory in this session. */
 const dirUserModified = ref(false)
@@ -163,6 +168,8 @@ const form = ref<AddTaskForm>({
   appProxy: preferenceStore.config.proxy,
   requestHeaders: [],
   uriRequestContexts: {},
+  speedLimit: '',
+  checksum: '',
 })
 
 const firstRegularUri = computed(
@@ -172,11 +179,12 @@ const firstRegularUri = computed(
       .map((uri) => uri.trim())
       .find((uri) => uri && !isMagnetUri(uri)) ?? '',
 )
-const { filename, resolvingFilename, canResolveFilename, resolveFilename } = useFilenamePreview(
-  form,
-  () => props.show,
-  (text) => message.warning(text),
-)
+const { filename, missingExtension, outputName, resolvingFilename, canResolveFilename, resolveFilename } =
+  useFilenamePreview(
+    form,
+    () => props.show,
+    (text) => message.warning(text),
+  )
 const matchedUserAgentRule = computed(() =>
   findMatchingUserAgentRule({
     url: firstRegularUri.value,
@@ -235,8 +243,18 @@ const selectedFileIndices = computed<number[]>({
 const torrentItemsReady = computed(() =>
   fileItems.value.every((item) => item.inspectionState === 'ready' && Boolean(item.selectedFileIndices?.length)),
 )
+/** A checksum names one file, so it applies to a single regular download. */
+const checksumAvailable = computed(() => {
+  const uris = normalizeUriLines(form.value.uris)
+  return activeTab.value === ADD_TASK_TYPE.URI && uris.length === 1 && !isMagnetUri(uris[0])
+})
+const checksumValid = computed(
+  () => !checksumAvailable.value || !form.value.checksum?.trim() || parseChecksum(form.value.checksum) !== null,
+)
 const uriOptionsValid = computed(
-  () => !form.value.uris.trim() || areConfigFieldsValid({ streamMaxConnections: form.value.streamMaxConnections }),
+  () =>
+    !form.value.uris.trim() ||
+    (areConfigFieldsValid({ streamMaxConnections: form.value.streamMaxConnections }) && checksumValid.value),
 )
 const canSubmit = computed(() => uriOptionsValid.value && torrentItemsReady.value)
 
@@ -673,11 +691,57 @@ async function handleClose(userDismiss = true) {
     customProxyPassword: '',
     requestHeaders: [],
     uriRequestContexts: {},
+    speedLimit: '',
+    checksum: '',
   })
   syncDefaultTaskProxy()
   userAgentManuallyEdited.value = false
   submitting.value = false
   selectedBatchIndex.value = 0
+}
+
+type DuplicateChoice = 'skip' | 'add' | 'cancel'
+
+function askDuplicateChoice(duplicates: DuplicateTask[]): Promise<DuplicateChoice> {
+  const shown = duplicates.slice(0, 5).map((task) => task.name)
+  if (duplicates.length > shown.length)
+    shown.push(t('task.duplicate-more', { count: duplicates.length - shown.length }))
+  return new Promise((resolve) => {
+    let settled = false
+    const settle = (choice: DuplicateChoice) => {
+      if (!settled) resolve(choice)
+      settled = true
+    }
+    dialog.warning({
+      title: t('task.duplicate-title'),
+      content: `${t('task.duplicate-message', { count: duplicates.length })}\n${shown.join('\n')}`,
+      contentStyle: { whiteSpace: 'pre-line', wordBreak: 'break-all' },
+      positiveText: t('task.duplicate-skip'),
+      negativeText: t('task.duplicate-add-anyway'),
+      onPositiveClick: () => settle('skip'),
+      onNegativeClick: () => settle('add'),
+      onClose: () => settle('cancel'),
+      onMaskClick: () => settle('cancel'),
+      onAfterLeave: () => settle('cancel'),
+    })
+  })
+}
+
+/** URIs the user chose not to download again, or null to stay in the dialog. */
+async function duplicatesToSkip(): Promise<Set<string> | null> {
+  const uris = normalizeUriLines(form.value.uris).filter((uri) => !isMagnetUri(uri))
+  if (uris.length === 0) return new Set()
+  let duplicates: DuplicateTask[]
+  try {
+    duplicates = await findDuplicateTasks(uris)
+  } catch (error) {
+    logger.warn('AddTask.duplicates', getErrorMessage(error))
+    return new Set()
+  }
+  if (duplicates.length === 0) return new Set()
+  const choice = await askDuplicateChoice(duplicates)
+  if (choice === 'cancel') return null
+  return new Set(choice === 'skip' ? duplicates.map((task) => task.uri) : [])
 }
 
 async function handleSubmit() {
@@ -694,10 +758,18 @@ async function handleSubmit() {
       }
     }
 
+    const skipped = await duplicatesToSkip()
+    if (!skipped) {
+      submitting.value = false
+      return
+    }
+
     // When dir field is empty (user left it blank for auto-classification),
     // fall back to the global default dir so aria2 always has a valid path.
     const effectiveForm = {
       ...form.value,
+      out: outputName(),
+      checksum: checksumAvailable.value ? form.value.checksum : '',
       dir: form.value.dir.trim() || rememberedDirectory.value || preferenceStore.config.dir,
       appProxy: preferenceStore.config.proxy,
       defaultUserAgent: preferenceStore.config.userAgent,
@@ -715,7 +787,7 @@ async function handleSubmit() {
       await submitBatchItems(batch.value, options, taskStore, fileCategory)
     }
     if (form.value.uris.trim()) {
-      manualResult = await submitManualUris(effectiveForm, taskStore, fileCategory)
+      manualResult = await submitManualUris(effectiveForm, taskStore, fileCategory, skipped)
     }
 
     const failedCount = batch.value.filter((i) => i.status === 'failed').length + manualResult.magnetFailures.length
@@ -753,6 +825,7 @@ async function handleSubmit() {
         }
       }
 
+      if (skipped.size > 0) message.info(t('task.duplicate-skipped', { count: skipped.size }))
       const effectiveDir = effectiveForm.dir.trim()
       if (dirUserModified.value && preferenceStore.config.rememberSaveLocation) {
         preferenceStore.updatePreference({ lastSaveLocation: effectiveDir })
@@ -772,9 +845,7 @@ async function handleSubmit() {
         t,
       })
 
-      if (preferenceStore.config.newTaskShowDownloading !== false) {
-        router.push({ path: '/task/all' }).catch(() => {})
-      }
+      emit('submitted')
     }
   } catch (e: unknown) {
     const category = classifySubmitError(e)
@@ -794,27 +865,29 @@ async function handleSubmit() {
     submitting.value = false
   }
 }
-</script>
 
-<template>
-  <NModal
-    :show="props.show"
-    :mask-closable="false"
-    :close-on-esc="!submitting"
-    :auto-focus="false"
-    transform-origin="center"
-    @after-leave="emit('afterLeave')"
-    @update:show="
-      (v: boolean) => {
-        if (!v) handleClose()
-      }
-    "
-  >
-    <NCard
-      :title="t('task.new-task')"
-      closable
-      class="add-task-card"
-      :style="{
+const frame = computed(() =>
+  props.standalone
+    ? { is: 'div', attrs: { class: 'add-task-window' } }
+    : {
+        is: NModal,
+        attrs: {
+          show: props.show,
+          maskClosable: false,
+          closeOnEsc: !submitting.value,
+          autoFocus: false,
+          transformOrigin: 'center',
+          onAfterLeave: () => emit('afterLeave'),
+          'onUpdate:show': (visible: boolean) => {
+            if (!visible) handleClose()
+          },
+        },
+      },
+)
+const cardStyle = computed(() =>
+  props.standalone
+    ? { height: '100%', display: 'flex', flexDirection: 'column', borderRadius: '0', border: 'none' }
+    : {
         maxWidth: '680px',
         minWidth: 'min(380px, calc(100vw - 24px))',
         width: '70vw',
@@ -822,7 +895,19 @@ async function handleSubmit() {
         height: '82vh',
         display: 'flex',
         flexDirection: 'column',
-      }"
+      },
+)
+
+defineExpose({ dismiss: () => handleClose() })
+</script>
+
+<template>
+  <component :is="frame.is" v-bind="frame.attrs">
+    <NCard
+      :title="standalone ? undefined : t('task.new-task')"
+      :closable="!standalone"
+      class="add-task-card"
+      :style="cardStyle"
       :content-style="{ flex: '1', minHeight: '0', overflowY: 'auto', overflowX: 'hidden' }"
       :segmented="{ footer: true }"
       @close="() => handleClose()"
@@ -914,7 +999,11 @@ async function handleSubmit() {
         <div class="download-settings">
           <NFormItem :label="t('task.task-out') + ':'">
             <NInputGroup>
-              <NInput v-model:value="filename" :placeholder="t('task.task-out-tips')" :autofocus="false" />
+              <NInput v-model:value="filename" :placeholder="t('task.task-out-tips')" :autofocus="false">
+                <template v-if="missingExtension" #suffix>
+                  <span class="filename-extension">{{ missingExtension }}</span>
+                </template>
+              </NInput>
               <NButton :disabled="!canResolveFilename" :loading="resolvingFilename" @click="resolveFilename">{{
                 t('task.resolve-filename')
               }}</NButton>
@@ -970,6 +1059,9 @@ async function handleSubmit() {
             v-model:custom-proxy="form.customProxy"
             v-model:custom-proxy-username="form.customProxyUsername"
             v-model:custom-proxy-password="form.customProxyPassword"
+            v-model:speed-limit="form.speedLimit"
+            v-model:checksum="form.checksum"
+            :checksum-available="checksumAvailable"
             :source-url="firstRegularUri"
             :user-agent="form.userAgent"
             :user-agent-source="userAgentSourceText"
@@ -1002,10 +1094,18 @@ async function handleSubmit() {
         </NSpace>
       </template>
     </NCard>
-  </NModal>
+  </component>
 </template>
 
 <style scoped>
+.add-task-window {
+  height: 100vh;
+}
+
+.filename-extension {
+  color: var(--m3-on-surface-variant);
+}
+
 /* Fixed-height tab panes prevent jitter when switching tabs.
  * URI textarea rows=5 ≈ 138px — keep both panes at same min-height. */
 .tab-pane-content {

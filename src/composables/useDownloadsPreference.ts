@@ -43,6 +43,8 @@ export interface DownloadsForm {
   notifyOnComplete: boolean
   shutdownWhenComplete: boolean
   keepAwake: boolean
+  postDownloadProgram: string
+  postDownloadArguments: string
   deleteTorrentAfterComplete: boolean
   autoDeleteStaleRecords: boolean
   clearCompletedOnExit: boolean
@@ -90,6 +92,8 @@ export function buildDownloadsForm(config: AppConfig, defaultDir: string = ''): 
     notifyOnComplete: config.notifyOnComplete ?? D.notifyOnComplete,
     shutdownWhenComplete: config.shutdownWhenComplete ?? D.shutdownWhenComplete,
     keepAwake: config.keepAwake ?? D.keepAwake,
+    postDownloadProgram: config.postDownloadProgram ?? D.postDownloadProgram,
+    postDownloadArguments: config.postDownloadArguments ?? D.postDownloadArguments,
     deleteTorrentAfterComplete: config.deleteTorrentAfterComplete ?? false,
     autoDeleteStaleRecords: config.autoDeleteStaleRecords ?? false,
     clearCompletedOnExit: config.clearCompletedOnExit ?? false,

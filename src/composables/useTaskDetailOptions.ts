@@ -5,8 +5,10 @@
  * for UA, referer, cookie, authorization, and proxy,
  * and applies changes via `changeTaskOption`.
  *
- * Native request options use the engine's pending-option restart path.
- * Media options are only editable while paused to preserve recording continuity.
+ * Native request options use the engine's pending-option restart path; speed
+ * limits apply at once. Media options are only editable while paused to
+ * preserve recording continuity. The source URL of a single-file download can
+ * be replaced while it is unfinished, or used to retry a failed one.
  *
  * Pure dependency-injection design — no direct store/API imports — fully testable.
  */
@@ -17,11 +19,14 @@ import { TASK_STATUS } from '@shared/constants'
 import type { Aria2Task, Aria2EngineOptions, ProxyConfig } from '@shared/types'
 import { logger } from '@shared/logger'
 import { buildTaskProxyOptions, hasInvalidManualProxy, type TaskProxyMode } from '@shared/utils/proxy'
+import { formatSpeedLimit, parseSpeedLimit } from '@shared/utils/speedLimit'
+import { checkTaskIsBT } from '@shared/utils'
 
 // ── Constants ─────────────────────────────────────────────────────
 
 /** Task statuses where aria2 allows option modification. */
 const MODIFIABLE_STATUSES = new Set([TASK_STATUS.ACTIVE, TASK_STATUS.WAITING, TASK_STATUS.PAUSED])
+const REPLACEABLE_SOURCE = /^(https?|ftp|sftp):\/\//i
 
 // ── Public types ──────────────────────────────────────────────────
 
@@ -39,12 +44,19 @@ export interface TaskDetailOptionsForm {
   customProxy: string
   customProxyUsername: string
   customProxyPassword: string
+  maxDownloadLimit: string
+  maxUploadLimit: string
+  uri: string
 }
 
 export interface UseTaskDetailOptionsConfig {
   task: Ref<Aria2Task | null>
   getTaskOption: (gid: string) => Promise<Record<string, string>>
   changeTaskOption: (payload: { gid: string; options: Aria2EngineOptions }) => Promise<void>
+  /** Replaces the source of an unfinished download, keeping its data. */
+  replaceTaskUri: (payload: { gid: string; uri: string }) => Promise<void>
+  /** Retries a failed download from another source. */
+  retryTaskWithUri: (task: Aria2Task, uri: string) => Promise<void>
   proxyConfig: () => ProxyConfig
   message: {
     success: (content: string) => void
@@ -107,7 +119,22 @@ function createEmptyForm(): TaskDetailOptionsForm {
     customProxy: '',
     customProxyUsername: '',
     customProxyPassword: '',
+    maxDownloadLimit: '0',
+    maxUploadLimit: '0',
+    uri: '',
   }
+}
+
+/** The single source of a plain download, which the user may replace. */
+export function replaceableSource(task: Aria2Task | null): string {
+  if (!task || task.media || checkTaskIsBT(task) || task.files?.length !== 1) return ''
+  const uri = task.files[0].uris?.[0]?.uri ?? ''
+  return REPLACEABLE_SOURCE.test(uri) ? uri : ''
+}
+
+const normalizeLimit = (value: string | undefined) => {
+  const { amount, unit } = parseSpeedLimit(value)
+  return formatSpeedLimit(amount, unit)
 }
 
 function snapshotForm(source: TaskDetailOptionsForm, target: TaskDetailOptionsForm) {
@@ -140,6 +167,8 @@ function populateFormFromResponse(opts: Record<string, string>, form: TaskDetail
   form.customProxy = detected.custom
   form.customProxyUsername = (opts.allProxyUser as string) ?? ''
   form.customProxyPassword = (opts.allProxyPasswd as string) ?? ''
+  form.maxDownloadLimit = normalizeLimit(opts.maxDownloadLimit)
+  form.maxUploadLimit = normalizeLimit(opts.maxUploadLimit)
 }
 
 // ── Changed-options diff builder ──────────────────────────────────
@@ -179,6 +208,8 @@ function buildChangedOptions(
   ) {
     Object.assign(options, proxyOptions)
   }
+  if (form.maxDownloadLimit !== loaded.maxDownloadLimit) options['max-download-limit'] = form.maxDownloadLimit
+  if (form.maxUploadLimit !== loaded.maxUploadLimit) options['max-upload-limit'] = form.maxUploadLimit
 
   return options
 }
@@ -187,6 +218,7 @@ function buildChangedOptions(
 
 export function useTaskDetailOptions(config: UseTaskDetailOptionsConfig) {
   const { task, getTaskOption, changeTaskOption, proxyConfig, message, t } = config
+  const optionKeys = (Object.keys(createEmptyForm()) as (keyof TaskDetailOptionsForm)[]).filter((key) => key !== 'uri')
 
   const form = reactive<TaskDetailOptionsForm>(createEmptyForm())
   const loaded = reactive<TaskDetailOptionsForm>(createEmptyForm())
@@ -198,22 +230,21 @@ export function useTaskDetailOptions(config: UseTaskDetailOptionsConfig) {
     return MODIFIABLE_STATUSES.has(task.value.status)
   })
 
-  const dirty = computed(
+  /** A failed download may only take another source; it retries from there. */
+  const canReplaceUri = computed(
     () =>
-      form.userAgent !== loaded.userAgent ||
-      form.referer !== loaded.referer ||
-      form.cookie !== loaded.cookie ||
-      form.authorization !== loaded.authorization ||
-      form.httpAuthUsername !== loaded.httpAuthUsername ||
-      form.httpAuthPassword !== loaded.httpAuthPassword ||
-      form.proxyMode !== loaded.proxyMode ||
-      form.customProxy !== loaded.customProxy ||
-      form.customProxyUsername !== loaded.customProxyUsername ||
-      form.customProxyPassword !== loaded.customProxyPassword,
+      !!replaceableSource(task.value) &&
+      isEngineReady() &&
+      (MODIFIABLE_STATUSES.has(task.value?.status ?? '') || task.value?.status === TASK_STATUS.ERROR),
   )
+  const optionsDirty = computed(() => optionKeys.some((key) => form[key] !== loaded[key]))
+  const uriDirty = computed(() => canReplaceUri.value && form.uri.trim() !== loaded.uri)
+  const dirty = computed(() => (canModify.value && optionsDirty.value) || uriDirty.value)
+  const retriesWithUri = computed(() => uriDirty.value && task.value?.status === TASK_STATUS.ERROR)
 
   function resetForm() {
     Object.assign(form, createEmptyForm())
+    form.uri = replaceableSource(task.value)
     snapshotForm(form, loaded)
   }
 
@@ -221,6 +252,7 @@ export function useTaskDetailOptions(config: UseTaskDetailOptionsConfig) {
     try {
       const opts = await getTaskOption(gid)
       populateFormFromResponse(opts, form)
+      form.uri = replaceableSource(task.value)
 
       snapshotForm(form, loaded)
     } catch (err) {
@@ -239,6 +271,26 @@ export function useTaskDetailOptions(config: UseTaskDetailOptionsConfig) {
     if (applying.value || !task.value || !dirty.value) return
     applying.value = true
     try {
+      if (uriDirty.value) {
+        const uri = form.uri.trim()
+        if (!REPLACEABLE_SOURCE.test(uri)) {
+          message.error(t('task.source-url-invalid'))
+          return
+        }
+        if (task.value.status === TASK_STATUS.ERROR) {
+          await config.retryTaskWithUri(task.value, uri)
+          message.success(t('task.source-url-retried'))
+          return
+        }
+        await config.replaceTaskUri({ gid: task.value.gid, uri })
+        form.uri = uri
+        loaded.uri = uri
+        if (!optionsDirty.value) {
+          message.success(t('task.source-url-replaced'))
+          return
+        }
+      }
+
       const proxyOptions = buildTaskProxyOptions(
         form.proxyMode,
         form.customProxy,
@@ -256,7 +308,10 @@ export function useTaskDetailOptions(config: UseTaskDetailOptionsConfig) {
       const options = buildChangedOptions(form, loaded, proxyOptions)
       await changeTaskOption({ gid: task.value.gid, options })
       snapshotForm(form, loaded)
-      const key = task.value.status === TASK_STATUS.ACTIVE ? 'task.options-applied-restart' : 'task.options-applied'
+      // Speed limits apply at once; request options restart the transfer.
+      const restarts = Object.keys(options).some((name) => !name.endsWith('-limit'))
+      const key =
+        task.value.status === TASK_STATUS.ACTIVE && restarts ? 'task.options-applied-restart' : 'task.options-applied'
       message.success(t(key))
     } catch (err) {
       logger.debug('[useTaskDetailOptions] changeTaskOption failed', err)
@@ -266,5 +321,5 @@ export function useTaskDetailOptions(config: UseTaskDetailOptionsConfig) {
     }
   }
 
-  return { form, canModify, dirty, applying, applyOptions }
+  return { form, canModify, canReplaceUri, dirty, retriesWithUri, applying, applyOptions }
 }
