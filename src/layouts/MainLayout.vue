@@ -149,7 +149,7 @@ async function openFileFromNotification(task: Aria2Task) {
     await invoke('open_path_normalized', { path: target })
     message.success(t(isDir ? 'task.open-file-is-folder' : 'task.open-file-success'))
   } catch (e) {
-    logger.warn('Notification.openFile', e instanceof Error ? e.message : String(e))
+    logger.warn('Notification.openFile', e)
     message.warning(t('task.file-not-exist'))
     requestFileRecheck()
   }
@@ -189,7 +189,7 @@ async function showInFolderFromNotification(task: Aria2Task) {
     message.warning(t('task.file-not-exist'))
     requestFileRecheck()
   } catch (e) {
-    logger.warn('Notification.showInFolder', e instanceof Error ? e.message : String(e))
+    logger.warn('Notification.showInFolder', e)
     message.warning(t('task.file-not-exist'))
     requestFileRecheck()
   }
@@ -377,7 +377,7 @@ function startShutdownCountdown() {
         const { invoke } = await import('@tauri-apps/api/core')
         await invoke('system_shutdown')
       } catch (e) {
-        logger.error('Power.shutdown', e instanceof Error ? e.message : String(e))
+        logger.error('Power.shutdown', e)
         message.error(t('app.shutdown-failed'))
       }
     }
@@ -430,7 +430,7 @@ async function checkShutdownCondition() {
 
     startShutdownCountdown()
   } catch (e) {
-    logger.debug('Power.checkCondition', e instanceof Error ? e.message : String(e))
+    logger.debug('Power.checkCondition', e)
   }
 }
 
@@ -529,7 +529,7 @@ onMounted(async () => {
     try {
       return await aria2Api.fetchTaskItem({ gid })
     } catch (e) {
-      logger.debug('Lifecycle.fetchTask', e instanceof Error ? e.message : String(e))
+      logger.debug('Lifecycle.fetchTask', e)
       return null
     }
   }

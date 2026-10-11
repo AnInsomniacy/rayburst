@@ -14,6 +14,10 @@ const ENGINE_SIDECAR_NAME: &str = "aria2-next";
 const DEFAULT_RPC_PORT_STR: &str = "29100";
 const ENGINE_PORT_RELEASE_TIMEOUT_MS: u64 = 2600;
 const ENGINE_PORT_RELEASE_POLL_MS: u64 = 100;
+const GRACEFUL_EXIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+/// A killed process can stay alive while the kernel completes pending disk I/O.
+const KILLED_EXIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+const FAST_EXIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
 const WINDOWS_DBG_TERMINATE_PROCESS: u32 = 0x4001_0004;
 const WINDOWS_STATUS_DLL_INIT_FAILED_LOGOFF: u32 = 0xC000_026B;
 const PROXY_ENV_VARS: &[&str] = &[
@@ -72,18 +76,6 @@ fn ensure_download_session(path: &std::path::Path) -> Result<(), String> {
             path.display()
         )),
     }
-}
-
-#[cfg(not(windows))]
-fn kill_process_by_pid(pid: u32) -> Result<(), String> {
-    let status = std::process::Command::new("kill")
-        .args(["-TERM", &pid.to_string()])
-        .status()
-        .map_err(|e| format!("Failed to execute kill for PID {pid}: {e}"))?;
-    if status.success() {
-        return Ok(());
-    }
-    Err(format!("kill failed for PID {pid}: {status}"))
 }
 
 fn is_windows_session_shutdown_exit(exit_code: i32) -> bool {
@@ -218,6 +210,9 @@ fn monitor_engine(
                 }
                 CommandEvent::Terminated(payload) => {
                     let exit_code = payload.code.unwrap_or(-1);
+                    if let Some(state) = app.try_state::<EngineState>() {
+                        state.mark_exited(process_id);
+                    }
                     let is_stale = app
                         .try_state::<EngineState>()
                         .is_none_or(|state| !state.is_current_generation(generation));
@@ -262,17 +257,6 @@ fn monitor_engine(
                         );
                     }
 
-                    if let Some(state) = app.try_state::<EngineState>() {
-                        if let Ok(mut child) = state.child.lock() {
-                            if child
-                                .as_ref()
-                                .map(tauri_plugin_shell::process::CommandChild::pid)
-                                == Some(process_id)
-                            {
-                                *child = None;
-                            }
-                        }
-                    }
                     if !expected {
                         crate::engine::supervisor::report_process_exit(
                             app.clone(),
@@ -303,12 +287,7 @@ pub fn start_engine(app: &tauri::AppHandle) -> Result<StartEngineOutcome, crate:
     }
 
     let state = app.state::<EngineState>();
-    let mut child_lock = state
-        .child
-        .lock()
-        .map_err(|e| AppError::Engine(e.to_string()))?;
-
-    if child_lock.is_some() {
+    if state.is_running() {
         return Ok(StartEngineOutcome::Started);
     }
 
@@ -333,7 +312,7 @@ pub fn start_engine(app: &tauri::AppHandle) -> Result<StartEngineOutcome, crate:
     log::info!(target: "engine", event = "engine_started", pid = child.pid(); "engine_started");
 
     let spawned_pid = child.pid();
-    *child_lock = Some(child);
+    state.attach(child);
     state.clear_stderr();
     let my_gen = state.next_generation();
     monitor_engine(app.clone(), receiver, spawned_pid, my_gen);
@@ -341,51 +320,43 @@ pub fn start_engine(app: &tauri::AppHandle) -> Result<StartEngineOutcome, crate:
     Ok(StartEngineOutcome::Started)
 }
 
-/// Stop the owned sidecar. Parent-process monitoring also covers abrupt app exit.
-pub fn stop_engine(app: &tauri::AppHandle, for_exit: bool) -> Result<(), String> {
+/// Stops the owned sidecar and waits for the process to exit.
+///
+/// A graceful stop gives the engine time to finish its own shutdown (Unix
+/// receives SIGTERM; callers request the RPC shutdown first). The process is
+/// then killed through the owned handle, never by looking up a PID.
+pub fn stop_engine(app: &tauri::AppHandle, graceful: bool) -> Result<(), String> {
     let state = app.state::<EngineState>();
     state.invalidate_generation();
-    let mut child_lock = state.child.lock().map_err(|e| e.to_string())?;
-
-    #[cfg(windows)]
-    {
-        let _ = for_exit;
-        if let Some(pid) = child_lock.as_ref().map(CommandChild::pid) {
-            super::windows_process::stop_owned_engine(pid)?;
-            *child_lock = None;
+    let Some(pid) = state.pid() else {
+        return Ok(());
+    };
+    if graceful {
+        #[cfg(unix)]
+        // SAFETY: `pid` is our own child; it is not reaped before the monitor
+        // records its exit, so the PID cannot refer to another process.
+        unsafe {
+            libc::kill(pid as libc::pid_t, libc::SIGTERM);
+        }
+        if state.wait_exit(GRACEFUL_EXIT_TIMEOUT) {
             log::info!("stopped engine process: PID {pid}");
+            return Ok(());
         }
     }
-    #[cfg(not(windows))]
-    if let Some(child) = child_lock.take() {
-        let pid = child.pid();
-        if for_exit {
-            child
-                .kill()
-                .map_err(|error| format!("Failed to stop engine PID {pid}: {error}"))?;
-        } else {
-            kill_process_by_pid(pid)?;
-        }
-        log::info!("stopped engine process: PID {pid}");
-    }
-
-    Ok(())
-}
-
-pub fn wait_for_engine_exit(app: &tauri::AppHandle, timeout: std::time::Duration) -> bool {
-    let deadline = std::time::Instant::now() + timeout;
-    loop {
-        let stopped = app
-            .try_state::<EngineState>()
-            .and_then(|state| state.child.lock().ok().map(|child| child.is_none()))
-            .unwrap_or(true);
-        if stopped {
-            return true;
-        }
-        if std::time::Instant::now() >= deadline {
-            return false;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(25));
+    state.kill()?;
+    if state.wait_exit(if graceful {
+        KILLED_EXIT_TIMEOUT
+    } else {
+        FAST_EXIT_TIMEOUT
+    }) {
+        log::info!("killed engine process: PID {pid}");
+        Ok(())
+    } else if graceful {
+        Err(format!("Engine PID {pid} did not exit after termination"))
+    } else {
+        // App exit: the engine also stops with its parent process.
+        log::warn!("engine PID {pid} still exiting at app exit");
+        Ok(())
     }
 }
 

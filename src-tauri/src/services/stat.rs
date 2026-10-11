@@ -435,7 +435,6 @@ async fn stat_loop(
     mut stop_rx: watch::Receiver<bool>,
 ) {
     let mut interval_state = IntervalState::new();
-    let mut consecutive_rpc_failures = 0_u32;
 
     // Keep-awake guard: held while downloads are active and released when idle.
     // Linux acquisition can fail when the desktop portal is temporarily
@@ -463,16 +462,12 @@ async fn stat_loop(
         let stat = match aria2.get_global_stat().await {
             Ok(s) => s,
             Err(e) => {
-                consecutive_rpc_failures += 1;
+                // A busy engine answers late; only process exit triggers recovery.
                 log::debug!("stat_service: get_global_stat failed: {e}");
-                if consecutive_rpc_failures == 5 {
-                    crate::engine::supervisor::report_rpc_unhealthy(app.clone(), e.to_string());
-                }
                 interval_state.increase_idle();
                 continue;
             }
         };
-        consecutive_rpc_failures = 0;
 
         // Parse string values to u64
         let download_speed = stat.download_speed.parse::<u64>().unwrap_or(0);

@@ -201,7 +201,11 @@ fn terminate_process_at_path(
         return Err(format!("OpenProcess failed for PID {pid}: {error}"));
     }
     let handle = OwnedHandle(handle);
-    let actual_path = process_path(handle.0)?;
+    // A process whose image cannot be read (for example while it is exiting)
+    // is not provably ours, so it is left alone.
+    let Ok(actual_path) = process_path(handle.0) else {
+        return Ok(false);
+    };
     if !paths_match(&actual_path, expected_path) {
         log::debug!(
             "port owner is not the bundled engine: pid={} path={}",
@@ -263,10 +267,6 @@ pub(super) fn cleanup_listener(port: u16) -> Result<bool, String> {
         }
     }
     Ok(terminated)
-}
-
-pub(super) fn stop_owned_engine(pid: u32) -> Result<(), String> {
-    terminate_process_at_path(pid, &expected_engine_path()?, 0).map(|_| ())
 }
 
 /// Run from the installer's temporary copy, before replacing installed files.

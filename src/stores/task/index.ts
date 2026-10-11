@@ -277,7 +277,7 @@ export const useTaskStore = defineStore('task', () => {
           historyRecords = await useHistoryStore().getRecords()
           publishSnapshot()
         } catch (error) {
-          logger.warn('TaskStore.history', error instanceof Error ? error.message : String(error))
+          logger.warn('TaskStore.history', error)
         }
       } while (historyAgain)
     })().finally(() => {
@@ -317,7 +317,7 @@ export const useTaskStore = defineStore('task', () => {
           publishSnapshot()
           refreshDetail()
         } catch (error) {
-          logger.warn('TaskStore.fetchList', error instanceof Error ? error.message : String(error))
+          logger.warn('TaskStore.fetchList', error)
         }
       } while (refreshAgain)
     })().finally(() => {

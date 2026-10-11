@@ -341,7 +341,7 @@ export function useAdvancedActions(deps: AdvancedActionsDeps) {
     try {
       imported = parseSettingsBackup(await invoke<string>('read_settings_backup_file', { path: selected }))
     } catch (e) {
-      logger.warn('Advanced.importSettings', e instanceof Error ? e.message : String(e))
+      logger.warn('Advanced.importSettings', e)
       message.error(t('preferences.import-settings-invalid'))
       return
     }

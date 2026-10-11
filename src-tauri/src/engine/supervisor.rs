@@ -12,9 +12,7 @@ use crate::error::AppError;
 use crate::services::tasks::TaskServiceState;
 use crate::services::{self, port_guard};
 
-use super::{
-    start_engine, stop_engine, wait_for_engine_exit, wait_for_engine_ports_release, EngineState,
-};
+use super::{start_engine, stop_engine, wait_for_engine_ports_release, EngineState};
 
 const START_ATTEMPTS: u32 = 5;
 const PROBE_ATTEMPTS: u32 = 5;
@@ -56,7 +54,6 @@ pub enum EngineOperationCause {
     FailureRetry,
     SessionRecovery,
     RuntimeCrash,
-    RpcUnhealthy,
     PortConflict,
     UpdateInstall,
     UpdateInstallFailed,
@@ -635,20 +632,16 @@ impl EngineSupervisor {
             request_graceful_shutdown(app).await;
         }
         let app_for_stop = app.clone();
-        tokio::task::spawn_blocking(move || stop_engine(&app_for_stop, fast))
-            .await
-            .map_err(|error| AppError::Engine(error.to_string()))?
-            .map_err(AppError::Engine)?;
-        if !fast && was_running {
-            let app_for_wait = app.clone();
-            let _ = tokio::task::spawn_blocking(move || {
-                let exited = wait_for_engine_exit(&app_for_wait, Duration::from_secs(2));
-                wait_for_engine_ports_release(&app_for_wait);
-                exited
-            })
-            .await;
-        }
-        Ok(())
+        tokio::task::spawn_blocking(move || {
+            stop_engine(&app_for_stop, !fast)?;
+            if !fast && was_running {
+                wait_for_engine_ports_release(&app_for_stop);
+            }
+            Ok::<(), String>(())
+        })
+        .await
+        .map_err(|error| AppError::Engine(error.to_string()))?
+        .map_err(AppError::Engine)
     }
 
     async fn recover_after_exit(&self, app: &AppHandle, failure: EngineFailure) {
@@ -670,22 +663,6 @@ impl EngineSupervisor {
         {
             if !is_cancelled_error(&error) {
                 log::error!("engine_supervisor: crash recovery failed: {error}");
-            }
-        }
-    }
-
-    async fn recover_unhealthy_rpc(&self, app: &AppHandle, failure: EngineFailure) {
-        if self.desired_state() != DesiredEngineState::Running
-            || self.snapshot().phase != EnginePhase::Running
-        {
-            return;
-        }
-        if let Err(error) = self
-            .run_running_operation(app, EngineOperationCause::RpcUnhealthy, true, Some(failure))
-            .await
-        {
-            if !is_cancelled_error(&error) {
-                log::error!("engine_supervisor: unhealthy RPC recovery failed: {error}");
             }
         }
     }
@@ -984,25 +961,6 @@ pub fn report_port_conflict(app: AppHandle, generation: u32, kind: port_guard::P
         supervisor
             .recover_port_conflict(&app, generation, kind)
             .await;
-    });
-}
-
-pub fn report_rpc_unhealthy(app: AppHandle, message: String) {
-    tauri::async_runtime::spawn(async move {
-        let stderr_tail = app
-            .try_state::<EngineState>()
-            .map(|state| state.stderr_tail())
-            .unwrap_or_default();
-        let failure = EngineFailure {
-            stage: EngineFailureStage::Runtime,
-            message: format!("Engine RPC remained unavailable: {message}"),
-            retryable: true,
-            exit_code: None,
-            signal: None,
-            stderr_tail,
-        };
-        let supervisor = app.state::<EngineSupervisor>();
-        supervisor.recover_unhealthy_rpc(&app, failure).await;
     });
 }
 

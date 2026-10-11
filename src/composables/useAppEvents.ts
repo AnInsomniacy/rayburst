@@ -182,7 +182,7 @@ export function useAppEvents(deps: AppEventsDeps): AppEventsReturn {
       await operation()
       logger.debug('ExternalInput', 'window_stage_completed', { trace_id: traceId, stage, result: 'ok' })
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error)
+      const reason = getErrorMessage(error)
       logger.warn('ExternalInput', 'window_stage_failed', { trace_id: traceId, stage, result: 'failed', reason })
     }
   }
@@ -494,7 +494,7 @@ export function useAppEvents(deps: AppEventsDeps): AppEventsReturn {
             result: 'ok',
           })
         } catch (error) {
-          const reason = error instanceof Error ? error.message : String(error)
+          const reason = getErrorMessage(error)
           logger.debug('ExternalInput', 'silent_cleanup_skipped', {
             trace_id: traceId,
             stage: 'silent-cleanup',
@@ -540,7 +540,7 @@ export function useAppEvents(deps: AppEventsDeps): AppEventsReturn {
         ignored: handlingResult?.ignored ?? 'unknown',
       })
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error)
+      const reason = getErrorMessage(error)
       logger.error('ExternalInput', error, {
         trace_id: traceId,
         stage: 'route-download',
@@ -585,7 +585,7 @@ export function useAppEvents(deps: AppEventsDeps): AppEventsReturn {
           route: '/task/all',
         })
       } catch (error) {
-        const reason = error instanceof Error ? error.message : String(error)
+        const reason = getErrorMessage(error)
         logger.warn('ExternalInput', 'navigation_failed', {
           trace_id: traceId,
           stage: 'navigate',
@@ -614,7 +614,7 @@ export function useAppEvents(deps: AppEventsDeps): AppEventsReturn {
         ignored: handlingResult?.ignored ?? 'unknown',
       })
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error)
+      const reason = getErrorMessage(error)
       logger.error('ExternalInput', error, {
         trace_id: traceId,
         stage: 'route-download',

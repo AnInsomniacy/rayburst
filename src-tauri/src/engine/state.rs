@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::Mutex;
+use std::sync::{Condvar, Mutex, MutexGuard, PoisonError};
+use std::time::Duration;
 use tauri_plugin_shell::process::CommandChild;
 
 /// Converts a [`Path`] to a string safe for passing to external processes.
@@ -31,8 +32,14 @@ pub(crate) fn strip_ansi(input: &str) -> String {
 const STDERR_TAIL_LINES: usize = 24;
 
 /// Low-level process state owned by the engine supervisor.
+///
+/// `child` is the handle used to terminate the sidecar. `live_pid` stays set
+/// until the process monitor observes the exit, so callers can wait for the
+/// process to be gone rather than for the handle to be dropped.
 pub struct EngineState {
-    pub(crate) child: Mutex<Option<CommandChild>>,
+    child: Mutex<Option<CommandChild>>,
+    live_pid: Mutex<Option<u32>>,
+    exited: Condvar,
     stderr_tail: Mutex<VecDeque<String>>,
     gen: AtomicU32,
 }
@@ -41,6 +48,8 @@ impl EngineState {
     pub fn new() -> Self {
         Self {
             child: Mutex::new(None),
+            live_pid: Mutex::new(None),
+            exited: Condvar::new(),
             stderr_tail: Mutex::new(VecDeque::with_capacity(STDERR_TAIL_LINES)),
             gen: AtomicU32::new(0),
         }
@@ -66,31 +75,76 @@ impl EngineState {
         self.next_generation();
     }
 
+    pub(crate) fn attach(&self, child: CommandChild) {
+        let pid = child.pid();
+        *lock(&self.child) = Some(child);
+        *lock(&self.live_pid) = Some(pid);
+    }
+
+    pub fn pid(&self) -> Option<u32> {
+        *lock(&self.live_pid)
+    }
+
     pub fn is_running(&self) -> bool {
-        self.child.lock().is_ok_and(|child| child.is_some())
+        self.pid().is_some()
+    }
+
+    /// Records the exit reported by the process monitor.
+    pub(crate) fn mark_exited(&self, pid: u32) {
+        let mut child = lock(&self.child);
+        if child.as_ref().map(CommandChild::pid) == Some(pid) {
+            *child = None;
+        }
+        let mut live = lock(&self.live_pid);
+        if *live == Some(pid) {
+            *live = None;
+            self.exited.notify_all();
+        }
+    }
+
+    /// Terminates the owned process through its handle. The exit itself is
+    /// observed by [`EngineState::wait_exit`].
+    pub(crate) fn kill(&self) -> Result<(), String> {
+        match lock(&self.child).take() {
+            Some(child) => {
+                let pid = child.pid();
+                child
+                    .kill()
+                    .map_err(|error| format!("Failed to stop engine PID {pid}: {error}"))
+            }
+            None => Ok(()),
+        }
+    }
+
+    /// Waits until the monitored process has exited.
+    pub(crate) fn wait_exit(&self, timeout: Duration) -> bool {
+        let live = lock(&self.live_pid);
+        let (live, _) = self
+            .exited
+            .wait_timeout_while(live, timeout, |pid| pid.is_some())
+            .unwrap_or_else(PoisonError::into_inner);
+        live.is_none()
     }
 
     pub fn push_stderr(&self, line: String) {
-        if let Ok(mut tail) = self.stderr_tail.lock() {
-            if tail.len() == STDERR_TAIL_LINES {
-                tail.pop_front();
-            }
-            tail.push_back(line);
+        let mut tail = lock(&self.stderr_tail);
+        if tail.len() == STDERR_TAIL_LINES {
+            tail.pop_front();
         }
+        tail.push_back(line);
     }
 
     pub fn clear_stderr(&self) {
-        if let Ok(mut tail) = self.stderr_tail.lock() {
-            tail.clear();
-        }
+        lock(&self.stderr_tail).clear();
     }
 
     pub fn stderr_tail(&self) -> Vec<String> {
-        self.stderr_tail
-            .lock()
-            .map(|tail| tail.iter().cloned().collect())
-            .unwrap_or_default()
+        lock(&self.stderr_tail).iter().cloned().collect()
     }
+}
+
+fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    mutex.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
 #[cfg(test)]

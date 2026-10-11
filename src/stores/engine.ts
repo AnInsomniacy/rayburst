@@ -36,7 +36,6 @@ export type EngineOperationCause =
   | 'failureRetry'
   | 'sessionRecovery'
   | 'runtimeCrash'
-  | 'rpcUnhealthy'
   | 'portConflict'
   | 'updateInstall'
   | 'updateInstallFailed'
@@ -90,7 +89,6 @@ export const useEngineStore = defineStore('engine', () => {
     'manualRestart',
     'settingsChange',
     'runtimeCrash',
-    'rpcUnhealthy',
     'portConflict',
     'failureRetry',
     'sessionRecovery',

@@ -127,13 +127,7 @@ pub(crate) fn sanitize_config_snapshot(raw: &Value) -> Value {
 pub(crate) async fn runtime_snapshot(app: &tauri::AppHandle, raw_config: Option<&Value>) -> Value {
     let engine_pid = app
         .try_state::<crate::engine::EngineState>()
-        .and_then(|state| {
-            state.child.lock().ok().and_then(|child| {
-                child
-                    .as_ref()
-                    .map(tauri_plugin_shell::process::CommandChild::pid)
-            })
-        });
+        .and_then(|state| state.pid());
     let supervisor = app
         .try_state::<EngineSupervisor>()
         .map(|state| state.snapshot());

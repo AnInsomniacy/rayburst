@@ -44,6 +44,7 @@ const MANAGED_KEYS: &[&str] = &[
     "rpc-listen-all",
     "rpc-max-request-size",
     "save-session",
+    "save-session-interval",
     "show-console-readout",
     "state-dir",
     "stop-with-process",
@@ -225,6 +226,8 @@ pub(crate) fn build_runtime_config(
     )?;
     insert_option(&mut options, "rpc-allow-origin-all", "true")?;
     insert_option(&mut options, "save-session", managed.session_path)?;
+    // Unfinished tasks survive a killed engine or a power loss.
+    insert_option(&mut options, "save-session-interval", "60")?;
     insert_option(&mut options, "state-dir", managed.state_dir)?;
     insert_option(&mut options, "input-file", managed.session_path)?;
     insert_option(&mut options, "log", managed.log_file_path)?;

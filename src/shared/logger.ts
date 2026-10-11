@@ -53,7 +53,7 @@ function serializeDebugValue(value: unknown, seen = new WeakSet<object>()): stri
       try {
         return `${JSON.stringify(key)}:${serializeDebugValue(entryValue, seen)}`
       } catch (error) {
-        const reason = error instanceof Error ? error.message : String(error)
+        const reason = getErrorMessage(error)
         return `${JSON.stringify(key)}:${JSON.stringify(`[Unserializable: ${reason}]`)}`
       }
     })
@@ -108,7 +108,8 @@ export const logger = {
     }).catch(() => {})
   },
 
-  warn(context: string, message: string, fields: LogFields = {}): void {
+  warn(context: string, problem: unknown, fields: LogFields = {}): void {
+    const message = typeof problem === 'string' ? problem : getErrorMessage(problem)
     console.warn(`[${context}] ${message}`)
     tauriWarn(message, { keyValues: toKeyValues(context, fields) }).catch(() => {})
   },

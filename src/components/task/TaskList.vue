@@ -197,7 +197,7 @@ const sortableOptions: SortableOptions = {
       await nextTick()
       await Promise.all([animateDropSettle(event), saved])
     } catch (error) {
-      logger.warn('TaskList.saveOrder', error instanceof Error ? error.message : String(error))
+      logger.warn('TaskList.saveOrder', error)
     }
   },
 }
