@@ -197,6 +197,12 @@ pub(crate) fn handle_minimize_to_tray(app: &tauri::AppHandle, window: &tauri::We
             log::info!("lifecycle: cold-start phase ended");
         }
     }
+    // Without a tray icon a hidden window could only come back by relaunching.
+    if !read_pref_bool(app, "showTrayIcon", true) {
+        log::info!("tray:hidden-minimize label={}", window.label());
+        let _ = window.minimize();
+        return;
+    }
     let lightweight = read_pref_bool(app, "lightweightMode", false);
 
     if lightweight {

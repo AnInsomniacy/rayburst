@@ -262,7 +262,7 @@ function onAction(event: string) {
   border: 1px solid var(--m3-surface-container-highest);
   color: var(--m3-outline);
   background-color: var(--task-action-bg);
-  border-radius: 18px;
+  border-radius: var(--radius-full);
   transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
   list-style: none;
 }
@@ -311,7 +311,7 @@ function onAction(event: string) {
   --task-action-icon-size: 16px;
   --task-action-item-max-width: 28px;
   --task-action-button-size: 22px;
-  border-radius: 13px;
+  border-radius: var(--radius-full);
 }
 .task-item-action:hover,
 .task-item-action:active,

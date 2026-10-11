@@ -888,7 +888,7 @@ async function onFileRenamed() {
   border-bottom: 2px solid transparent;
   color: var(--m3-on-surface-variant);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   white-space: nowrap;
   transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
 }
@@ -954,7 +954,7 @@ async function onFileRenamed() {
 
 .section-divider {
   margin: 20px 0 12px;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--m3-primary);
   letter-spacing: 0.5px;
@@ -968,7 +968,7 @@ async function onFileRenamed() {
 
 :deep(.progress-pct) {
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   color: var(--m3-on-surface-variant);
   min-width: 45px;
   text-align: right;
@@ -977,7 +977,7 @@ async function onFileRenamed() {
 :deep(.remaining-text) {
   margin-left: 12px;
   color: var(--m3-on-surface-variant);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 .muted-inline {
   color: var(--m3-on-surface-variant);

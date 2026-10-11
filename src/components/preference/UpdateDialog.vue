@@ -392,7 +392,7 @@ defineExpose({ open, present })
   color: var(--m3-on-surface);
   background: var(--m3-surface-container-high);
   border: 1px solid var(--m3-outline-variant);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   overflow: hidden;
   box-shadow: 0 18px 56px var(--m3-shadow);
 }
@@ -404,7 +404,7 @@ defineExpose({ open, present })
   border-bottom: 1px solid var(--m3-outline-variant);
 }
 .update-dialog-title {
-  font-size: 16px;
+  font-size: var(--font-size-lg);
   font-weight: 650;
 }
 .update-dialog-close {
@@ -511,14 +511,14 @@ defineExpose({ open, present })
 .update-copy h2 {
   margin: 0;
   color: var(--m3-on-surface);
-  font-size: 19px;
+  font-size: var(--font-size-2xl);
   font-weight: 650;
   line-height: 1.35;
 }
 .update-copy p {
   margin: 6px 0 0;
   color: var(--m3-on-surface-variant);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
 }
 .update-copy--left {
   text-align: left;
@@ -529,12 +529,12 @@ defineExpose({ open, present })
   gap: 9px;
   margin-top: 6px;
   color: var(--m3-on-surface-variant);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 13px;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
 }
 .update-version-flow strong {
   color: var(--m3-primary);
-  font-size: 15px;
+  font-size: var(--font-size-lg);
 }
 .update-version-arrow {
   color: var(--m3-outline);
@@ -547,7 +547,7 @@ defineExpose({ open, present })
   justify-content: space-between;
   margin-top: 10px;
   color: var(--m3-on-surface-variant);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 .update-progress-meta strong {
   color: var(--m3-primary);
@@ -560,19 +560,19 @@ defineExpose({ open, present })
   padding: 18px 20px;
   overflow: auto;
   border: 1px solid var(--m3-outline-variant);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--m3-surface-container);
   scrollbar-gutter: stable;
 }
 .update-notes-text {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   line-height: 1.65;
   color: var(--m3-on-surface-variant);
 }
 .update-notes-text :deep(h2) {
   margin: 18px 0 8px;
   color: var(--m3-on-surface);
-  font-size: 15px;
+  font-size: var(--font-size-lg);
   font-weight: 650;
 }
 .update-notes-text :deep(h2:first-child) {
@@ -581,7 +581,7 @@ defineExpose({ open, present })
 .update-notes-text :deep(h3) {
   margin: 14px 0 6px;
   color: var(--m3-on-surface);
-  font-size: 14px;
+  font-size: var(--font-size-base);
   font-weight: 650;
 }
 .update-notes-text :deep(p) {
@@ -601,7 +601,7 @@ defineExpose({ open, present })
   width: 100%;
   border-collapse: collapse;
   margin: 8px 0;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 .update-notes-text :deep(th),
 .update-notes-text :deep(td) {
@@ -623,7 +623,7 @@ defineExpose({ open, present })
   padding: 6px 12px;
   border-left: 3px solid color-mix(in srgb, var(--m3-primary) 50%, transparent);
   background: color-mix(in srgb, var(--m3-on-surface) 4%, transparent);
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
 }
 .update-notes-text :deep(blockquote p) {
   margin: 2px 0;
@@ -634,13 +634,13 @@ defineExpose({ open, present })
   margin: 6px 0;
   padding: 8px 12px;
   border-left: 3px solid;
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
 }
 .update-notes-text :deep(.markdown-alert-title) {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   margin: 0 0 4px;
 }
@@ -692,17 +692,17 @@ defineExpose({ open, present })
 
 /* ── Inline code & code blocks ─────────────────────────────────────── */
 .update-notes-text :deep(code) {
-  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.9em;
   padding: 1px 5px;
   background: color-mix(in srgb, var(--m3-on-surface) 10%, transparent);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 .update-notes-text :deep(pre) {
   margin: 6px 0;
   padding: 8px 10px;
   background: color-mix(in srgb, var(--m3-on-surface) 8%, transparent);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow-x: auto;
 }
 .update-notes-text :deep(pre code) {
@@ -733,8 +733,8 @@ defineExpose({ open, present })
   white-space: pre-wrap;
 }
 .update-error-detail code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12.5px;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
   line-height: 1.6;
   overflow-wrap: anywhere;
 }

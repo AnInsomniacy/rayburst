@@ -1,16 +1,14 @@
 <script setup lang="ts">
-/** @fileoverview Speed limit field: a number and a KB/s or MB/s unit; 0 means unlimited. */
+/** @fileoverview Speed limit field: a number and a KiB/s or MiB/s unit; 0 means unlimited. */
 import { computed } from 'vue'
+import { speedUnitOptions as speedUnits } from '@shared/utils/format'
 import { NInputGroup, NInputNumber, NSelect } from 'naive-ui'
 import { parseSpeedLimit, formatSpeedLimit, type SpeedLimitUnit } from '@shared/utils/speedLimit'
 
 const props = defineProps<{ value: string; disabled?: boolean; placeholder?: string }>()
 const emit = defineEmits<{ 'update:value': [value: string] }>()
 
-const unitOptions = [
-  { label: 'KB/s', value: 'K' },
-  { label: 'MB/s', value: 'M' },
-]
+const unitOptions = computed(speedUnits)
 const parsed = computed(() => parseSpeedLimit(props.value))
 
 function update(amount: number | null, unit: SpeedLimitUnit) {

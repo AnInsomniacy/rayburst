@@ -100,7 +100,10 @@
     "shutdown-disable": "ปิดการปิดเครื่องอัตโนมัติ",
     "delete": "ลบ",
     "engine-configuration-invalid": "การตั้งค่าพร็อกซีไม่ถูกต้อง โปรดแก้ไขหรือปิดพร็อกซีในการตั้งค่าเครือข่าย",
-    "engine-open-settings": "เปิดการตั้งค่าเครือข่าย"
+    "engine-open-settings": "เปิดการตั้งค่าเครือข่าย",
+    "generate-random": "สร้างค่าแบบสุ่ม",
+    "choose-folder": "เลือกโฟลเดอร์",
+    "choose-file": "เลือกไฟล์"
   },
   "preferences": {
     "general": "ทั่วไป",
@@ -595,7 +598,16 @@
     "site-rule-connections": "การเชื่อมต่อต่อเซิร์ฟเวอร์",
     "site-rule-invalid": "มีกฎของเว็บไซต์ที่รูปแบบโฮสต์ไม่ถูกต้อง",
     "bittorrent-enabled": "เปิดใช้ BitTorrent",
-    "bittorrent-enabled-hint": "เมื่อปิด ลิงก์แม็กเน็ตและทอร์เรนต์จะถูกปฏิเสธ และไฟล์ .torrent ที่ดาวน์โหลดจะถูกบันทึกเท่านั้น"
+    "bittorrent-enabled-hint": "เมื่อปิด ลิงก์แม็กเน็ตและทอร์เรนต์จะถูกปฏิเสธ และไฟล์ .torrent ที่ดาวน์โหลดจะถูกบันทึกเท่านั้น",
+    "tracker-add": "เพิ่มแทร็กเกอร์",
+    "ui-scale": "ขนาดอินเทอร์เฟซ",
+    "ui-scale-hint": "ใช้ Ctrl กับ +, − หรือ 0 เปลี่ยนได้เช่นกัน (⌘ บน macOS)",
+    "iec-size-units": "หน่วย IEC (KiB, MiB)",
+    "iec-size-units-hint": "ขนาดคำนวณทีละ 1024 เสมอ ตัวเลือกนี้เปลี่ยนเพียงวิธีเขียนหน่วย",
+    "system-title-bar": "ใช้แถบชื่อเรื่องของระบบ",
+    "system-title-bar-hint": "สำหรับตัวจัดการหน้าต่างที่วาดแถบชื่อเรื่องเอง จะซ่อนปุ่มหน้าต่างของแอป",
+    "show-tray-icon": "แสดงไอคอนในถาด",
+    "show-tray-icon-hint": "เมื่อซ่อนไว้ การปิดหน้าต่างไปทำงานเบื้องหลังจะย่อหน้าต่างแทน"
   },
   "task": {
     "scope-all": "ทั้งหมด",
@@ -921,7 +933,13 @@
     "pause-selected": "หยุดชั่วคราวรายการที่เลือก",
     "delete-selected": "ลบรายการที่เลือก",
     "clear-selection": "ล้างการเลือก",
-    "bittorrent-disabled": "BitTorrent ถูกปิดในการตั้งค่า"
+    "bittorrent-disabled": "BitTorrent ถูกปิดในการตั้งค่า",
+    "favorite-add": "เพิ่มในรายการโปรด",
+    "favorite-remove": "นำออกจากรายการโปรด",
+    "folder-list-remove": "นำออกจากรายการ",
+    "folder-history": "โฟลเดอร์ล่าสุดและรายการโปรด",
+    "ua-history": "User-Agent ล่าสุด",
+    "invert-selection": "กลับการเลือก"
   },
   "media": {
     "probing": "กำลังตรวจสอบสื่อ",

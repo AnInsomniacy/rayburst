@@ -100,7 +100,10 @@
     "shutdown-disable": "Отключить автовыключение",
     "delete": "Удалить",
     "engine-configuration-invalid": "Неверные настройки прокси. Исправьте их или отключите прокси в настройках сети.",
-    "engine-open-settings": "Открыть настройки сети"
+    "engine-open-settings": "Открыть настройки сети",
+    "generate-random": "Сгенерировать случайное значение",
+    "choose-folder": "Выбрать папку",
+    "choose-file": "Выбрать файл"
   },
   "preferences": {
     "general": "Общие",
@@ -595,7 +598,16 @@
     "site-rule-connections": "Соединений на сервер",
     "site-rule-invalid": "В правиле сайта неверный шаблон хоста",
     "bittorrent-enabled": "Включить BitTorrent",
-    "bittorrent-enabled-hint": "Если выключено, magnet-ссылки и торренты отклоняются, а загруженные файлы .torrent только сохраняются."
+    "bittorrent-enabled-hint": "Если выключено, magnet-ссылки и торренты отклоняются, а загруженные файлы .torrent только сохраняются.",
+    "tracker-add": "Добавить трекер",
+    "ui-scale": "Размер интерфейса",
+    "ui-scale-hint": "Также меняется сочетанием Ctrl с +, − или 0 (⌘ в macOS).",
+    "iec-size-units": "Единицы МЭК (КиБ, МиБ)",
+    "iec-size-units-hint": "Размеры всегда считаются шагами по 1024; параметр меняет только запись единиц.",
+    "system-title-bar": "Использовать системный заголовок окна",
+    "system-title-bar-hint": "Для оконных менеджеров, которые сами рисуют заголовок. Скрывает кнопки окна приложения.",
+    "show-tray-icon": "Показывать значок в трее",
+    "show-tray-icon-hint": "Если скрыт, закрытие окна в фон вместо этого сворачивает его."
   },
   "task": {
     "scope-all": "Все",
@@ -921,7 +933,13 @@
     "pause-selected": "Приостановить выбранные",
     "delete-selected": "Удалить выбранные",
     "clear-selection": "Снять выделение",
-    "bittorrent-disabled": "BitTorrent выключен в настройках"
+    "bittorrent-disabled": "BitTorrent выключен в настройках",
+    "favorite-add": "Добавить в избранное",
+    "favorite-remove": "Удалить из избранного",
+    "folder-list-remove": "Удалить из списка",
+    "folder-history": "Недавние и избранные папки",
+    "ua-history": "Недавние User-Agent",
+    "invert-selection": "Инвертировать выбор"
   },
   "media": {
     "probing": "Анализ медиа",

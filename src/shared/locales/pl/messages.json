@@ -100,7 +100,10 @@
     "shutdown-disable": "Wyłącz automatyczne zamykanie",
     "delete": "Usuń",
     "engine-configuration-invalid": "Ustawienia proxy są nieprawidłowe. Popraw je lub wyłącz proxy w ustawieniach sieci.",
-    "engine-open-settings": "Otwórz ustawienia sieci"
+    "engine-open-settings": "Otwórz ustawienia sieci",
+    "generate-random": "Wygeneruj losową wartość",
+    "choose-folder": "Wybierz folder",
+    "choose-file": "Wybierz plik"
   },
   "preferences": {
     "general": "Ogólne",
@@ -595,7 +598,16 @@
     "site-rule-connections": "Połączenia na serwer",
     "site-rule-invalid": "Reguła witryny ma nieprawidłowy wzorzec hosta",
     "bittorrent-enabled": "Włącz BitTorrent",
-    "bittorrent-enabled-hint": "Po wyłączeniu linki magnet i torrenty są odrzucane, a pobrane pliki .torrent są tylko zapisywane."
+    "bittorrent-enabled-hint": "Po wyłączeniu linki magnet i torrenty są odrzucane, a pobrane pliki .torrent są tylko zapisywane.",
+    "tracker-add": "Dodaj tracker",
+    "ui-scale": "Rozmiar interfejsu",
+    "ui-scale-hint": "Ctrl z +, − lub 0 także go zmienia (⌘ w macOS).",
+    "iec-size-units": "Jednostki IEC (KiB, MiB)",
+    "iec-size-units-hint": "Rozmiary są zawsze liczone krokami po 1024; to zmienia tylko zapis jednostek.",
+    "system-title-bar": "Użyj systemowego paska tytułu",
+    "system-title-bar-hint": "Dla menedżerów okien, które rysują własny pasek tytułu. Ukrywa przyciski okna aplikacji.",
+    "show-tray-icon": "Pokaż ikonę w zasobniku",
+    "show-tray-icon-hint": "Gdy ukryta, zamknięcie okna do tła zamiast tego je minimalizuje."
   },
   "task": {
     "scope-all": "Wszystkie",
@@ -921,7 +933,13 @@
     "pause-selected": "Wstrzymaj zaznaczone",
     "delete-selected": "Usuń zaznaczone",
     "clear-selection": "Wyczyść zaznaczenie",
-    "bittorrent-disabled": "BitTorrent jest wyłączony w ustawieniach"
+    "bittorrent-disabled": "BitTorrent jest wyłączony w ustawieniach",
+    "favorite-add": "Dodaj do ulubionych",
+    "favorite-remove": "Usuń z ulubionych",
+    "folder-list-remove": "Usuń z listy",
+    "folder-history": "Ostatnie i ulubione foldery",
+    "ua-history": "Ostatnie User-Agenty",
+    "invert-selection": "Odwróć zaznaczenie"
   },
   "media": {
     "probing": "Analizowanie multimediów",

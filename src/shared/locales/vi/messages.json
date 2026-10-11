@@ -100,7 +100,10 @@
     "shutdown-disable": "Tắt tự động tắt máy",
     "delete": "Xóa",
     "engine-configuration-invalid": "Cài đặt proxy không hợp lệ. Hãy sửa hoặc tắt proxy trong cài đặt mạng.",
-    "engine-open-settings": "Mở cài đặt mạng"
+    "engine-open-settings": "Mở cài đặt mạng",
+    "generate-random": "Tạo giá trị ngẫu nhiên",
+    "choose-folder": "Chọn thư mục",
+    "choose-file": "Chọn tệp"
   },
   "preferences": {
     "general": "Chung",
@@ -595,7 +598,16 @@
     "site-rule-connections": "Kết nối mỗi máy chủ",
     "site-rule-invalid": "Một quy tắc trang web có mẫu máy chủ không hợp lệ",
     "bittorrent-enabled": "Bật BitTorrent",
-    "bittorrent-enabled-hint": "Khi tắt, liên kết magnet và torrent bị từ chối, còn tệp .torrent tải về chỉ được lưu lại."
+    "bittorrent-enabled-hint": "Khi tắt, liên kết magnet và torrent bị từ chối, còn tệp .torrent tải về chỉ được lưu lại.",
+    "tracker-add": "Thêm tracker",
+    "ui-scale": "Kích thước giao diện",
+    "ui-scale-hint": "Ctrl với +, − hoặc 0 cũng thay đổi được (⌘ trên macOS).",
+    "iec-size-units": "Đơn vị IEC (KiB, MiB)",
+    "iec-size-units-hint": "Kích thước luôn được tính theo bước 1024; tùy chọn này chỉ đổi cách viết đơn vị.",
+    "system-title-bar": "Dùng thanh tiêu đề hệ thống",
+    "system-title-bar-hint": "Dành cho trình quản lý cửa sổ tự vẽ thanh tiêu đề. Ẩn các nút cửa sổ của ứng dụng.",
+    "show-tray-icon": "Hiện biểu tượng khay",
+    "show-tray-icon-hint": "Khi ẩn, đóng cửa sổ xuống nền sẽ thu nhỏ cửa sổ thay vào đó."
   },
   "task": {
     "scope-all": "Tất cả",
@@ -921,7 +933,13 @@
     "pause-selected": "Tạm dừng mục đã chọn",
     "delete-selected": "Xóa mục đã chọn",
     "clear-selection": "Bỏ chọn",
-    "bittorrent-disabled": "BitTorrent đã bị tắt trong tùy chọn"
+    "bittorrent-disabled": "BitTorrent đã bị tắt trong tùy chọn",
+    "favorite-add": "Thêm vào yêu thích",
+    "favorite-remove": "Xóa khỏi yêu thích",
+    "folder-list-remove": "Xóa khỏi danh sách",
+    "folder-history": "Thư mục gần đây và yêu thích",
+    "ua-history": "User-Agent gần đây",
+    "invert-selection": "Đảo lựa chọn"
   },
   "media": {
     "probing": "Đang phân tích nội dung",

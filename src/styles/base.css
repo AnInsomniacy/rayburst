@@ -39,7 +39,7 @@ body,
 }
 
 ::-webkit-scrollbar-thumb {
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background-color: var(--m3-scrollbar-thumb);
 }
 

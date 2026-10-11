@@ -100,7 +100,10 @@
     "shutdown-disable": "Automatisch afsluiten uitschakelen",
     "delete": "Verwijderen",
     "engine-configuration-invalid": "De proxy-instellingen zijn ongeldig. Corrigeer ze of schakel de proxy uit in de netwerkinstellingen.",
-    "engine-open-settings": "Netwerkinstellingen openen"
+    "engine-open-settings": "Netwerkinstellingen openen",
+    "generate-random": "Willekeurige waarde genereren",
+    "choose-folder": "Map kiezen",
+    "choose-file": "Bestand kiezen"
   },
   "preferences": {
     "general": "Algemeen",
@@ -595,7 +598,16 @@
     "site-rule-connections": "Verbindingen per server",
     "site-rule-invalid": "Een siteregel heeft een ongeldig hostpatroon",
     "bittorrent-enabled": "BitTorrent inschakelen",
-    "bittorrent-enabled-hint": "Uitgeschakeld worden magnetlinks en torrents geweigerd en gedownloade .torrent-bestanden alleen opgeslagen."
+    "bittorrent-enabled-hint": "Uitgeschakeld worden magnetlinks en torrents geweigerd en gedownloade .torrent-bestanden alleen opgeslagen.",
+    "tracker-add": "Tracker toevoegen",
+    "ui-scale": "Interfacegrootte",
+    "ui-scale-hint": "Ctrl met +, − of 0 wijzigt deze ook (⌘ op macOS).",
+    "iec-size-units": "IEC-eenheden (KiB, MiB)",
+    "iec-size-units-hint": "Groottes worden altijd in stappen van 1024 geteld; dit wijzigt alleen hoe de eenheden worden geschreven.",
+    "system-title-bar": "Systeemtitelbalk gebruiken",
+    "system-title-bar-hint": "Voor vensterbeheerders die hun eigen titelbalk tekenen. Verbergt de vensterknoppen van de app.",
+    "show-tray-icon": "Systeemvakpictogram tonen",
+    "show-tray-icon-hint": "Verborgen wordt het venster bij sluiten naar de achtergrond in plaats daarvan geminimaliseerd."
   },
   "task": {
     "scope-all": "Alle",
@@ -921,7 +933,13 @@
     "pause-selected": "Selectie pauzeren",
     "delete-selected": "Selectie verwijderen",
     "clear-selection": "Selectie wissen",
-    "bittorrent-disabled": "BitTorrent is uitgeschakeld in de voorkeuren"
+    "bittorrent-disabled": "BitTorrent is uitgeschakeld in de voorkeuren",
+    "favorite-add": "Toevoegen aan favorieten",
+    "favorite-remove": "Verwijderen uit favorieten",
+    "folder-list-remove": "Verwijderen uit lijst",
+    "folder-history": "Recente en favoriete mappen",
+    "ua-history": "Recente User-Agents",
+    "invert-selection": "Selectie omkeren"
   },
   "media": {
     "probing": "Media onderzoeken",

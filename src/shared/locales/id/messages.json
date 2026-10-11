@@ -100,7 +100,10 @@
     "shutdown-disable": "Nonaktifkan Mati Otomatis",
     "delete": "Hapus",
     "engine-configuration-invalid": "Pengaturan proksi tidak valid. Perbaiki atau nonaktifkan proksi di pengaturan jaringan.",
-    "engine-open-settings": "Buka pengaturan jaringan"
+    "engine-open-settings": "Buka pengaturan jaringan",
+    "generate-random": "Buat nilai acak",
+    "choose-folder": "Pilih folder",
+    "choose-file": "Pilih file"
   },
   "preferences": {
     "general": "Umum",
@@ -595,7 +598,16 @@
     "site-rule-connections": "Koneksi per server",
     "site-rule-invalid": "Ada aturan situs dengan pola host yang tidak valid",
     "bittorrent-enabled": "Aktifkan BitTorrent",
-    "bittorrent-enabled-hint": "Jika nonaktif, tautan magnet dan torrent ditolak, dan berkas .torrent yang diunduh hanya disimpan."
+    "bittorrent-enabled-hint": "Jika nonaktif, tautan magnet dan torrent ditolak, dan berkas .torrent yang diunduh hanya disimpan.",
+    "tracker-add": "Tambah tracker",
+    "ui-scale": "Ukuran antarmuka",
+    "ui-scale-hint": "Ctrl dengan +, − atau 0 juga mengubahnya (⌘ di macOS).",
+    "iec-size-units": "Satuan IEC (KiB, MiB)",
+    "iec-size-units-hint": "Ukuran selalu dihitung dalam kelipatan 1024; ini hanya mengubah cara satuan ditulis.",
+    "system-title-bar": "Gunakan bilah judul sistem",
+    "system-title-bar-hint": "Untuk pengelola jendela yang menggambar bilah judulnya sendiri. Menyembunyikan tombol jendela aplikasi.",
+    "show-tray-icon": "Tampilkan ikon baki",
+    "show-tray-icon-hint": "Saat disembunyikan, menutup jendela ke latar belakang akan meminimalkannya."
   },
   "task": {
     "scope-all": "Semua",
@@ -921,7 +933,13 @@
     "pause-selected": "Jeda yang dipilih",
     "delete-selected": "Hapus yang dipilih",
     "clear-selection": "Batalkan pilihan",
-    "bittorrent-disabled": "BitTorrent dinonaktifkan di preferensi"
+    "bittorrent-disabled": "BitTorrent dinonaktifkan di preferensi",
+    "favorite-add": "Tambahkan ke favorit",
+    "favorite-remove": "Hapus dari favorit",
+    "folder-list-remove": "Hapus dari daftar",
+    "folder-history": "Folder terbaru dan favorit",
+    "ua-history": "User-Agent terbaru",
+    "invert-selection": "Balikkan pilihan"
   },
   "media": {
     "probing": "Memeriksa media",

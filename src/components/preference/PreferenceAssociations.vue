@@ -222,14 +222,14 @@ onUnmounted(() => {
   min-width: 0;
 }
 .association-state {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   padding-inline-end: 8px;
   color: var(--m3-on-surface-variant);
 }
 .association-development {
   margin: 0 0 16px;
   text-align: start;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   color: var(--m3-on-surface-variant);
 }
 .association-label.current {

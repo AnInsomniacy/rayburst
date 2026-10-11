@@ -23,6 +23,7 @@ import { useDatabaseStore } from '@/stores/database'
 import { useDatabaseReset } from '@/composables/useDatabaseReset'
 import aria2Api from '@/api/aria2'
 import { usePlatform } from '@/composables/usePlatform'
+import { useEscapeKey } from '@/composables/useEscapeKey'
 import { throttledResizeHandler, cancelPendingResize } from '@/layouts/resizeThrottle'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import PreferenceActionBar from '@/components/preference/PreferenceActionBar.vue'
@@ -97,7 +98,28 @@ const isExiting = ref(false)
 const rememberChoice = ref(false)
 const pendingTrayHide = ref(false)
 const isMaximized = ref(false)
-const { platform: currentPlatform, isMac } = usePlatform()
+const { platform: currentPlatform, isMac, isLinux } = usePlatform()
+// Window managers that force server-side decorations draw their own buttons (#533).
+const systemTitleBar = computed(() => isLinux.value && preferenceStore.config.systemTitleBar)
+watch(
+  systemTitleBar,
+  (enabled, previous) => {
+    if (!isLinux.value || (previous === undefined && !enabled)) return
+    getCurrentWindow()
+      .setDecorations(enabled)
+      .catch((error: unknown) => logger.debug('MainLayout.setDecorations', error))
+  },
+  { immediate: true },
+)
+
+// Esc puts the window away like its close button would, without quitting (#569).
+useEscapeKey(
+  () => {
+    const appWindow = getCurrentWindow()
+    void (preferenceStore.config.minimizeToTrayOnClose ? appWindow.close() : appWindow.minimize())
+  },
+  { when: () => taskStore.checkedGids.length === 0 && !showExitDialog.value },
+)
 const taskPaginationTab = computed(() => taskStore.currentList)
 const taskPaginationPage = computed(() => taskStore.taskPagination[taskPaginationTab.value].page)
 const taskPaginationPageSize = computed(() => taskStore.taskPagination.pageSize)
@@ -774,6 +796,7 @@ onUnmounted(() => {
       </router-view>
     </main>
     <WindowControls
+      v-if="!systemTitleBar"
       class="window-controls"
       :is-maximized="isMaximized"
       :platform="currentPlatform"
@@ -928,7 +951,7 @@ onUnmounted(() => {
 .sidebar-heading h2,
 .page-header h1 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--font-size-lg);
   line-height: 24px;
   font-weight: 500;
 }
@@ -1008,7 +1031,7 @@ onUnmounted(() => {
   min-width: 0;
   padding: 3px 6px;
   border: 1px solid var(--m3-outline-variant);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--m3-surface-container);
 }
 .page-title-enter-active,
@@ -1054,7 +1077,7 @@ onUnmounted(() => {
   margin-bottom: 8px;
   display: flex;
   justify-content: flex-start;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   opacity: 0.85;
 }
 

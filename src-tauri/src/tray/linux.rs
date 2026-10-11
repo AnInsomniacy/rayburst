@@ -17,6 +17,9 @@ const ACTIONS: [(&str, &str); 5] = [
 #[derive(Default)]
 struct Model {
     title: String,
+    tooltip: String,
+    active: bool,
+    hidden: bool,
     labels: HashMap<String, String>,
 }
 
@@ -41,9 +44,29 @@ impl ksni::Tray for NativeTray {
         }
     }
     fn tool_tip(&self) -> ksni::ToolTip {
+        let description = self
+            .model
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .tooltip
+            .clone();
         ksni::ToolTip {
             title: self.title(),
+            description,
             ..Default::default()
+        }
+    }
+    fn status(&self) -> ksni::Status {
+        let hidden = self
+            .model
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .hidden;
+        // Hosts leave passive items out of the panel.
+        if hidden {
+            ksni::Status::Passive
+        } else {
+            ksni::Status::Active
         }
     }
     fn activate(&mut self, _: i32, _: i32) {
@@ -55,7 +78,12 @@ impl ksni::Tray for NativeTray {
         true
     }
     fn icon_pixmap(&self) -> Vec<ksni::Icon> {
-        let image = super::tray_icon_image();
+        let active = self
+            .model
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .active;
+        let image = super::tray_icon_image_with_activity(active);
         let data = image
             .rgba()
             .as_chunks::<4>()
@@ -119,6 +147,24 @@ impl TrayMenuState {
             .title = title.into();
         self.refresh();
     }
+    pub fn set_visible(&self, visible: bool) {
+        self.model
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .hidden = !visible;
+        self.refresh();
+    }
+    pub fn set_activity(&self, active: bool, tooltip: &str) {
+        {
+            let mut model = self
+                .model
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            model.active = active;
+            model.tooltip = tooltip.into();
+        }
+        self.refresh();
+    }
     pub fn set_labels(&self, labels: &serde_json::Value) {
         if let Some(labels) = labels.as_object() {
             let mut model = self
@@ -137,7 +183,10 @@ impl TrayMenuState {
 
 pub fn setup_tray(app: &AppHandle) -> Result<TrayMenuState, Box<dyn std::error::Error>> {
     let state = TrayMenuState {
-        model: Arc::default(),
+        model: Arc::new(Mutex::new(Model {
+            hidden: !crate::read_pref_bool(app, "showTrayIcon", true),
+            ..Model::default()
+        })),
         handle: Arc::default(),
     };
     let tray = NativeTray {

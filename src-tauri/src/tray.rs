@@ -29,6 +29,56 @@ pub fn tray_icon_image() -> tauri::image::Image<'static> {
     tauri::image::Image::from_bytes(TRAY_ICON_BYTES).expect("embedded tray icon is valid PNG")
 }
 
+/// Dot color of the activity indicator.
+const ACTIVITY_DOT: [u8; 3] = [0x22, 0xc5, 0x5e];
+
+/// The tray bitmap, with a green dot in the lower right while downloads run.
+pub fn tray_icon_image_with_activity(active: bool) -> tauri::image::Image<'static> {
+    let base = tray_icon_image();
+    if !active {
+        return base;
+    }
+    let (width, height) = (base.width(), base.height());
+    let mut rgba = base.rgba().to_vec();
+    paint_activity_dot(&mut rgba, width, height);
+    tauri::image::Image::new_owned(rgba, width, height)
+}
+
+/// Clears a ring around the dot so it reads on any part of the logo, then
+/// paints the dot with anti-aliased edges.
+fn paint_activity_dot(rgba: &mut [u8], width: u32, height: u32) {
+    let size = width.min(height) as f32;
+    let radius = size * 0.2;
+    let gap = size * 0.06;
+    let cx = width as f32 - radius - 1.0;
+    let cy = height as f32 - radius - 1.0;
+    for y in 0..height {
+        for x in 0..width {
+            let dx = x as f32 + 0.5 - cx;
+            let dy = y as f32 + 0.5 - cy;
+            let distance = (dx * dx + dy * dy).sqrt();
+            let cut = (radius + gap - distance + 0.5).clamp(0.0, 1.0);
+            if cut == 0.0 {
+                continue;
+            }
+            let dot = (radius - distance + 0.5).clamp(0.0, 1.0);
+            let pixel = ((y * width + x) * 4) as usize;
+            let under = f32::from(rgba[pixel + 3]) / 255.0 * (1.0 - cut);
+            let alpha = dot + under * (1.0 - dot);
+            for (channel, &color) in ACTIVITY_DOT.iter().enumerate() {
+                let value =
+                    f32::from(color) * dot + f32::from(rgba[pixel + channel]) * under * (1.0 - dot);
+                rgba[pixel + channel] = if alpha > 0.0 {
+                    (value / alpha).round() as u8
+                } else {
+                    0
+                };
+            }
+            rgba[pixel + 3] = (alpha * 255.0).round() as u8;
+        }
+    }
+}
+
 /// Re-applies the tray icon while preserving platform-specific rendering flags.
 ///
 /// macOS menu bar icons must be template images so AppKit can render the same
@@ -218,6 +268,9 @@ pub fn setup_tray(app: &AppHandle) -> Result<TrayMenuState, Box<dyn std::error::
             dispatch_menu_action(app, event.id.as_ref());
         })
         .build(app)?;
+    if !crate::read_pref_bool(app, "showTrayIcon", true) {
+        _tray.set_visible(false)?;
+    }
 
     Ok(TrayMenuState {
         items: Mutex::new(items_map),
@@ -295,34 +348,58 @@ pub fn set_title(app: &AppHandle, title: &str) -> tauri::Result<()> {
     Ok(())
 }
 
+/// Shows or hides the tray icon; closing the window then minimizes instead of hiding.
+pub fn set_visible(app: &AppHandle, visible: bool) -> tauri::Result<()> {
+    #[cfg(target_os = "linux")]
+    if let Some(state) = app.try_state::<TrayMenuState>() {
+        state.set_visible(visible);
+    }
+    #[cfg(not(target_os = "linux"))]
+    if let Some(tray) = app.tray_by_id("rayburst") {
+        tray.set_visible(visible)?;
+    }
+    Ok(())
+}
+
+/// Marks running downloads on the icon and puts the speeds in the tooltip.
+///
+/// macOS keeps its template icon, which cannot carry a colored dot; the
+/// menu bar speedometer covers it there.
+pub fn set_activity(app: &AppHandle, active: bool, tooltip: &str) -> tauri::Result<()> {
+    #[cfg(target_os = "linux")]
+    if let Some(state) = app.try_state::<TrayMenuState>() {
+        state.set_activity(active, tooltip);
+    }
+    #[cfg(not(target_os = "linux"))]
+    if let Some(tray) = app.tray_by_id("rayburst") {
+        #[cfg(not(target_os = "macos"))]
+        tray.set_icon(Some(tray_icon_image_with_activity(active)))?;
+        #[cfg(target_os = "macos")]
+        let _ = active;
+        tray.set_tooltip(Some(tooltip))?;
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    /// Verify the embedded tray icon bytes are a valid PNG with correct header.
     #[test]
-    fn tray_icon_bytes_are_valid_png() {
-        // PNG files start with the 8-byte magic signature.
-        let png_signature: [u8; 8] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
-        assert!(
-            TRAY_ICON_BYTES.len() > 8,
-            "tray icon file is too small to be a valid PNG"
-        );
+    fn activity_dot_paints_the_corner_and_keeps_the_rest() {
+        let plain = tray_icon_image();
+        let marked = tray_icon_image_with_activity(true);
+        let (width, height) = (plain.width() as usize, plain.height() as usize);
         assert_eq!(
-            &TRAY_ICON_BYTES[..8],
-            &png_signature,
-            "tray icon does not have valid PNG header"
+            (marked.width() as usize, marked.height() as usize),
+            (width, height)
         );
-    }
-
-    /// Verify tray_icon_image() does not panic (bytes decode successfully).
-    #[test]
-    fn tray_icon_image_does_not_panic() {
-        let img = tray_icon_image();
-        // Image must have non-zero dimensions.
-        assert!(
-            !img.rgba().is_empty(),
-            "decoded tray icon has no pixel data"
+        let corner = ((height - 10) * width + (width - 10)) * 4;
+        assert_eq!(
+            &marked.rgba()[corner..corner + 4],
+            &[0x22, 0xc5, 0x5e, 0xff]
         );
+        assert_eq!(&marked.rgba()[..4], &plain.rgba()[..4]);
+        assert_eq!(tray_icon_image_with_activity(false).rgba(), plain.rgba());
     }
 }

@@ -60,7 +60,7 @@ function selectProfile(profile: UserAgentProfile) {
     content-class="ua-popover-content"
   >
     <template #trigger>
-      <NButton :disabled="disabled" class="ua-popover-trigger">
+      <NButton :title="t('task.ua-history')" :disabled="disabled" class="ua-popover-trigger">
         <template #icon>
           <NIcon><TimeOutline /></NIcon>
         </template>
@@ -143,7 +143,7 @@ function selectProfile(profile: UserAgentProfile) {
   align-items: center;
   min-height: 32px;
   padding: 5px 8px;
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background-color 0.15s;
 }

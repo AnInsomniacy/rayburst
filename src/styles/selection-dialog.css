@@ -22,7 +22,7 @@
 .selection-meta {
   min-height: 18px;
   margin-top: 4px;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   color: var(--m3-on-surface-variant);
 }
 .selection-loading {

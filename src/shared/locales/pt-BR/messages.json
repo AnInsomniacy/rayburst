@@ -100,7 +100,10 @@
     "shutdown-disable": "Desativar desligamento automático",
     "delete": "Excluir",
     "engine-configuration-invalid": "As configurações do proxy são inválidas. Corrija-as ou desative o proxy nas configurações de rede.",
-    "engine-open-settings": "Abrir configurações de rede"
+    "engine-open-settings": "Abrir configurações de rede",
+    "generate-random": "Gerar valor aleatório",
+    "choose-folder": "Escolher pasta",
+    "choose-file": "Escolher arquivo"
   },
   "preferences": {
     "general": "Geral",
@@ -595,7 +598,16 @@
     "site-rule-connections": "Conexões por servidor",
     "site-rule-invalid": "Uma regra de site tem um padrão de host inválido",
     "bittorrent-enabled": "Ativar BitTorrent",
-    "bittorrent-enabled-hint": "Desativado, links magnet e torrents são recusados, e arquivos .torrent baixados são apenas salvos."
+    "bittorrent-enabled-hint": "Desativado, links magnet e torrents são recusados, e arquivos .torrent baixados são apenas salvos.",
+    "tracker-add": "Adicionar tracker",
+    "ui-scale": "Tamanho da interface",
+    "ui-scale-hint": "Ctrl com +, − ou 0 também altera (⌘ no macOS).",
+    "iec-size-units": "Unidades IEC (KiB, MiB)",
+    "iec-size-units-hint": "Os tamanhos são sempre contados em passos de 1024; isto só muda como as unidades são escritas.",
+    "system-title-bar": "Usar a barra de título do sistema",
+    "system-title-bar-hint": "Para gerenciadores de janelas que desenham a própria barra de título. Oculta os botões de janela do app.",
+    "show-tray-icon": "Mostrar ícone na bandeja",
+    "show-tray-icon-hint": "Oculto, fechar a janela para o segundo plano a minimiza em vez disso."
   },
   "task": {
     "scope-all": "Todas",
@@ -921,7 +933,13 @@
     "pause-selected": "Pausar seleção",
     "delete-selected": "Excluir seleção",
     "clear-selection": "Limpar seleção",
-    "bittorrent-disabled": "O BitTorrent está desativado nas preferências"
+    "bittorrent-disabled": "O BitTorrent está desativado nas preferências",
+    "favorite-add": "Adicionar aos favoritos",
+    "favorite-remove": "Remover dos favoritos",
+    "folder-list-remove": "Remover da lista",
+    "folder-history": "Pastas recentes e favoritas",
+    "ua-history": "User-Agents recentes",
+    "invert-selection": "Inverter seleção"
   },
   "media": {
     "probing": "Analisando mídia",

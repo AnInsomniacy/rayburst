@@ -100,7 +100,10 @@
     "shutdown-disable": "Desactivar apagado automático",
     "delete": "Eliminar",
     "engine-configuration-invalid": "La configuración del proxy no es válida. Corríjala o desactive el proxy en los ajustes de red.",
-    "engine-open-settings": "Abrir ajustes de red"
+    "engine-open-settings": "Abrir ajustes de red",
+    "generate-random": "Generar valor aleatorio",
+    "choose-folder": "Elegir carpeta",
+    "choose-file": "Elegir archivo"
   },
   "preferences": {
     "general": "General",
@@ -595,7 +598,16 @@
     "site-rule-connections": "Conexiones por servidor",
     "site-rule-invalid": "Una regla de sitio tiene un patrón de host no válido",
     "bittorrent-enabled": "Activar BitTorrent",
-    "bittorrent-enabled-hint": "Si está desactivado, se rechazan los enlaces magnet y los torrents, y los archivos .torrent descargados solo se guardan."
+    "bittorrent-enabled-hint": "Si está desactivado, se rechazan los enlaces magnet y los torrents, y los archivos .torrent descargados solo se guardan.",
+    "tracker-add": "Añadir tracker",
+    "ui-scale": "Tamaño de la interfaz",
+    "ui-scale-hint": "Ctrl con +, − o 0 también lo cambia (⌘ en macOS).",
+    "iec-size-units": "Unidades IEC (KiB, MiB)",
+    "iec-size-units-hint": "Los tamaños siempre se cuentan en pasos de 1024; esto solo cambia cómo se escriben las unidades.",
+    "system-title-bar": "Usar la barra de título del sistema",
+    "system-title-bar-hint": "Para gestores de ventanas que dibujan su propia barra de título. Oculta los botones de ventana de la aplicación.",
+    "show-tray-icon": "Mostrar icono en la bandeja",
+    "show-tray-icon-hint": "Si está oculto, cerrar la ventana en segundo plano la minimiza en su lugar."
   },
   "task": {
     "scope-all": "Todas",
@@ -921,7 +933,13 @@
     "pause-selected": "Pausar selección",
     "delete-selected": "Eliminar selección",
     "clear-selection": "Borrar selección",
-    "bittorrent-disabled": "BitTorrent está desactivado en las preferencias"
+    "bittorrent-disabled": "BitTorrent está desactivado en las preferencias",
+    "favorite-add": "Añadir a favoritos",
+    "favorite-remove": "Quitar de favoritos",
+    "folder-list-remove": "Quitar de la lista",
+    "folder-history": "Carpetas recientes y favoritas",
+    "ua-history": "User-Agents recientes",
+    "invert-selection": "Invertir selección"
   },
   "media": {
     "probing": "Analizando el contenido",

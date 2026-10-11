@@ -100,7 +100,10 @@
     "shutdown-disable": "Deaktiver automatisk avslutning",
     "delete": "Slett",
     "engine-configuration-invalid": "Proxyinnstillingene er ugyldige. Rett dem eller slå av proxyen i nettverksinnstillingene.",
-    "engine-open-settings": "Åpne nettverksinnstillinger"
+    "engine-open-settings": "Åpne nettverksinnstillinger",
+    "generate-random": "Generer tilfeldig verdi",
+    "choose-folder": "Velg mappe",
+    "choose-file": "Velg fil"
   },
   "preferences": {
     "general": "Generelt",
@@ -595,7 +598,16 @@
     "site-rule-connections": "Tilkoblinger per server",
     "site-rule-invalid": "En nettstedsregel har et ugyldig vertsmønster",
     "bittorrent-enabled": "Aktiver BitTorrent",
-    "bittorrent-enabled-hint": "Når av, avvises magnetlenker og torrenter, og nedlastede .torrent-filer bare lagres."
+    "bittorrent-enabled-hint": "Når av, avvises magnetlenker og torrenter, og nedlastede .torrent-filer bare lagres.",
+    "tracker-add": "Legg til tracker",
+    "ui-scale": "Grensesnittstørrelse",
+    "ui-scale-hint": "Ctrl med +, − eller 0 endrer den også (⌘ på macOS).",
+    "iec-size-units": "IEC-enheter (KiB, MiB)",
+    "iec-size-units-hint": "Størrelser telles alltid i steg på 1024; dette endrer bare hvordan enhetene skrives.",
+    "system-title-bar": "Bruk systemets tittellinje",
+    "system-title-bar-hint": "For vindusbehandlere som tegner sin egen tittellinje. Skjuler appens vindusknapper.",
+    "show-tray-icon": "Vis ikon i systemstatusfeltet",
+    "show-tray-icon-hint": "Når det er skjult, minimeres vinduet i stedet når det lukkes til bakgrunnen."
   },
   "task": {
     "scope-all": "Alle",
@@ -921,7 +933,13 @@
     "pause-selected": "Pause valgte",
     "delete-selected": "Slett valgte",
     "clear-selection": "Fjern utvalg",
-    "bittorrent-disabled": "BitTorrent er slått av i innstillingene"
+    "bittorrent-disabled": "BitTorrent er slått av i innstillingene",
+    "favorite-add": "Legg til i favoritter",
+    "favorite-remove": "Fjern fra favoritter",
+    "folder-list-remove": "Fjern fra listen",
+    "folder-history": "Nylige og favorittmapper",
+    "ua-history": "Nylige User-Agenter",
+    "invert-selection": "Inverter utvalg"
   },
   "media": {
     "probing": "Undersøker medier",

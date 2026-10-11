@@ -179,7 +179,7 @@ const compactStatus = computed<{ label: string; tone: string; icon: Component } 
   background-color: var(--task-item-bg);
   border: 1px solid var(--m3-outline-variant);
   border-left: 3px solid var(--m3-outline-variant);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   transition: border-color 0.2s cubic-bezier(0.2, 0, 0, 1);
 }
@@ -226,7 +226,7 @@ const compactStatus = computed<{ label: string; tone: string; icon: Component } 
   max-width: 100%;
   overflow: hidden;
   color: var(--m3-on-surface-variant);
-  font-size: 14px;
+  font-size: var(--font-size-base);
   line-height: 24px;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -240,7 +240,7 @@ const compactStatus = computed<{ label: string; tone: string; icon: Component } 
   height: 16px;
   margin-top: 4px;
   color: var(--m3-on-surface-variant);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   line-height: 14px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

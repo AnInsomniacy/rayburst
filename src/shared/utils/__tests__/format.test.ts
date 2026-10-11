@@ -1,7 +1,9 @@
 /** @fileoverview Tests for format utilities. */
-import { describe, it, expect } from 'vitest'
+import { afterEach, describe, it, expect } from 'vitest'
 import {
   bytesToSize,
+  setIecSizeUnits,
+  speedUnitOptions,
   extractSpeedUnit,
   timeRemaining,
   timeFormat,
@@ -12,8 +14,19 @@ import {
 } from '../format'
 
 describe('bytesToSize', () => {
-  it('returns 0 KB for zero bytes', () => {
-    expect(bytesToSize(0)).toBe('0 KB')
+  afterEach(() => setIecSizeUnits(false))
+
+  it('returns 0 B for zero bytes', () => {
+    expect(bytesToSize(0)).toBe('0 B')
+  })
+  it('writes IEC units when enabled, with the same base-1024 values', () => {
+    setIecSizeUnits(true)
+    expect(bytesToSize(1536)).toBe('1.5 KiB')
+    expect(bytesToSize(1073741824)).toBe('1.0 GiB')
+    expect(speedUnitOptions().map((option) => option.label)).toEqual(['KiB/s', 'MiB/s'])
+    setIecSizeUnits(false)
+    expect(bytesToSize(1536)).toBe('1.5 KB')
+    expect(speedUnitOptions().map((option) => option.label)).toEqual(['KB/s', 'MB/s'])
   })
   it('formats bytes correctly', () => {
     expect(bytesToSize(500)).toBe('500 B')

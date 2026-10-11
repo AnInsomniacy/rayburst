@@ -100,7 +100,10 @@
     "shutdown-disable": "Désactiver l'arrêt automatique",
     "delete": "Supprimer",
     "engine-configuration-invalid": "Les paramètres du proxy sont invalides. Corrigez-les ou désactivez le proxy dans les paramètres réseau.",
-    "engine-open-settings": "Ouvrir les paramètres réseau"
+    "engine-open-settings": "Ouvrir les paramètres réseau",
+    "generate-random": "Générer une valeur aléatoire",
+    "choose-folder": "Choisir un dossier",
+    "choose-file": "Choisir un fichier"
   },
   "preferences": {
     "general": "Général",
@@ -595,7 +598,16 @@
     "site-rule-connections": "Connexions par serveur",
     "site-rule-invalid": "Une règle de site a un motif d’hôte invalide",
     "bittorrent-enabled": "Activer BitTorrent",
-    "bittorrent-enabled-hint": "Désactivé, les liens magnet et les torrents sont refusés, et les fichiers .torrent téléchargés sont seulement enregistrés."
+    "bittorrent-enabled-hint": "Désactivé, les liens magnet et les torrents sont refusés, et les fichiers .torrent téléchargés sont seulement enregistrés.",
+    "tracker-add": "Ajouter un tracker",
+    "ui-scale": "Taille de l'interface",
+    "ui-scale-hint": "Ctrl avec +, − ou 0 la modifie aussi (⌘ sur macOS).",
+    "iec-size-units": "Unités CEI (Kio, Mio)",
+    "iec-size-units-hint": "Les tailles sont toujours calculées par pas de 1024 ; ce réglage ne change que l'écriture des unités.",
+    "system-title-bar": "Utiliser la barre de titre du système",
+    "system-title-bar-hint": "Pour les gestionnaires de fenêtres qui dessinent leur propre barre de titre. Masque les boutons de fenêtre de l'application.",
+    "show-tray-icon": "Afficher l'icône de la zone de notification",
+    "show-tray-icon-hint": "Masquée, fermer la fenêtre en arrière-plan la réduit à la place."
   },
   "task": {
     "scope-all": "Toutes",
@@ -921,7 +933,13 @@
     "pause-selected": "Suspendre la sélection",
     "delete-selected": "Supprimer la sélection",
     "clear-selection": "Effacer la sélection",
-    "bittorrent-disabled": "BitTorrent est désactivé dans les préférences"
+    "bittorrent-disabled": "BitTorrent est désactivé dans les préférences",
+    "favorite-add": "Ajouter aux favoris",
+    "favorite-remove": "Retirer des favoris",
+    "folder-list-remove": "Retirer de la liste",
+    "folder-history": "Dossiers récents et favoris",
+    "ua-history": "User-Agents récents",
+    "invert-selection": "Inverser la sélection"
   },
   "media": {
     "probing": "Analyse du média",

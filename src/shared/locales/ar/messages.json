@@ -100,7 +100,10 @@
     "shutdown-disable": "إيقاف الإغلاق التلقائي",
     "delete": "حذف",
     "engine-configuration-invalid": "إعدادات الوكيل غير صالحة. صحّحها أو عطّل الوكيل من إعدادات الشبكة.",
-    "engine-open-settings": "فتح إعدادات الشبكة"
+    "engine-open-settings": "فتح إعدادات الشبكة",
+    "generate-random": "توليد قيمة عشوائية",
+    "choose-folder": "اختيار مجلد",
+    "choose-file": "اختيار ملف"
   },
   "preferences": {
     "general": "عام",
@@ -595,7 +598,16 @@
     "site-rule-connections": "الاتصالات لكل خادم",
     "site-rule-invalid": "تحتوي قاعدة موقع على نمط مضيف غير صالح",
     "bittorrent-enabled": "تفعيل BitTorrent",
-    "bittorrent-enabled-hint": "عند الإيقاف تُرفض روابط magnet والتورنت، وتُحفظ ملفات .torrent المنزّلة فقط."
+    "bittorrent-enabled-hint": "عند الإيقاف تُرفض روابط magnet والتورنت، وتُحفظ ملفات .torrent المنزّلة فقط.",
+    "tracker-add": "إضافة متتبع",
+    "ui-scale": "حجم الواجهة",
+    "ui-scale-hint": "يمكن تغييره أيضًا بـ Ctrl مع + أو − أو 0 (⌘ على macOS).",
+    "iec-size-units": "وحدات IEC (KiB، MiB)",
+    "iec-size-units-hint": "تُحسب الأحجام دائمًا بخطوات 1024؛ هذا يغيّر طريقة كتابة الوحدات فقط.",
+    "system-title-bar": "استخدام شريط عنوان النظام",
+    "system-title-bar-hint": "لمديري النوافذ الذين يرسمون شريط العنوان بأنفسهم. يخفي أزرار نافذة التطبيق.",
+    "show-tray-icon": "إظهار أيقونة علبة النظام",
+    "show-tray-icon-hint": "عند إخفائها، يؤدي إغلاق النافذة إلى الخلفية إلى تصغيرها بدلًا من ذلك."
   },
   "task": {
     "scope-all": "الكل",
@@ -921,7 +933,13 @@
     "pause-selected": "إيقاف المحدد مؤقتًا",
     "delete-selected": "حذف المحدد",
     "clear-selection": "إلغاء التحديد",
-    "bittorrent-disabled": "تم إيقاف BitTorrent في التفضيلات"
+    "bittorrent-disabled": "تم إيقاف BitTorrent في التفضيلات",
+    "favorite-add": "إضافة إلى المفضلة",
+    "favorite-remove": "إزالة من المفضلة",
+    "folder-list-remove": "إزالة من القائمة",
+    "folder-history": "المجلدات الأخيرة والمفضلة",
+    "ua-history": "وكلاء المستخدم الأخيرة",
+    "invert-selection": "عكس التحديد"
   },
   "media": {
     "probing": "جارٍ فحص الوسائط",

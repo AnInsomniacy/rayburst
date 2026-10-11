@@ -268,7 +268,7 @@ function openUrl(url: string) {
   width: 50vw;
   padding: 32px 28px 24px;
   text-align: center;
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   border: 1px solid var(--m3-outline-variant);
   background: color-mix(in srgb, var(--m3-surface-container-high) 96%, transparent);
   backdrop-filter: blur(24px) saturate(1.4);
@@ -289,7 +289,7 @@ function openUrl(url: string) {
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--m3-on-surface-variant);
   cursor: pointer;
@@ -309,7 +309,7 @@ function openUrl(url: string) {
 /* ── Title ────────────────────────────────────────────────────────── */
 .about-title {
   margin-top: 16px;
-  font-size: 24px;
+  font-size: var(--font-size-3xl);
   font-weight: 700;
   letter-spacing: 0.3px;
   color: var(--m3-on-surface);
@@ -332,11 +332,11 @@ function openUrl(url: string) {
   gap: 8px;
   padding: 8px 14px;
   border: 1px solid var(--m3-outline-variant);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--about-card-bg);
   cursor: pointer;
   transition: var(--transition-all);
-  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', Menlo, Monaco, 'Courier New', monospace;
+  font-family: var(--font-family-mono);
 }
 .version-badge:hover {
   border-color: var(--m3-primary);
@@ -350,13 +350,13 @@ function openUrl(url: string) {
   transform: scale(0.98);
 }
 .version-label {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 500;
   color: var(--m3-on-surface-variant);
   letter-spacing: 0.3px;
 }
 .version-value {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 700;
   color: var(--m3-on-surface);
   letter-spacing: 0.5px;
@@ -373,7 +373,7 @@ function openUrl(url: string) {
 .about-desc {
   margin: 16px auto 0;
   max-width: 320px;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   line-height: 1.7;
   color: var(--m3-on-surface-variant);
 }
@@ -381,7 +381,7 @@ function openUrl(url: string) {
 /* ── Section Label ────────────────────────────────────────────────── */
 .about-section-label {
   margin-top: 20px;
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 2px;
@@ -400,10 +400,10 @@ function openUrl(url: string) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   font-weight: 600;
   padding: 3px 10px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   color: var(--tag-color);
   background: var(--about-card-bg);
   border: 1px solid color-mix(in srgb, var(--tag-color) 40%, transparent);
@@ -432,10 +432,10 @@ function openUrl(url: string) {
   text-decoration: none;
   padding: 10px 0;
   border: 1px solid var(--m3-outline-variant);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--about-card-bg);
   color: var(--m3-on-surface-variant);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition-all);
@@ -465,7 +465,7 @@ function openUrl(url: string) {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   color: var(--m3-outline);
 }
 .about-link {
@@ -478,7 +478,7 @@ function openUrl(url: string) {
 }
 .version-error {
   margin-left: auto;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 500;
   color: var(--m3-outline);
   letter-spacing: 0.3px;
@@ -535,7 +535,7 @@ function openUrl(url: string) {
   align-items: center;
   gap: 6px;
   margin-left: auto;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 500;
   color: var(--m3-outline);
   letter-spacing: 0.3px;

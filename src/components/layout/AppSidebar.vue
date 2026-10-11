@@ -123,7 +123,7 @@ const isSettings = computed(() => route.matched.some((record) => record.name ===
   width: 100%;
   padding: 8px 10px;
   margin-bottom: 4px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--m3-on-surface-variant);
   text-align: left;
   transition:

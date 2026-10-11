@@ -54,6 +54,18 @@ fn tray_title_for_speed(tray_speedometer: bool, download_speed: u64, upload_spee
     }
 }
 
+/// Tooltip of the tray icon: the speeds while anything is active.
+fn tray_tooltip(num_active: u64, download_speed: u64, upload_speed: u64) -> String {
+    if num_active == 0 {
+        return "Rayburst".into();
+    }
+    format!(
+        "Rayburst\n↓ {}/s  ↑ {}/s",
+        compact_size(download_speed),
+        compact_size(upload_speed)
+    )
+}
+
 fn tray_title_needs_update(last_title: &Option<String>, next_title: &str) -> bool {
     last_title.as_deref() != Some(next_title)
 }
@@ -361,6 +373,9 @@ pub struct StatEffects {
     awake_guard: Option<PowerGuard>,
     power_retry_at: Option<std::time::Instant>,
     last_tray_title: Option<String>,
+    tray_visible: Option<bool>,
+    tray_active: Option<bool>,
+    last_tray_tooltip: Option<String>,
 }
 
 impl StatEffects {
@@ -382,6 +397,24 @@ impl StatEffects {
                 log::debug!("tray:title-update-failed error={error}");
             }
             self.last_tray_title = Some(next_title);
+        }
+
+        if self.tray_visible != Some(cfg.show_tray_icon) {
+            if let Err(error) = crate::tray::set_visible(app, cfg.show_tray_icon) {
+                log::debug!("tray:visibility-update-failed error={error}");
+            }
+            self.tray_visible = Some(cfg.show_tray_icon);
+        }
+        let downloading = stat.num_active > 0;
+        let tooltip = tray_tooltip(stat.num_active, stat.download_speed, stat.upload_speed);
+        if self.tray_active != Some(downloading)
+            || self.last_tray_tooltip.as_deref() != Some(&tooltip)
+        {
+            if let Err(error) = crate::tray::set_activity(app, downloading, &tooltip) {
+                log::debug!("tray:activity-update-failed error={error}");
+            }
+            self.tray_active = Some(downloading);
+            self.last_tray_tooltip = Some(tooltip);
         }
 
         // NSDockTile is an app-level API (no window needed) and must be used
@@ -469,6 +502,15 @@ impl StatEffects {
 mod tests {
     use super::*;
     use crate::aria2::types::{Aria2File, Aria2Task};
+
+    #[test]
+    fn tray_tooltip_shows_speeds_only_while_active() {
+        assert_eq!(tray_tooltip(0, 0, 0), "Rayburst");
+        assert_eq!(
+            tray_tooltip(2, 1_572_864, 1024),
+            "Rayburst\n↓ 1.5M/s  ↑ 1K/s"
+        );
+    }
 
     // ── compact_size ────────────────────────────────────────────────
 

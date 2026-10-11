@@ -1042,7 +1042,7 @@ defineExpose({ dismiss: () => handleClose() })
                   :placeholder="categoryEnabled ? t('task.category-dir-placeholder') : ''"
                   @update:value="onDirInput"
                 />
-                <NButton @click="chooseDirectory">
+                <NButton :title="t('app.choose-folder')" @click="chooseDirectory">
                   <template #icon>
                     <NIcon><FolderOpenOutline /></NIcon>
                   </template>
@@ -1136,14 +1136,14 @@ defineExpose({ dismiss: () => handleClose() })
 .torrent-panel {
   margin-bottom: 12px;
   padding: 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--m3-outline-variant);
   background: var(--m3-surface-container-low);
 }
 
 /* ── Batch list ───────────────────────────────────────────────────── */
 .batch-list {
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--m3-outline-variant);
   overflow: hidden;
 }
@@ -1171,7 +1171,7 @@ defineExpose({ dismiss: () => handleClose() })
   gap: 6px;
   min-height: 138px;
   border: 1px dashed var(--m3-drop-zone-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: border-color 0.2s cubic-bezier(0.2, 0, 0, 1);
 }
@@ -1179,7 +1179,7 @@ defineExpose({ dismiss: () => handleClose() })
   border-color: var(--m3-primary);
 }
 .torrent-upload-text {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   opacity: 0.6;
 }
 

@@ -100,7 +100,10 @@
     "shutdown-disable": "غیرفعال کردن خاموشی خودکار",
     "delete": "حذف",
     "engine-configuration-invalid": "تنظیمات پراکسی نامعتبر است. در تنظیمات شبکه آن را اصلاح یا غیرفعال کنید.",
-    "engine-open-settings": "بازکردن تنظیمات شبکه"
+    "engine-open-settings": "بازکردن تنظیمات شبکه",
+    "generate-random": "ایجاد مقدار تصادفی",
+    "choose-folder": "انتخاب پوشه",
+    "choose-file": "انتخاب فایل"
   },
   "preferences": {
     "general": "عمومی",
@@ -595,7 +598,16 @@
     "site-rule-connections": "اتصال به هر سرور",
     "site-rule-invalid": "یک قانون سایت الگوی میزبان نامعتبر دارد",
     "bittorrent-enabled": "فعال‌سازی BitTorrent",
-    "bittorrent-enabled-hint": "در حالت خاموش، پیوندهای magnet و تورنت‌ها رد می‌شوند و فایل‌های .torrent دانلودشده فقط ذخیره می‌شوند."
+    "bittorrent-enabled-hint": "در حالت خاموش، پیوندهای magnet و تورنت‌ها رد می‌شوند و فایل‌های .torrent دانلودشده فقط ذخیره می‌شوند.",
+    "tracker-add": "افزودن ترکر",
+    "ui-scale": "اندازه رابط کاربری",
+    "ui-scale-hint": "با Ctrl و + یا − یا 0 هم تغییر می‌کند (در macOS ⌘).",
+    "iec-size-units": "واحدهای IEC (KiB، MiB)",
+    "iec-size-units-hint": "اندازه‌ها همیشه با گام‌های 1024 شمرده می‌شوند؛ این فقط نوشتار واحدها را تغییر می‌دهد.",
+    "system-title-bar": "استفاده از نوار عنوان سیستم",
+    "system-title-bar-hint": "برای مدیرهای پنجره‌ای که نوار عنوان خود را می‌کشند. دکمه‌های پنجره برنامه را پنهان می‌کند.",
+    "show-tray-icon": "نمایش نماد سینی سیستم",
+    "show-tray-icon-hint": "وقتی پنهان است، بستن پنجره به پس‌زمینه به‌جای آن پنجره را کوچک می‌کند."
   },
   "task": {
     "scope-all": "همه",
@@ -921,7 +933,13 @@
     "pause-selected": "توقف موارد انتخاب‌شده",
     "delete-selected": "حذف موارد انتخاب‌شده",
     "clear-selection": "پاک کردن انتخاب",
-    "bittorrent-disabled": "BitTorrent در تنظیمات خاموش است"
+    "bittorrent-disabled": "BitTorrent در تنظیمات خاموش است",
+    "favorite-add": "افزودن به علاقه‌مندی‌ها",
+    "favorite-remove": "حذف از علاقه‌مندی‌ها",
+    "folder-list-remove": "حذف از فهرست",
+    "folder-history": "پوشه‌های اخیر و مورد علاقه",
+    "ua-history": "User-Agentهای اخیر",
+    "invert-selection": "معکوس کردن انتخاب"
   },
   "media": {
     "probing": "در حال بررسی رسانه",

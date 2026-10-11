@@ -389,7 +389,7 @@ onMounted(() => {
   min-height: 44px;
   padding: 8px 10px;
   border: 1px solid color-mix(in srgb, var(--m3-outline-variant) 62%, transparent);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--m3-surface-container-low) 54%, transparent);
 }
 .ua-manager-entry-text {
@@ -398,13 +398,13 @@ onMounted(() => {
   min-width: 0;
 }
 .ua-manager-entry-text strong {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
 }
 .ua-manager-entry-text span {
   overflow: hidden;
   color: var(--n-text-color-3);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -425,7 +425,7 @@ onMounted(() => {
   gap: 10px;
   padding: 8px 12px;
   margin-top: 6px;
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-sm);
   background: var(--m3-error-container);
   opacity: 0;
   transition: opacity 0.25s cubic-bezier(0.2, 0, 0, 1);

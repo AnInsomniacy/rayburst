@@ -411,7 +411,7 @@ function handleCardBeforeLeave(element: Element) {
   transform: none;
 }
 .task-list-item--checked {
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-sm);
   outline: 2px solid var(--m3-primary);
   outline-offset: 2px;
 }

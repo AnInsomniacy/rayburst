@@ -100,7 +100,10 @@
     "shutdown-disable": "自動シャットダウンを無効にする",
     "delete": "削除",
     "engine-configuration-invalid": "プロキシ設定が無効です。ネットワーク設定で修正するか無効にしてください。",
-    "engine-open-settings": "ネットワーク設定を開く"
+    "engine-open-settings": "ネットワーク設定を開く",
+    "generate-random": "ランダムに生成",
+    "choose-folder": "フォルダーを選択",
+    "choose-file": "ファイルを選択"
   },
   "preferences": {
     "general": "一般",
@@ -595,7 +598,16 @@
     "site-rule-connections": "サーバーごとの接続数",
     "site-rule-invalid": "サイトルールに無効なホストパターンがあります",
     "bittorrent-enabled": "BitTorrent を有効にする",
-    "bittorrent-enabled-hint": "オフにすると、マグネットリンクとトレントは拒否され、ダウンロードした .torrent ファイルは保存のみされます。"
+    "bittorrent-enabled-hint": "オフにすると、マグネットリンクとトレントは拒否され、ダウンロードした .torrent ファイルは保存のみされます。",
+    "tracker-add": "トラッカーを追加",
+    "ui-scale": "表示サイズ",
+    "ui-scale-hint": "Ctrl と +、−、0 でも変更できます（macOS では ⌘）。",
+    "iec-size-units": "IEC 単位（KiB、MiB）",
+    "iec-size-units-hint": "サイズは常に 1024 単位で計算されます。この設定は単位の表記だけを変えます。",
+    "system-title-bar": "システムのタイトルバーを使用",
+    "system-title-bar-hint": "独自にタイトルバーを描画するウィンドウマネージャー向けです。アプリのウィンドウボタンを隠します。",
+    "show-tray-icon": "トレイアイコンを表示",
+    "show-tray-icon-hint": "非表示にすると、ウィンドウをバックグラウンドへ閉じる操作は最小化になります。"
   },
   "task": {
     "scope-all": "すべて",
@@ -921,7 +933,13 @@
     "pause-selected": "選択項目を一時停止",
     "delete-selected": "選択項目を削除",
     "clear-selection": "選択を解除",
-    "bittorrent-disabled": "BitTorrent は設定でオフになっています"
+    "bittorrent-disabled": "BitTorrent は設定でオフになっています",
+    "favorite-add": "お気に入りに追加",
+    "favorite-remove": "お気に入りから削除",
+    "folder-list-remove": "一覧から削除",
+    "folder-history": "最近使ったフォルダーとお気に入り",
+    "ua-history": "最近使った User-Agent",
+    "invert-selection": "選択を反転"
   },
   "media": {
     "probing": "メディアを解析中",

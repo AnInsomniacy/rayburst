@@ -49,7 +49,7 @@ function shortLabel(dir: string): string {
     content-class="dir-popover-content"
   >
     <template #trigger>
-      <NButton>
+      <NButton :title="t('task.folder-history')">
         <template #icon>
           <NIcon><TimeOutline /></NIcon>
         </template>
@@ -64,12 +64,24 @@ function shortLabel(dir: string): string {
             {{ shortLabel(dir) }}
           </NEllipsis>
           <div class="dir-popover-actions">
-            <NButton text size="tiny" class="dir-popover-action" @click.stop="onToggleFavorite(dir, true)">
+            <NButton
+              :title="t('task.favorite-remove')"
+              text
+              size="tiny"
+              class="dir-popover-action"
+              @click.stop="onToggleFavorite(dir, true)"
+            >
               <template #icon>
                 <NIcon color="var(--m3-primary)"><Star /></NIcon>
               </template>
             </NButton>
-            <NButton text size="tiny" class="dir-popover-action" @click.stop="onRemove(dir)">
+            <NButton
+              :title="t('task.folder-list-remove')"
+              text
+              size="tiny"
+              class="dir-popover-action"
+              @click.stop="onRemove(dir)"
+            >
               <template #icon>
                 <NIcon><TrashOutline /></NIcon>
               </template>
@@ -91,12 +103,24 @@ function shortLabel(dir: string): string {
             {{ shortLabel(dir) }}
           </NEllipsis>
           <div class="dir-popover-actions">
-            <NButton text size="tiny" class="dir-popover-action" @click.stop="onToggleFavorite(dir, false)">
+            <NButton
+              :title="t('task.favorite-add')"
+              text
+              size="tiny"
+              class="dir-popover-action"
+              @click.stop="onToggleFavorite(dir, false)"
+            >
               <template #icon>
                 <NIcon><StarOutline /></NIcon>
               </template>
             </NButton>
-            <NButton text size="tiny" class="dir-popover-action" @click.stop="onRemove(dir)">
+            <NButton
+              :title="t('task.folder-list-remove')"
+              text
+              size="tiny"
+              class="dir-popover-action"
+              @click.stop="onRemove(dir)"
+            >
               <template #icon>
                 <NIcon><TrashOutline /></NIcon>
               </template>
@@ -129,7 +153,7 @@ function shortLabel(dir: string): string {
   justify-content: space-between;
   gap: 4px;
   padding: 5px 8px;
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background-color 0.15s;
 }
@@ -140,7 +164,7 @@ function shortLabel(dir: string): string {
 .dir-popover-label {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
 }
 
 .dir-popover-actions {

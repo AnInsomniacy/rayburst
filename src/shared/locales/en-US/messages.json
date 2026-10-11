@@ -100,7 +100,10 @@
     "shutdown-disable": "Disable Auto-Shutdown",
     "delete": "Delete",
     "engine-configuration-invalid": "The proxy settings are invalid. Open Network settings to correct or disable the proxy.",
-    "engine-open-settings": "Open Network Settings"
+    "engine-open-settings": "Open Network Settings",
+    "generate-random": "Generate random value",
+    "choose-folder": "Choose folder",
+    "choose-file": "Choose file"
   },
   "preferences": {
     "general": "General",
@@ -595,7 +598,16 @@
     "site-rule-connections": "Connections per server",
     "site-rule-invalid": "A site rule has an invalid host pattern",
     "bittorrent-enabled": "Enable BitTorrent",
-    "bittorrent-enabled-hint": "When off, magnet links and torrents are refused, and downloaded .torrent files are only saved."
+    "bittorrent-enabled-hint": "When off, magnet links and torrents are refused, and downloaded .torrent files are only saved.",
+    "tracker-add": "Add tracker",
+    "ui-scale": "Interface size",
+    "ui-scale-hint": "Ctrl with +, − or 0 also changes it (⌘ on macOS).",
+    "iec-size-units": "IEC size units (KiB, MiB)",
+    "iec-size-units-hint": "Sizes are always counted in steps of 1024; this only changes how the units are written.",
+    "system-title-bar": "Use system title bar",
+    "system-title-bar-hint": "For window managers that draw their own title bar. Hides the app's window buttons.",
+    "show-tray-icon": "Show tray icon",
+    "show-tray-icon-hint": "When hidden, closing the window to the background minimizes it instead."
   },
   "task": {
     "scope-all": "All",
@@ -921,7 +933,13 @@
     "pause-selected": "Pause selected",
     "delete-selected": "Delete selected",
     "clear-selection": "Clear selection",
-    "bittorrent-disabled": "BitTorrent is turned off in preferences"
+    "bittorrent-disabled": "BitTorrent is turned off in preferences",
+    "favorite-add": "Add to favorites",
+    "favorite-remove": "Remove from favorites",
+    "folder-list-remove": "Remove from list",
+    "folder-history": "Recent and favorite folders",
+    "ua-history": "Recent User-Agents",
+    "invert-selection": "Invert selection"
   },
   "media": {
     "probing": "Inspecting media",

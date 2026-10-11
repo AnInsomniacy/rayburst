@@ -99,7 +99,7 @@
 
 .pref-inline-row__meta {
   color: var(--m3-on-surface-variant);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   line-height: 1.4;
   white-space: normal;
 }
@@ -107,7 +107,7 @@
 .pref-inline-note {
   margin-left: 8px;
   color: var(--m3-on-surface-variant);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   line-height: 1.4;
 }
 

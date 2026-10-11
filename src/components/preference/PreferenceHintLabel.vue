@@ -29,7 +29,7 @@ defineProps<{
 }
 .preference-hint-label__hint {
   color: var(--m3-on-surface-variant);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 400;
 }
 </style>

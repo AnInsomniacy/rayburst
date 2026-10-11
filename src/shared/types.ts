@@ -421,6 +421,12 @@ export interface AppConfig {
   showLogoWhenEmpty: boolean
   reduceMotion: boolean
   sidebarTaskCounts: boolean
+  /** WebView zoom factor applied to every window. */
+  uiScale: number
+  /** Write binary units as KiB/MiB instead of KB/MB; values are base 1024 either way. */
+  iecSizeUnits: boolean
+  /** Linux: let the window manager draw the title bar and hide the app's caption buttons. */
+  systemTitleBar: boolean
   taskPageSize: number
   locale: string
   dir: string
@@ -497,6 +503,7 @@ export interface AppConfig {
   /** OS notification when a download completes or BT enters seeding (gated by taskNotification). */
   notifyOnComplete: boolean
   showProgressBar: boolean
+  showTrayIcon: boolean
   traySpeedometer: boolean
   dockBadgeSpeed: boolean
   logLevel: AppLogLevel

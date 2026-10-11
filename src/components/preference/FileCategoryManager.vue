@@ -581,7 +581,12 @@ onUnmounted(() => {
                     class="category-manager-path"
                     @update:value="handleDirectoryInput"
                   />
-                  <NButton size="small" class="pref-icon-button-sm" @click="handleSelectCategoryDir">
+                  <NButton
+                    :title="t('app.choose-folder')"
+                    size="small"
+                    class="pref-icon-button-sm"
+                    @click="handleSelectCategoryDir"
+                  >
                     <template #icon>
                       <NIcon :size="14"><FolderOpenOutline /></NIcon>
                     </template>
@@ -650,7 +655,7 @@ onUnmounted(() => {
 .category-manager-priority-hint {
   flex: 0 0 auto;
   color: var(--n-text-color-3);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   line-height: 1.4;
 }
 
@@ -673,7 +678,7 @@ onUnmounted(() => {
   margin-bottom: 6px;
   padding: 8px 10px;
   border: 1px solid var(--m3-outline-variant);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--n-text-color);
   background: var(--m3-surface-container-low);
   text-align: left;
@@ -689,7 +694,7 @@ onUnmounted(() => {
   justify-content: center;
   align-self: stretch;
   min-width: 22px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: var(--n-text-color-3);
   cursor: grab;
   touch-action: none;
@@ -797,14 +802,14 @@ onUnmounted(() => {
 
 .category-manager-list-title {
   overflow: hidden;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .category-manager-list-meta {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   color: var(--n-text-color-3);
 }
 
@@ -849,12 +854,12 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 6px;
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
 }
 
 .category-manager-hint {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 400;
   line-height: 1.35;
   white-space: nowrap;
@@ -897,7 +902,7 @@ onUnmounted(() => {
 .category-manager-error {
   margin-top: 6px;
   color: var(--m3-error);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 400;
   line-height: 1.35;
 }

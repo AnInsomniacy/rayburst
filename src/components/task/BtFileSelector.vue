@@ -1,11 +1,18 @@
 <script setup lang="ts">
-/** @fileoverview Shared BitTorrent file selector for local torrents and magnets. */
+/** @fileoverview Shared BitTorrent file selector for local torrents and magnets: a folder tree with type shortcuts. */
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NDataTable } from 'naive-ui'
+import { NButton, NDataTable } from 'naive-ui'
 import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
 import { bytesToSize } from '@shared/utils'
 import { calcColumnWidth } from '@shared/utils/calcColumnWidth'
+import {
+  buildBtFileTree,
+  groupBtFilesByType,
+  invertBtFileSelection,
+  toggleBtFileGroup,
+  type BtFileTreeRow,
+} from '@shared/utils/btFileTree'
 import type { BtFileSelectionItem } from '@shared/types'
 
 const props = withDefaults(
@@ -25,8 +32,39 @@ const { t } = useI18n()
 const countDirection = ref<'bt-value-up' | 'bt-value-down'>('bt-value-up')
 const sizeDirection = ref<'bt-value-up' | 'bt-value-down'>('bt-value-up')
 
-const columns = computed<DataTableColumns<BtFileSelectionItem>>(() => [
+/** Expand everything for small torrents; large ones open at their top folders. */
+const EXPAND_ALL_LIMIT = 200
+
+const tree = computed(() => buildBtFileTree(props.files))
+const hasFolders = computed(() => tree.value.some((row) => row.children))
+const expandedKeys = computed(() => {
+  const keys: (string | number)[] = []
+  const walk = (rows: BtFileTreeRow[], deep: boolean) => {
+    for (const row of rows) {
+      if (!row.children) continue
+      keys.push(row.key)
+      if (deep) walk(row.children, deep)
+    }
+  }
+  walk(tree.value, props.files.length <= EXPAND_ALL_LIMIT)
+  return keys
+})
+// Remount on a different torrent so its folders open by the rule above.
+const treeIdentity = computed(() => `${props.files.length}:${props.files[0]?.path ?? ''}`)
+const typeGroups = computed(() => groupBtFilesByType(props.files))
+const selectedSet = computed(() => new Set(props.selectedIndices))
+
+function groupSelected(indices: number[]): boolean {
+  return indices.every((index) => selectedSet.value.has(index))
+}
+
+const columns = computed<DataTableColumns<BtFileTreeRow>>(() => [
   { type: 'selection' },
+  {
+    title: t('task.file-name') || 'File Name',
+    key: 'name',
+    ellipsis: { tooltip: true },
+  },
   {
     title: t('task.file-index') || '#',
     key: 'index',
@@ -34,11 +72,7 @@ const columns = computed<DataTableColumns<BtFileSelectionItem>>(() => [
       title: t('task.file-index') || '#',
       values: props.files.map((file) => String(file.index)),
     }),
-  },
-  {
-    title: t('task.file-name') || 'File Name',
-    key: 'path',
-    ellipsis: { tooltip: true },
+    render: (row) => row.index ?? '',
   },
   {
     title: t('task.file-size') || 'Size',
@@ -71,16 +105,48 @@ watch(selectedSize, (current, previous) => {
 })
 
 function updateSelection(keys: DataTableRowKey[]) {
-  emit('update:selectedIndices', keys.map(Number).filter(Number.isFinite))
+  // Folder keys are strings; only file indices are selections.
+  emit(
+    'update:selectedIndices',
+    keys.filter((key): key is number => typeof key === 'number'),
+  )
+}
+
+function toggleGroup(indices: number[]) {
+  emit('update:selectedIndices', toggleBtFileGroup(props.selectedIndices, indices))
+}
+
+function invertSelection() {
+  emit('update:selectedIndices', invertBtFileSelection(props.files, props.selectedIndices))
 }
 </script>
 
 <template>
   <div class="bt-file-selector">
+    <div v-if="files.length > 1" class="bt-file-toolbar">
+      <NButton
+        v-for="group in typeGroups"
+        :key="group.type"
+        size="tiny"
+        round
+        secondary
+        :type="groupSelected(group.indices) ? 'primary' : 'default'"
+        @click="toggleGroup(group.indices)"
+      >
+        {{ t(`preferences.${group.type}`) }} {{ group.indices.length }}
+      </NButton>
+      <NButton size="tiny" round quaternary class="bt-file-invert" @click="invertSelection">
+        {{ t('task.invert-selection') }}
+      </NButton>
+    </div>
     <NDataTable
+      :key="treeIdentity"
       :columns="columns"
-      :data="files"
-      :row-key="(row: BtFileSelectionItem) => row.index"
+      :data="tree"
+      :row-key="(row: BtFileTreeRow) => row.key"
+      :row-class-name="(row: BtFileTreeRow) => (row.children ? 'bt-folder-row' : '')"
+      :default-expanded-row-keys="expandedKeys"
+      :indent="hasFolders ? 16 : 0"
       :checked-row-keys="selectedIndices"
       :max-height="maxHeight"
       :virtual-scroll="files.length > 100"
@@ -106,6 +172,21 @@ function updateSelection(keys: DataTableRowKey[]) {
 .bt-file-selector {
   display: grid;
   gap: 10px;
+}
+
+.bt-file-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.bt-file-invert {
+  margin-left: auto;
+}
+
+.bt-file-selector :deep(.bt-folder-row td) {
+  font-weight: 600;
 }
 
 .file-summary {

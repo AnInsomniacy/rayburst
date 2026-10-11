@@ -297,7 +297,7 @@ async function cleanupAndRetry() {
   display: grid;
   grid-template-rows: minmax(0, 1fr) 82px;
   border: 1px solid var(--m3-outline-variant);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   color: var(--m3-on-surface);
   background: var(--m3-surface-container-high);
   box-shadow: 0 18px 56px var(--m3-shadow);
@@ -309,7 +309,7 @@ async function cleanupAndRetry() {
 
 .engine-error-label {
   color: var(--m3-on-surface-variant);
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   font-weight: 650;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -318,7 +318,7 @@ async function cleanupAndRetry() {
 .engine-heading-row .engine-attempt {
   margin-top: 7px;
   color: var(--m3-primary);
-  font-size: 14px;
+  font-size: var(--font-size-base);
   font-weight: 650;
   line-height: 1.35;
 }
@@ -345,7 +345,7 @@ async function cleanupAndRetry() {
 .engine-heading-row h2,
 .engine-complete h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--font-size-xl);
   font-weight: 650;
   line-height: 1.35;
 }
@@ -459,7 +459,7 @@ async function cleanupAndRetry() {
 
 .engine-stage-label {
   color: var(--m3-on-surface-variant);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 500;
   line-height: 1.35;
   text-align: center;
@@ -513,22 +513,22 @@ async function cleanupAndRetry() {
   margin-top: 26px;
   padding: 13px 15px;
   border: 1px solid color-mix(in srgb, var(--m3-error) 30%, var(--m3-outline-variant));
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--m3-error) 7%, var(--m3-surface-container));
 }
 
 .engine-error-block code {
   overflow-wrap: anywhere;
   color: var(--m3-on-surface);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12px;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
   line-height: 1.55;
 }
 
 .engine-cleanup-warning {
   margin: 18px 0 0;
   color: var(--m3-on-surface-variant);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   line-height: 1.55;
   white-space: pre-line;
 }

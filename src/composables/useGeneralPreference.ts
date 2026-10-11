@@ -12,6 +12,8 @@ export interface GeneralForm {
   showLogoWhenEmpty: boolean
   reduceMotion: boolean
   sidebarTaskCounts: boolean
+  iecSizeUnits: boolean
+  systemTitleBar: boolean
   autoCheckUpdate: boolean
   autoCheckUpdateInterval: number
   updateChannel: AppConfig['updateChannel']
@@ -22,6 +24,7 @@ export interface GeneralForm {
   keepWindowState: boolean
   resumeAllWhenAppLaunched: boolean
   minimizeToTrayOnClose: boolean
+  showTrayIcon: boolean
   hideDockOnMinimize: boolean
   traySpeedometer: boolean
   lightweightMode: boolean
@@ -42,6 +45,8 @@ export function buildGeneralForm(config: AppConfig): GeneralForm {
     showLogoWhenEmpty: config.showLogoWhenEmpty,
     reduceMotion: config.reduceMotion,
     sidebarTaskCounts: config.sidebarTaskCounts,
+    iecSizeUnits: config.iecSizeUnits,
+    systemTitleBar: config.systemTitleBar,
     autoCheckUpdate: config.autoCheckUpdate,
     autoCheckUpdateInterval: config.autoCheckUpdateInterval,
     updateChannel: config.updateChannel,
@@ -52,6 +57,7 @@ export function buildGeneralForm(config: AppConfig): GeneralForm {
     keepWindowState: config.keepWindowState,
     resumeAllWhenAppLaunched: config.resumeAllWhenAppLaunched,
     minimizeToTrayOnClose: config.minimizeToTrayOnClose,
+    showTrayIcon: config.showTrayIcon,
     hideDockOnMinimize: config.hideDockOnMinimize,
     traySpeedometer: config.traySpeedometer,
     lightweightMode: config.lightweightMode,

@@ -319,7 +319,7 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
   gap: 10px;
   padding: 8px 12px;
   margin-top: 6px;
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-sm);
   background: var(--m3-error-container);
   opacity: 0;
   transition: opacity 0.25s cubic-bezier(0.2, 0, 0, 1);

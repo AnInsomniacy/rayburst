@@ -43,6 +43,7 @@ import MTooltip from '@/components/common/MTooltip.vue'
 import { CloudDownloadOutline } from '@vicons/ionicons5'
 import type { UpdateChannel } from '@shared/types'
 import PreferenceHintLabel from './PreferenceHintLabel.vue'
+import { UI_SCALE_STEPS } from '@/composables/useInterfaceScale'
 
 const { t, locale } = useI18n()
 const preferenceStore = usePreferenceStore()
@@ -206,6 +207,12 @@ const autoLocaleLabel = computed(() => {
 
 /** Full locale options with 'Follow System' prepended as the first choice. */
 const fullLocaleOptions = computed(() => [{ label: autoLocaleLabel.value, value: 'auto' }, ...localeOptions])
+
+// Interface size applies at once, like the zoom shortcuts that change it too.
+const uiScaleOptions = UI_SCALE_STEPS.map((step) => ({ label: `${Math.round(step * 100)}%`, value: step }))
+function handleUiScaleChange(scale: number) {
+  void preferenceStore.updateAndSave({ uiScale: scale })
+}
 
 const themeOptions = computed(() => [
   { label: t('preferences.theme-auto'), value: 'auto' },
@@ -380,6 +387,7 @@ onMounted(async () => {
               <template #trigger>
                 <button
                   class="color-swatch"
+                  :aria-label="t(scheme.labelKey)"
                   :class="{ active: form.colorScheme === scheme.id }"
                   :style="{ '--swatch-color': scheme.seed }"
                   @click="handlePresetColorScheme(scheme)"
@@ -413,6 +421,17 @@ onMounted(async () => {
             />
           </div>
         </NFormItem>
+        <NFormItem>
+          <template #label>
+            <PreferenceHintLabel :label="t('preferences.ui-scale')" :hint="t('preferences.ui-scale-hint')" />
+          </template>
+          <NSelect
+            :value="preferenceStore.config.uiScale"
+            :options="uiScaleOptions"
+            class="pref-control-auto"
+            @update:value="handleUiScaleChange"
+          />
+        </NFormItem>
         <NFormItem :label="t('preferences.task-card-mode')">
           <NRadioGroup v-model:value="form.taskCardMode">
             <NRadioButton v-for="option in taskCardModeOptions" :key="option.value" :value="option.value">
@@ -428,6 +447,24 @@ onMounted(async () => {
         </NFormItem>
         <NFormItem :label="t('preferences.sidebar-task-counts')">
           <NSwitch v-model:value="form.sidebarTaskCounts" />
+        </NFormItem>
+        <NFormItem>
+          <template #label>
+            <PreferenceHintLabel
+              :label="t('preferences.iec-size-units')"
+              :hint="t('preferences.iec-size-units-hint')"
+            />
+          </template>
+          <NSwitch v-model:value="form.iecSizeUnits" />
+        </NFormItem>
+        <NFormItem v-if="isLinux">
+          <template #label>
+            <PreferenceHintLabel
+              :label="t('preferences.system-title-bar')"
+              :hint="t('preferences.system-title-bar-hint')"
+            />
+          </template>
+          <NSwitch v-model:value="form.systemTitleBar" />
         </NFormItem>
         <NFormItem v-if="isMac" :label="t('preferences.dock-badge-speed')">
           <NSwitch v-model:value="form.dockBadgeSpeed" />
@@ -450,6 +487,15 @@ onMounted(async () => {
           <NSwitch v-model:value="form.resumeAllWhenAppLaunched" />
         </NFormItem>
         <NDivider title-placement="left">{{ t('preferences.tray-and-dock') }}</NDivider>
+        <NFormItem>
+          <template #label>
+            <PreferenceHintLabel
+              :label="t('preferences.show-tray-icon')"
+              :hint="t('preferences.show-tray-icon-hint')"
+            />
+          </template>
+          <NSwitch v-model:value="form.showTrayIcon" />
+        </NFormItem>
         <NFormItem :label="t('preferences.minimize-to-tray-on-close')">
           <NSwitch v-model:value="form.minimizeToTrayOnClose" />
         </NFormItem>
@@ -490,11 +536,11 @@ onMounted(async () => {
   height: 30px;
   padding: 0 10px;
   border: 1px solid var(--m3-outline-variant);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--about-card-bg);
   cursor: pointer;
   transition: var(--transition-all);
-  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', Menlo, Monaco, 'Courier New', monospace;
+  font-family: var(--font-family-mono);
 }
 .sysinfo-ver-badge:hover {
   border-color: var(--m3-primary);
@@ -507,7 +553,7 @@ onMounted(async () => {
   transform: scale(0.97);
 }
 .sysinfo-ver-value {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 520;
   color: var(--m3-on-surface);
   letter-spacing: 0.3px;
@@ -527,7 +573,7 @@ onMounted(async () => {
   background: var(--about-card-bg);
 }
 .sysinfo-ver-muted {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 500;
   color: var(--m3-outline);
   letter-spacing: 0.3px;

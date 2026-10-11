@@ -572,12 +572,12 @@ onUnmounted(() => {
 }
 
 .ua-manager-heading strong {
-  font-size: 18px;
+  font-size: var(--font-size-xl);
   font-weight: 600;
 }
 
 .ua-manager-heading .n-text {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 400;
 }
 
@@ -627,7 +627,7 @@ onUnmounted(() => {
 }
 
 .ua-manager-sidebar-header .n-text {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   line-height: 1.4;
 }
 
@@ -671,13 +671,13 @@ onUnmounted(() => {
 }
 
 .ua-manager-list-title {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
 }
 
 .ua-manager-list-meta {
   color: var(--m3-on-surface-variant);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 
 .ua-manager-rule-list {
@@ -695,7 +695,7 @@ onUnmounted(() => {
   margin-bottom: 8px;
   padding: 8px 10px;
   border: 1px solid var(--m3-outline-variant);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--m3-on-surface);
   background: var(--m3-surface-container-low);
   text-align: left;
@@ -720,7 +720,7 @@ onUnmounted(() => {
   align-self: stretch;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: var(--m3-on-surface-variant);
   cursor: grab;
   touch-action: none;
@@ -800,7 +800,7 @@ onUnmounted(() => {
 
 .ua-manager-editor-note {
   display: block;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 
 .ua-manager-rule-preview {
@@ -809,7 +809,7 @@ onUnmounted(() => {
   gap: 8px;
   padding: 14px 16px;
   border: 1px solid var(--m3-outline-variant);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--m3-surface-container-low);
 }
 
@@ -822,7 +822,7 @@ onUnmounted(() => {
 
 .ua-manager-rule-flow strong {
   overflow: hidden;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -833,7 +833,7 @@ onUnmounted(() => {
 }
 
 .ua-manager-rule-preview .n-text {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 
 .ua-manager-full-empty {

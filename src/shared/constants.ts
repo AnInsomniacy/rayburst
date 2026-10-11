@@ -206,6 +206,9 @@ export const DEFAULT_APP_CONFIG = {
   showLogoWhenEmpty: true,
   reduceMotion: false,
   sidebarTaskCounts: true,
+  uiScale: 1,
+  iecSizeUnits: false,
+  systemTitleBar: false,
   taskPageSize: 20,
   locale: 'auto',
 
@@ -264,6 +267,7 @@ export const DEFAULT_APP_CONFIG = {
   hideDockOnMinimize: false, // macOS: hide Dock icon when minimized to tray
   lightweightMode: false, // destroy WebView on minimize-to-tray to free ~300MB RAM
   showProgressBar: true,
+  showTrayIcon: true,
   traySpeedometer: false, // opt-in: supported on macOS menu bar + Linux appindicator
   dockBadgeSpeed: true, // macOS Dock badge on by default
   taskNotification: true, // users expect download-complete notifications

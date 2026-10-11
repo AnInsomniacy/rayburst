@@ -100,7 +100,10 @@
     "shutdown-disable": "關閉自動關機",
     "delete": "刪除",
     "engine-configuration-invalid": "代理設定有誤，請前往網路設定修改或關閉代理。",
-    "engine-open-settings": "開啟網路設定"
+    "engine-open-settings": "開啟網路設定",
+    "generate-random": "隨機產生",
+    "choose-folder": "選擇資料夾",
+    "choose-file": "選擇檔案"
   },
   "preferences": {
     "general": "一般",
@@ -595,7 +598,16 @@
     "site-rule-connections": "每伺服器連線數",
     "site-rule-invalid": "網站規則中有無效的主機比對",
     "bittorrent-enabled": "啟用 BitTorrent",
-    "bittorrent-enabled-hint": "關閉後將拒絕磁力連結和種子，下載的 .torrent 檔案只會儲存。"
+    "bittorrent-enabled-hint": "關閉後將拒絕磁力連結和種子，下載的 .torrent 檔案只會儲存。",
+    "tracker-add": "新增 Tracker",
+    "ui-scale": "介面大小",
+    "ui-scale-hint": "也可用 Ctrl 加 +、− 或 0 調整（macOS 上為 ⌘）。",
+    "iec-size-units": "IEC 單位（KiB、MiB）",
+    "iec-size-units-hint": "大小一律以 1024 進位計算，此選項只改變單位的寫法。",
+    "system-title-bar": "使用系統標題列",
+    "system-title-bar-hint": "適用於自行繪製標題列的視窗管理員，會隱藏應用程式自帶的視窗按鈕。",
+    "show-tray-icon": "顯示系統匣圖示",
+    "show-tray-icon-hint": "隱藏後，關閉視窗到背景時改為最小化視窗。"
   },
   "task": {
     "scope-all": "全部",
@@ -921,7 +933,13 @@
     "pause-selected": "暫停所選",
     "delete-selected": "刪除所選",
     "clear-selection": "取消選取",
-    "bittorrent-disabled": "BitTorrent 已在設定中關閉"
+    "bittorrent-disabled": "BitTorrent 已在設定中關閉",
+    "favorite-add": "加入收藏",
+    "favorite-remove": "取消收藏",
+    "folder-list-remove": "從清單中移除",
+    "folder-history": "最近和收藏的資料夾",
+    "ua-history": "最近使用的 User-Agent",
+    "invert-selection": "反向選取"
   },
   "media": {
     "probing": "正在探測媒體",

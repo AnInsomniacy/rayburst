@@ -503,7 +503,7 @@ onMounted(() => {
 .ed2k-search-status {
   display: inline-flex;
   min-width: 240px;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   line-height: 1.4;
   white-space: nowrap;
 }

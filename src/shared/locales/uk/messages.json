@@ -100,7 +100,10 @@
     "shutdown-disable": "Вимкнути автовимкнення",
     "delete": "Видалити",
     "engine-configuration-invalid": "Хибні налаштування проксі. Виправте їх або вимкніть проксі в налаштуваннях мережі.",
-    "engine-open-settings": "Відкрити налаштування мережі"
+    "engine-open-settings": "Відкрити налаштування мережі",
+    "generate-random": "Згенерувати випадкове значення",
+    "choose-folder": "Вибрати теку",
+    "choose-file": "Вибрати файл"
   },
   "preferences": {
     "general": "Загальні",
@@ -595,7 +598,16 @@
     "site-rule-connections": "З’єднань на сервер",
     "site-rule-invalid": "У правилі сайту неправильний шаблон хоста",
     "bittorrent-enabled": "Увімкнути BitTorrent",
-    "bittorrent-enabled-hint": "Якщо вимкнено, magnet-посилання й торенти відхиляються, а завантажені файли .torrent лише зберігаються."
+    "bittorrent-enabled-hint": "Якщо вимкнено, magnet-посилання й торенти відхиляються, а завантажені файли .torrent лише зберігаються.",
+    "tracker-add": "Додати трекер",
+    "ui-scale": "Розмір інтерфейсу",
+    "ui-scale-hint": "Також змінюється поєднанням Ctrl з +, − або 0 (⌘ у macOS).",
+    "iec-size-units": "Одиниці МЕК (КіБ, МіБ)",
+    "iec-size-units-hint": "Розміри завжди рахуються кроками по 1024; параметр змінює лише запис одиниць.",
+    "system-title-bar": "Використовувати системний заголовок вікна",
+    "system-title-bar-hint": "Для віконних менеджерів, які самі малюють заголовок. Приховує кнопки вікна застосунку.",
+    "show-tray-icon": "Показувати значок у треї",
+    "show-tray-icon-hint": "Якщо приховано, закриття вікна у фон натомість згортає його."
   },
   "task": {
     "scope-all": "Усі",
@@ -921,7 +933,13 @@
     "pause-selected": "Призупинити вибрані",
     "delete-selected": "Видалити вибрані",
     "clear-selection": "Скасувати вибір",
-    "bittorrent-disabled": "BitTorrent вимкнено в налаштуваннях"
+    "bittorrent-disabled": "BitTorrent вимкнено в налаштуваннях",
+    "favorite-add": "Додати до обраного",
+    "favorite-remove": "Вилучити з обраного",
+    "folder-list-remove": "Вилучити зі списку",
+    "folder-history": "Нещодавні та обрані теки",
+    "ua-history": "Нещодавні User-Agent",
+    "invert-selection": "Інвертувати вибір"
   },
   "media": {
     "probing": "Аналіз медіа",

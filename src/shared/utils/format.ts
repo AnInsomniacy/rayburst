@@ -1,14 +1,41 @@
 /** @fileoverview Formatting utilities: byte sizes, time display, text splitting. */
+import { shallowRef } from 'vue'
 import { parseInt } from 'lodash-es'
+
+const SIZE_UNITS = {
+  jedec: ['B', 'KB', 'MB', 'GB', 'TB'],
+  iec: ['B', 'KiB', 'MiB', 'GiB', 'TiB'],
+} as const
+
+// Reactive so computed labels follow the preference without a reload.
+const iecUnits = shallowRef(false)
+
+/** Selects how binary sizes are written; the values are base 1024 either way. */
+export function setIecSizeUnits(enabled: boolean): void {
+  iecUnits.value = enabled
+}
+
+/** Unit label for 1024^power bytes, e.g. 2 gives "MB" or "MiB". */
+export function sizeUnit(power: number): string {
+  const units = iecUnits.value ? SIZE_UNITS.iec : SIZE_UNITS.jedec
+  return units[Math.min(Math.max(power, 0), units.length - 1)]
+}
 
 /** Converts raw byte count to human-readable size string (e.g. "1.5 GB"). */
 export const bytesToSize = (bytes: string | number, precision = 1): string => {
   const b = parseInt(String(bytes), 10)
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  if (b === 0) return '0 KB'
-  const i = parseInt(String(Math.floor(Math.log(b) / Math.log(1024))), 10)
-  if (i === 0) return `${b} ${sizes[i]}`
-  return `${(b / 1024 ** i).toFixed(precision)} ${sizes[i]}`
+  if (!b || b < 0) return `0 ${sizeUnit(0)}`
+  const i = Math.min(Math.floor(Math.log(b) / Math.log(1024)), SIZE_UNITS.iec.length - 1)
+  if (i === 0) return `${b} ${sizeUnit(0)}`
+  return `${(b / 1024 ** i).toFixed(precision)} ${sizeUnit(i)}`
+}
+
+/** Unit choices of speed-limit inputs; values are aria2 suffixes. */
+export function speedUnitOptions(): { label: string; value: 'K' | 'M' }[] {
+  return [
+    { label: `${sizeUnit(1)}/s`, value: 'K' },
+    { label: `${sizeUnit(2)}/s`, value: 'M' },
+  ]
 }
 
 /** Extracts the unit suffix (K, M, G) from a formatted speed string. */

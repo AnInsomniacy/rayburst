@@ -100,7 +100,10 @@
     "shutdown-disable": "Auto-Shutdown बंद करें",
     "delete": "हटाएं",
     "engine-configuration-invalid": "प्रॉक्सी सेटिंग गलत है। नेटवर्क सेटिंग में इसे सुधारें या प्रॉक्सी बंद करें।",
-    "engine-open-settings": "नेटवर्क सेटिंग खोलें"
+    "engine-open-settings": "नेटवर्क सेटिंग खोलें",
+    "generate-random": "यादृच्छिक मान बनाएँ",
+    "choose-folder": "फ़ोल्डर चुनें",
+    "choose-file": "फ़ाइल चुनें"
   },
   "preferences": {
     "general": "सामान्य",
@@ -595,7 +598,16 @@
     "site-rule-connections": "प्रति सर्वर कनेक्शन",
     "site-rule-invalid": "किसी साइट नियम में अमान्य होस्ट पैटर्न है",
     "bittorrent-enabled": "BitTorrent सक्षम करें",
-    "bittorrent-enabled-hint": "बंद होने पर मैग्नेट लिंक और टोरेंट अस्वीकार किए जाते हैं, और डाउनलोड की गई .torrent फ़ाइलें केवल सहेजी जाती हैं।"
+    "bittorrent-enabled-hint": "बंद होने पर मैग्नेट लिंक और टोरेंट अस्वीकार किए जाते हैं, और डाउनलोड की गई .torrent फ़ाइलें केवल सहेजी जाती हैं।",
+    "tracker-add": "ट्रैकर जोड़ें",
+    "ui-scale": "इंटरफ़ेस आकार",
+    "ui-scale-hint": "Ctrl के साथ +, − या 0 से भी बदलता है (macOS पर ⌘)।",
+    "iec-size-units": "IEC इकाइयाँ (KiB, MiB)",
+    "iec-size-units-hint": "आकार हमेशा 1024 के चरणों में गिने जाते हैं; यह केवल इकाइयों के लिखने का तरीका बदलता है।",
+    "system-title-bar": "सिस्टम टाइटल बार का उपयोग करें",
+    "system-title-bar-hint": "उन विंडो मैनेजरों के लिए जो अपना टाइटल बार बनाते हैं। ऐप के विंडो बटन छिपाता है।",
+    "show-tray-icon": "ट्रे आइकन दिखाएँ",
+    "show-tray-icon-hint": "छिपा होने पर, विंडो को बैकग्राउंड में बंद करने से वह इसके बजाय छोटी हो जाती है।"
   },
   "task": {
     "scope-all": "सभी",
@@ -921,7 +933,13 @@
     "pause-selected": "चयनित रोकें",
     "delete-selected": "चयनित हटाएँ",
     "clear-selection": "चयन साफ़ करें",
-    "bittorrent-disabled": "BitTorrent प्राथमिकताओं में बंद है"
+    "bittorrent-disabled": "BitTorrent प्राथमिकताओं में बंद है",
+    "favorite-add": "पसंदीदा में जोड़ें",
+    "favorite-remove": "पसंदीदा से हटाएँ",
+    "folder-list-remove": "सूची से हटाएँ",
+    "folder-history": "हाल के और पसंदीदा फ़ोल्डर",
+    "ua-history": "हाल के User-Agent",
+    "invert-selection": "चयन उलटें"
   },
   "media": {
     "probing": "मीडिया की जाँच जारी",

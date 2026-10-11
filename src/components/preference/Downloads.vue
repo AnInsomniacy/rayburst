@@ -2,6 +2,7 @@
 import { invoke } from '@tauri-apps/api/core'
 /** @fileoverview Downloads preference tab: paths, concurrency, speed limits, notifications, cleanup. */
 import { ref, computed, onMounted } from 'vue'
+import { speedUnitOptions as speedUnits } from '@shared/utils/format'
 import { useI18n } from 'vue-i18n'
 import { usePreferenceStore } from '@/stores/preference'
 import { usePreferenceForm } from '@/composables/usePreferenceForm'
@@ -105,10 +106,7 @@ const uploadSpeedValue = ref(0)
 const uploadUnit = ref('K')
 const downloadSpeedValue = ref(0)
 const downloadUnit = ref('K')
-const speedUnitOptions = [
-  { label: 'KB/s', value: 'K' },
-  { label: 'MB/s', value: 'M' },
-]
+const speedUnitOptions = computed(speedUnits)
 
 const timeOptions = (() => {
   const opts: Array<{ label: string; value: string }> = []
@@ -393,7 +391,7 @@ onMounted(async () => {
         <NFormItem :label="t('preferences.default-path')">
           <NInputGroup>
             <NInput v-model:value="form.dir" class="pref-control-full" />
-            <NButton class="pref-icon-button" @click="handleSelectDir">
+            <NButton :title="t('app.choose-folder')" class="pref-icon-button" @click="handleSelectDir">
               <template #icon>
                 <NIcon :size="16"><FolderOpenOutline /></NIcon>
               </template>
@@ -549,7 +547,7 @@ onMounted(async () => {
               clearable
               :placeholder="t('preferences.post-download-program-placeholder')"
             />
-            <NButton @click="handleSelectPostDownloadProgram">
+            <NButton :title="t('app.choose-file')" @click="handleSelectPostDownloadProgram">
               <template #icon>
                 <NIcon><FolderOpenOutline /></NIcon>
               </template>
@@ -644,7 +642,7 @@ onMounted(async () => {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--m3-outline-variant);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--m3-surface-container-low);
 }
 
@@ -652,6 +650,6 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
 }
 </style>

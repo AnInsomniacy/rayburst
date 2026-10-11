@@ -506,7 +506,12 @@ onMounted(() => {
               :max="constraint('listenPort').max"
               class="pref-port"
             />
-            <NButton secondary class="pref-action-button pref-action-button--compact" @click="onBtPortDice">
+            <NButton
+              :title="t('app.generate-random')"
+              secondary
+              class="pref-action-button pref-action-button--compact"
+              @click="onBtPortDice"
+            >
               <template #icon>
                 <NIcon><DiceOutline /></NIcon>
               </template>
@@ -685,7 +690,12 @@ onMounted(() => {
               class="pref-control-full"
               @keydown.enter="onAddCustomTracker"
             />
-            <NButton size="small" class="pref-input-group-action" @click="onAddCustomTracker">
+            <NButton
+              :title="t('preferences.tracker-add')"
+              size="small"
+              class="pref-input-group-action"
+              @click="onAddCustomTracker"
+            >
               <template #icon>
                 <NIcon><AddCircleOutline /></NIcon>
               </template>
@@ -794,18 +804,18 @@ onMounted(() => {
 :global(.tracker-sync-failure) {
   margin: 6px 0;
   padding: 6px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: var(--m3-error-container);
   color: var(--m3-on-error-container);
 }
 :global(.tracker-sync-failure__url) {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 500;
   word-break: break-all;
 }
 :global(.tracker-sync-failure__reason) {
   margin-top: 2px;
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
 }
 .tracker-source-group {
   width: 100%;
@@ -821,7 +831,7 @@ onMounted(() => {
   min-width: 0;
   padding: 9px 12px;
   border: 1px solid var(--m3-outline-variant);
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--m3-surface-container-low) 72%, transparent);
   transition:
     border-color 180ms ease,
@@ -857,12 +867,12 @@ onMounted(() => {
 }
 .tracker-source-option__owner {
   color: var(--m3-on-surface);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
 }
 .tracker-source-option__repository {
   color: var(--m3-on-surface-variant);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 .bt-blocklist-update-button {
   min-width: 100px;
@@ -892,7 +902,7 @@ onMounted(() => {
   color: var(--m3-primary);
   cursor: pointer;
   text-decoration: none;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 .info-link:hover {
   text-decoration: underline;

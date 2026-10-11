@@ -15,6 +15,7 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import AddTask from '@/components/task/AddTask.vue'
 import { useAppStore } from '@/stores/app'
 import { useAppMessage } from '@/composables/useAppMessage'
+import { useEscapeKey } from '@/composables/useEscapeKey'
 import { logger } from '@shared/logger'
 import { getErrorMessage } from '@shared/utils/errorMessage'
 import type { ExternalDownloadInput } from '@shared/types'
@@ -31,6 +32,8 @@ const view = getCurrentWebviewWindow()
 const addTask = ref<InstanceType<typeof AddTask> | null>(null)
 const unlisteners: UnlistenFn[] = []
 let closing = false
+
+useEscapeKey(() => void addTask.value?.dismiss(), { fromEditable: true })
 
 function isEmpty(batch: AddWindowInputs): boolean {
   return batch.inputs.length === 0 && batch.links.length === 0

@@ -30,6 +30,8 @@ pub struct RuntimeConfig {
     pub max_overall_download_limit: String,
     pub max_overall_upload_limit: String,
     pub tray_speedometer: bool,
+    /// Whether the tray icon is shown.
+    pub show_tray_icon: bool,
     #[cfg(target_os = "macos")]
     pub dock_badge_speed: bool,
     #[cfg(not(target_os = "linux"))]
@@ -70,6 +72,7 @@ impl Default for RuntimeConfig {
             max_overall_download_limit: String::new(),
             max_overall_upload_limit: String::new(),
             tray_speedometer: false,
+            show_tray_icon: true,
             #[cfg(target_os = "macos")]
             dock_badge_speed: true,
             #[cfg(not(target_os = "linux"))]

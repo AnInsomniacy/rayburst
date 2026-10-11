@@ -233,7 +233,7 @@ const { fileMissing, fileState } = useTaskFileMissing(taskRef)
   border: 1px solid var(--m3-outline-variant);
   /* Reserve 3px left border at base color so sharing only animates color */
   border-left: 3px solid var(--m3-outline-variant);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   transition: border-color 0.2s cubic-bezier(0.2, 0, 0, 1);
 }
@@ -290,7 +290,7 @@ const { fileMissing, fileState } = useTaskFileMissing(taskRef)
   display: grid;
 }
 .task-name :deep(.task-text-transition-content) {
-  font-size: 14px;
+  font-size: var(--font-size-base);
   line-height: 26px;
   display: -webkit-box;
   overflow: hidden;
@@ -302,7 +302,7 @@ const { fileMissing, fileState } = useTaskFileMissing(taskRef)
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--m3-error);
   opacity: 0.85;
   vertical-align: middle;
@@ -332,7 +332,7 @@ const { fileMissing, fileState } = useTaskFileMissing(taskRef)
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   line-height: 14px;
   min-height: 14px;
   color: var(--m3-on-surface-variant);
@@ -356,7 +356,7 @@ const { fileMissing, fileState } = useTaskFileMissing(taskRef)
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   line-height: 14px;
   white-space: nowrap;
   transition: opacity 0.25s cubic-bezier(0.2, 0, 0, 1);
@@ -388,7 +388,7 @@ const { fileMissing, fileState } = useTaskFileMissing(taskRef)
   align-items: center;
   gap: 8px;
   min-height: 18px;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   line-height: 18px;
   opacity: 0;
   transform: translateY(-3px);
@@ -409,14 +409,14 @@ const { fileMissing, fileState } = useTaskFileMissing(taskRef)
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   line-height: 18px;
   opacity: 0.9;
   vertical-align: middle;
 }
 .error-message {
   flex-basis: 100%;
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   color: var(--m3-error);
   margin-top: 4px;
   opacity: 0.85;

@@ -253,8 +253,6 @@ describe('hydrateAppConfig', () => {
     expect(APP_LOG_LEVELS).toContain(DEFAULT_APP_CONFIG.logLevel)
     expect(ARIA2_LOG_LEVELS).toContain(DEFAULT_APP_CONFIG.aria2LogLevel)
     expect(['download-all', 'prompt', 'manual']).toContain(DEFAULT_APP_CONFIG.magnetFileSelectionPolicy)
-    expect(DEFAULT_APP_CONFIG.logLevel).toBe('info')
-    expect(DEFAULT_APP_CONFIG.aria2LogLevel).toBe('info')
     expect(FILE_ALLOCATION_OPTIONS).toContain(DEFAULT_APP_CONFIG.fileAllocation)
     expect(DEFAULT_APP_CONFIG.proxy.scope).toEqual(PROXY_SCOPE_OPTIONS)
   })

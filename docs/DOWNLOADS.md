@@ -303,6 +303,11 @@ fallback; externally supplied rendering environment variables remain authoritati
 Linux diagnostics report the runtime WebKitGTK version, the existing WebView's native
 hardware acceleration policy, and rendering overrides. A policy is not proof of GPU
 use. An unavailable WebView or policy read failure is reported without creating a window.
+The tray icon carries a green dot while downloads run (macOS keeps its template image
+and the menu bar speedometer) and shows both speeds in its tooltip. Hiding the tray icon
+turns minimize-to-tray into a plain minimize, so the window always stays reachable.
+Interface size is WebView zoom shared by every window; `Ctrl`/`⌘` with `+`, `-` or `0`
+steps through the same values. Sizes are base 1024 and can be written with IEC units.
 Update policies are Stable and Beta (stable plus prerelease candidates). Only a
 higher SemVer precedence is eligible; switching channels never offers a downgrade.
 A later check supersedes an earlier pending result. Updates retain Tauri's selected Update object and verified bytes. Cancellation can

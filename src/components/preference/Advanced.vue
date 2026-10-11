@@ -389,6 +389,7 @@ onMounted(async () => {
               :status="form.extensionApiSecret ? undefined : 'warning'"
             />
             <NButton
+              :title="t('app.menu-copy')"
               class="pref-icon-button"
               @click="copyToClipboard(form.extensionApiSecret, t('preferences.extension-api-secret'))"
             >
@@ -396,7 +397,7 @@ onMounted(async () => {
                 <NIcon :size="14"><CopyOutline /></NIcon>
               </template>
             </NButton>
-            <NButton class="pref-icon-button" @click="onApiSecretDice">
+            <NButton :title="t('app.generate-random')" class="pref-icon-button" @click="onApiSecretDice">
               <template #icon>
                 <NIcon :size="14"><DiceOutline /></NIcon>
               </template>
@@ -417,6 +418,7 @@ onMounted(async () => {
               class="pref-port"
             />
             <NButton
+              :title="t('app.menu-copy')"
               class="pref-icon-button"
               @click="copyToClipboard(String(form.rpcListenPort), t('preferences.rpc-listen-port'))"
             >
@@ -424,7 +426,7 @@ onMounted(async () => {
                 <NIcon :size="14"><CopyOutline /></NIcon>
               </template>
             </NButton>
-            <NButton class="pref-icon-button" @click="onRpcPortDice">
+            <NButton :title="t('app.generate-random')" class="pref-icon-button" @click="onRpcPortDice">
               <template #icon>
                 <NIcon :size="14"><DiceOutline /></NIcon>
               </template>
@@ -441,12 +443,16 @@ onMounted(async () => {
               class="pref-control-full"
               :status="form.rpcSecret ? undefined : 'warning'"
             />
-            <NButton class="pref-icon-button" @click="copyToClipboard(form.rpcSecret, t('preferences.rpc-secret'))">
+            <NButton
+              :title="t('app.menu-copy')"
+              class="pref-icon-button"
+              @click="copyToClipboard(form.rpcSecret, t('preferences.rpc-secret'))"
+            >
               <template #icon>
                 <NIcon :size="14"><CopyOutline /></NIcon>
               </template>
             </NButton>
-            <NButton class="pref-icon-button" @click="onRpcSecretDice">
+            <NButton :title="t('app.generate-random')" class="pref-icon-button" @click="onRpcSecretDice">
               <template #icon>
                 <NIcon :size="14"><DiceOutline /></NIcon>
               </template>
@@ -467,6 +473,7 @@ onMounted(async () => {
               :placeholder="defaultTempPath"
             />
             <NButton
+              :title="t('app.menu-copy')"
               class="pref-icon-button"
               @click="copyToClipboard(form.tempFilesDir || defaultTempPath, t('preferences.temp-files-dir'))"
             >
@@ -474,7 +481,7 @@ onMounted(async () => {
                 <NIcon :size="14"><CopyOutline /></NIcon>
               </template>
             </NButton>
-            <NButton class="pref-icon-button" @click="handleSelectTempDir">
+            <NButton :title="t('app.choose-folder')" class="pref-icon-button" @click="handleSelectTempDir">
               <template #icon>
                 <NIcon :size="14"><FolderOpenOutline /></NIcon>
               </template>
@@ -487,12 +494,20 @@ onMounted(async () => {
         <NFormItem :label="t('preferences.aria2-conf-path')">
           <NInputGroup>
             <NInput :value="aria2ConfPath" readonly class="pref-control-full" />
-            <NButton class="pref-icon-button" @click="copyToClipboard(aria2ConfPath, t('preferences.aria2-conf-path'))">
+            <NButton
+              :title="t('app.menu-copy')"
+              class="pref-icon-button"
+              @click="copyToClipboard(aria2ConfPath, t('preferences.aria2-conf-path'))"
+            >
               <template #icon>
                 <NIcon :size="14"><CopyOutline /></NIcon>
               </template>
             </NButton>
-            <NButton class="pref-icon-button" @click="handleRevealPath(aria2ConfPath)">
+            <NButton
+              :title="t('task.show-in-folder')"
+              class="pref-icon-button"
+              @click="handleRevealPath(aria2ConfPath)"
+            >
               <template #icon>
                 <NIcon :size="14"><FolderOpenOutline /></NIcon>
               </template>
@@ -503,6 +518,7 @@ onMounted(async () => {
           <NInputGroup>
             <NInput :value="engineStatePath" readonly class="pref-control-full" />
             <NButton
+              :title="t('app.menu-copy')"
               class="pref-icon-button"
               @click="copyToClipboard(engineStatePath, t('preferences.engine-state-path'))"
             >
@@ -510,7 +526,11 @@ onMounted(async () => {
                 <NIcon :size="14"><CopyOutline /></NIcon>
               </template>
             </NButton>
-            <NButton class="pref-icon-button" @click="handleRevealPath(engineStatePath)">
+            <NButton
+              :title="t('task.show-in-folder')"
+              class="pref-icon-button"
+              @click="handleRevealPath(engineStatePath)"
+            >
               <template #icon>
                 <NIcon :size="14"><FolderOpenOutline /></NIcon>
               </template>
@@ -527,12 +547,16 @@ onMounted(async () => {
         <NFormItem :label="t('preferences.log-path')">
           <NInputGroup>
             <NInput :value="logPath" readonly class="pref-control-full" />
-            <NButton class="pref-icon-button" @click="copyToClipboard(logPath, t('preferences.log-path'))">
+            <NButton
+              :title="t('app.menu-copy')"
+              class="pref-icon-button"
+              @click="copyToClipboard(logPath, t('preferences.log-path'))"
+            >
               <template #icon>
                 <NIcon :size="14"><CopyOutline /></NIcon>
               </template>
             </NButton>
-            <NButton class="pref-icon-button" @click="handleRevealPath(logPath)">
+            <NButton :title="t('task.show-in-folder')" class="pref-icon-button" @click="handleRevealPath(logPath)">
               <template #icon>
                 <NIcon :size="14"><FolderOpenOutline /></NIcon>
               </template>
@@ -699,7 +723,7 @@ onMounted(async () => {
 .info-link {
   color: var(--m3-primary);
   text-decoration: none;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 .info-link:hover {
   text-decoration: underline;
@@ -708,7 +732,7 @@ onMounted(async () => {
   color: var(--m3-primary);
   cursor: pointer;
   margin-left: 8px;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 .action-link:hover {
   text-decoration: underline;
@@ -740,7 +764,7 @@ onMounted(async () => {
 }
 .log-level-control__label {
   color: var(--m3-on-surface);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   white-space: nowrap;
 }
 .log-action-row {
@@ -792,7 +816,7 @@ onMounted(async () => {
   gap: 10px;
   padding: 8px 12px;
   margin-top: 6px;
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-sm);
   background: var(--m3-error-container);
   opacity: 0;
   transition: opacity 0.25s cubic-bezier(0.2, 0, 0, 1);

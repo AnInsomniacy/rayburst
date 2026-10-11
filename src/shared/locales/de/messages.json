@@ -100,7 +100,10 @@
     "shutdown-disable": "Auto-Herunterfahren deaktivieren",
     "delete": "Löschen",
     "engine-configuration-invalid": "Die Proxy-Einstellungen sind ungültig. In den Netzwerkeinstellungen korrigieren oder den Proxy deaktivieren.",
-    "engine-open-settings": "Netzwerkeinstellungen öffnen"
+    "engine-open-settings": "Netzwerkeinstellungen öffnen",
+    "generate-random": "Zufallswert erzeugen",
+    "choose-folder": "Ordner auswählen",
+    "choose-file": "Datei auswählen"
   },
   "preferences": {
     "general": "Allgemein",
@@ -595,7 +598,16 @@
     "site-rule-connections": "Verbindungen pro Server",
     "site-rule-invalid": "Eine Website-Regel hat ein ungültiges Host-Muster",
     "bittorrent-enabled": "BitTorrent aktivieren",
-    "bittorrent-enabled-hint": "Ausgeschaltet werden Magnet-Links und Torrents abgelehnt und heruntergeladene .torrent-Dateien nur gespeichert."
+    "bittorrent-enabled-hint": "Ausgeschaltet werden Magnet-Links und Torrents abgelehnt und heruntergeladene .torrent-Dateien nur gespeichert.",
+    "tracker-add": "Tracker hinzufügen",
+    "ui-scale": "Oberflächengröße",
+    "ui-scale-hint": "Strg mit +, − oder 0 ändert sie ebenfalls (⌘ unter macOS).",
+    "iec-size-units": "IEC-Einheiten (KiB, MiB)",
+    "iec-size-units-hint": "Größen werden immer in 1024er-Schritten gezählt; dies ändert nur die Schreibweise der Einheiten.",
+    "system-title-bar": "System-Titelleiste verwenden",
+    "system-title-bar-hint": "Für Fenstermanager, die ihre eigene Titelleiste zeichnen. Blendet die Fensterknöpfe der App aus.",
+    "show-tray-icon": "Tray-Symbol anzeigen",
+    "show-tray-icon-hint": "Ausgeblendet wird das Fenster beim Schließen in den Hintergrund stattdessen minimiert."
   },
   "task": {
     "scope-all": "Alle",
@@ -921,7 +933,13 @@
     "pause-selected": "Auswahl pausieren",
     "delete-selected": "Auswahl löschen",
     "clear-selection": "Auswahl aufheben",
-    "bittorrent-disabled": "BitTorrent ist in den Einstellungen ausgeschaltet"
+    "bittorrent-disabled": "BitTorrent ist in den Einstellungen ausgeschaltet",
+    "favorite-add": "Zu Favoriten hinzufügen",
+    "favorite-remove": "Aus Favoriten entfernen",
+    "folder-list-remove": "Aus der Liste entfernen",
+    "folder-history": "Zuletzt verwendete und favorisierte Ordner",
+    "ua-history": "Zuletzt verwendete User-Agents",
+    "invert-selection": "Auswahl umkehren"
   },
   "media": {
     "probing": "Medium wird untersucht",

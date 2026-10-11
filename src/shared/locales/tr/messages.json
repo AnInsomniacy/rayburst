@@ -100,7 +100,10 @@
     "shutdown-disable": "Otomatik Kapanmayı Devre Dışı Bırak",
     "delete": "Sil",
     "engine-configuration-invalid": "Proxy ayarları geçersiz. Ağ ayarlarından düzeltin veya proxyyi kapatın.",
-    "engine-open-settings": "Ağ ayarlarını aç"
+    "engine-open-settings": "Ağ ayarlarını aç",
+    "generate-random": "Rastgele değer üret",
+    "choose-folder": "Klasör seç",
+    "choose-file": "Dosya seç"
   },
   "preferences": {
     "general": "Genel",
@@ -595,7 +598,16 @@
     "site-rule-connections": "Sunucu başına bağlantı",
     "site-rule-invalid": "Bir site kuralında geçersiz ana makine deseni var",
     "bittorrent-enabled": "BitTorrent'i etkinleştir",
-    "bittorrent-enabled-hint": "Kapalıyken magnet bağlantıları ve torrentler reddedilir, indirilen .torrent dosyaları yalnızca kaydedilir."
+    "bittorrent-enabled-hint": "Kapalıyken magnet bağlantıları ve torrentler reddedilir, indirilen .torrent dosyaları yalnızca kaydedilir.",
+    "tracker-add": "İzleyici ekle",
+    "ui-scale": "Arayüz boyutu",
+    "ui-scale-hint": "Ctrl ile +, − veya 0 da değiştirir (macOS'ta ⌘).",
+    "iec-size-units": "IEC birimleri (KiB, MiB)",
+    "iec-size-units-hint": "Boyutlar her zaman 1024'lük adımlarla hesaplanır; bu yalnızca birimlerin yazılışını değiştirir.",
+    "system-title-bar": "Sistem başlık çubuğunu kullan",
+    "system-title-bar-hint": "Kendi başlık çubuğunu çizen pencere yöneticileri için. Uygulamanın pencere düğmelerini gizler.",
+    "show-tray-icon": "Tepsi simgesini göster",
+    "show-tray-icon-hint": "Gizliyken pencereyi arka plana kapatmak onu küçültür."
   },
   "task": {
     "scope-all": "Tümü",
@@ -921,7 +933,13 @@
     "pause-selected": "Seçilenleri duraklat",
     "delete-selected": "Seçilenleri sil",
     "clear-selection": "Seçimi temizle",
-    "bittorrent-disabled": "BitTorrent tercihlerde kapalı"
+    "bittorrent-disabled": "BitTorrent tercihlerde kapalı",
+    "favorite-add": "Favorilere ekle",
+    "favorite-remove": "Favorilerden kaldır",
+    "folder-list-remove": "Listeden kaldır",
+    "folder-history": "Son kullanılan ve favori klasörler",
+    "ua-history": "Son kullanılan User-Agent'lar",
+    "invert-selection": "Seçimi tersine çevir"
   },
   "media": {
     "probing": "Medya inceleniyor",

@@ -13,6 +13,7 @@
  *   Right-click — open speed limit configuration popover
  */
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import { speedUnitOptions as speedUnits } from '@shared/utils/format'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { usePreferenceStore } from '@/stores/preference'
@@ -128,10 +129,7 @@ const popoverDlUnit = ref('K')
 const popoverUlValue = ref(0)
 const popoverUlUnit = ref('K')
 
-const speedUnitOptions = [
-  { label: 'KB/s', value: 'K' },
-  { label: 'MB/s', value: 'M' },
-]
+const speedUnitOptions = computed(speedUnits)
 
 function openPopover() {
   const dl = parseSpeedLimitValue(preferenceStore.config.maxOverallDownloadLimit)
@@ -327,7 +325,7 @@ async function handleScheduleToggle(enabled: boolean) {
           v-if="isScheduleActive && !isLimited"
           depth="3"
           type="warning"
-          style="font-size: 11px; margin-top: 4px; display: block"
+          style="font-size: var(--font-size-2xs); margin-top: 4px; display: block"
         >
           {{ t('preferences.schedule-needs-limit') }}
         </NText>
@@ -343,7 +341,7 @@ async function handleScheduleToggle(enabled: boolean) {
 <style scoped>
 /* ── Base: capsule (outer shell receives min-width) ───────────────── */
 .speedometer {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   position: relative;
   z-index: 20;
   display: flex;
@@ -352,7 +350,7 @@ async function handleScheduleToggle(enabled: boolean) {
   min-width: 56px;
   height: 46px;
   padding: 6px 14px 6px 10px;
-  border-radius: 100px;
+  border-radius: var(--radius-full);
   cursor: pointer;
   user-select: none;
   transition:
@@ -475,7 +473,7 @@ async function handleScheduleToggle(enabled: boolean) {
 }
 .speed-row.upload em {
   font-style: normal;
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   line-height: 14px;
 }
 .speed-row.upload .speed-arrow {
@@ -485,7 +483,7 @@ async function handleScheduleToggle(enabled: boolean) {
   color: var(--m3-primary);
 }
 .speed-row.download .speed-text span {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   line-height: 16px;
   font-weight: 500;
 }
@@ -493,7 +491,7 @@ async function handleScheduleToggle(enabled: boolean) {
   color: var(--m3-primary);
 }
 .speed-row.download .limit-value {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
 }
 
@@ -559,11 +557,11 @@ async function handleScheduleToggle(enabled: boolean) {
 }
 .limit-sep {
   opacity: 0.3;
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   flex-shrink: 0;
 }
 .limit-value {
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   opacity: 0.65;
   flex-shrink: 0;
   font-weight: 400;
@@ -589,7 +587,7 @@ async function handleScheduleToggle(enabled: boolean) {
   min-width: 290px;
 }
 .limit-panel-title {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   margin-bottom: 10px;
   color: var(--m3-on-surface);
@@ -604,7 +602,7 @@ async function handleScheduleToggle(enabled: boolean) {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   min-width: 90px;
   flex-shrink: 0;
   opacity: 0.8;

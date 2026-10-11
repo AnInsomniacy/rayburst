@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** @fileoverview Naive UI theme, locale, message and dialog providers shared by every window. */
-import { computed, provide } from 'vue'
+import { computed, provide, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NConfigProvider,
@@ -50,6 +50,9 @@ import {
 } from 'naive-ui'
 import { useTheme } from './composables/useTheme'
 import { useReducedMotionClass } from './composables/useReducedMotion'
+import { useInterfaceScale } from './composables/useInterfaceScale'
+import { usePreferenceStore } from './stores/preference'
+import { setIecSizeUnits } from '@shared/utils/format'
 import { isSupportedLocale, type SupportedLocale } from '@shared/localeCatalog'
 
 import { APP_COLOR_TOKENS_KEY, useColorScheme } from './composables/useColorScheme'
@@ -59,6 +62,9 @@ const { isDark } = useTheme()
 const { colorTokens, themeOverrides } = useColorScheme()
 provide(APP_COLOR_TOKENS_KEY, colorTokens)
 useReducedMotionClass()
+useInterfaceScale()
+const preferenceStore = usePreferenceStore()
+watchEffect(() => setIecSizeUnits(preferenceStore.config.iecSizeUnits))
 
 const theme = computed(() => (isDark.value ? darkTheme : null))
 

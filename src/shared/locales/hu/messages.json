@@ -100,7 +100,10 @@
     "shutdown-disable": "Automatikus leállítás kikapcsolása",
     "delete": "Törlés",
     "engine-configuration-invalid": "A proxybeállítások érvénytelenek. Javítsa őket, vagy kapcsolja ki a proxyt a hálózati beállításokban.",
-    "engine-open-settings": "Hálózati beállítások megnyitása"
+    "engine-open-settings": "Hálózati beállítások megnyitása",
+    "generate-random": "Véletlen érték generálása",
+    "choose-folder": "Mappa kiválasztása",
+    "choose-file": "Fájl kiválasztása"
   },
   "preferences": {
     "general": "Általános",
@@ -595,7 +598,16 @@
     "site-rule-connections": "Kapcsolatok kiszolgálónként",
     "site-rule-invalid": "Egy webhelyszabály érvénytelen gazdagépmintát tartalmaz",
     "bittorrent-enabled": "BitTorrent engedélyezése",
-    "bittorrent-enabled-hint": "Kikapcsolva a magnet hivatkozásokat és torrenteket elutasítja, a letöltött .torrent fájlokat csak menti."
+    "bittorrent-enabled-hint": "Kikapcsolva a magnet hivatkozásokat és torrenteket elutasítja, a letöltött .torrent fájlokat csak menti.",
+    "tracker-add": "Tracker hozzáadása",
+    "ui-scale": "Felület mérete",
+    "ui-scale-hint": "A Ctrl és a +, − vagy 0 is módosítja (macOS-en ⌘).",
+    "iec-size-units": "IEC mértékegységek (KiB, MiB)",
+    "iec-size-units-hint": "A méretek mindig 1024-es lépésekben számolódnak; ez csak az egységek írásmódját változtatja.",
+    "system-title-bar": "Rendszer címsorának használata",
+    "system-title-bar-hint": "Saját címsort rajzoló ablakkezelőkhöz. Elrejti az alkalmazás ablakgombjait.",
+    "show-tray-icon": "Tálcaikon megjelenítése",
+    "show-tray-icon-hint": "Elrejtve az ablak háttérbe zárása helyett kis méretre áll."
   },
   "task": {
     "scope-all": "Összes",
@@ -921,7 +933,13 @@
     "pause-selected": "Kijelöltek szüneteltetése",
     "delete-selected": "Kijelöltek törlése",
     "clear-selection": "Kijelölés törlése",
-    "bittorrent-disabled": "A BitTorrent ki van kapcsolva a beállításokban"
+    "bittorrent-disabled": "A BitTorrent ki van kapcsolva a beállításokban",
+    "favorite-add": "Hozzáadás a kedvencekhez",
+    "favorite-remove": "Eltávolítás a kedvencek közül",
+    "folder-list-remove": "Eltávolítás a listáról",
+    "folder-history": "Legutóbbi és kedvenc mappák",
+    "ua-history": "Legutóbbi User-Agentek",
+    "invert-selection": "Kijelölés megfordítása"
   },
   "media": {
     "probing": "Média vizsgálata",

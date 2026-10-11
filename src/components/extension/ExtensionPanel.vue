@@ -159,7 +159,7 @@ async function openSettings() {
   overscroll-behavior: contain;
   text-align: start;
   color: var(--m3-on-surface);
-  border-radius: 20px;
+  border-radius: var(--radius-2xl);
   border: 1px solid var(--m3-outline-variant);
   background: color-mix(in srgb, var(--m3-surface-container-high) 96%, transparent);
   backdrop-filter: blur(24px) saturate(1.4);
@@ -201,7 +201,7 @@ async function openSettings() {
 .extension-artwork {
   aspect-ratio: 3 / 1;
   overflow: hidden;
-  border-radius: 19px 19px 0 0;
+  border-radius: calc(var(--radius-2xl) - 1px) calc(var(--radius-2xl) - 1px) 0 0;
   border-bottom: 1px solid var(--m3-outline-variant);
   background: var(--m3-primary-container);
 }
@@ -221,7 +221,7 @@ async function openSettings() {
   justify-content: center;
   gap: 12px;
   height: 100%;
-  font-size: 26px;
+  font-size: var(--font-size-3xl);
   font-weight: 700;
   color: var(--m3-on-primary-container);
 }
@@ -234,7 +234,7 @@ async function openSettings() {
 }
 .extension-copy h3 {
   margin: 0;
-  font-size: 24px;
+  font-size: var(--font-size-3xl);
   font-weight: 650;
   line-height: 1.25;
   letter-spacing: -0.4px;
@@ -274,7 +274,7 @@ async function openSettings() {
   min-height: 60px;
   padding: 10px 14px;
   border: 1px solid var(--m3-outline-variant);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--m3-surface-container-lowest);
   color: var(--m3-on-surface);
   text-decoration: none;
@@ -369,7 +369,7 @@ async function openSettings() {
     padding: 20px;
   }
   .extension-copy h3 {
-    font-size: 22px;
+    font-size: var(--font-size-2xl);
   }
   .extension-copy p {
     margin-bottom: 12px;

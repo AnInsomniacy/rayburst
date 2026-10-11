@@ -28,9 +28,9 @@ const display = computed(() => Math.round(animated.value).toLocaleString())
   flex: 0 0 auto;
   min-width: 2.25em;
   padding: 1px 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   text-align: center;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   line-height: 18px;
   font-variant-numeric: tabular-nums;
   color: var(--m3-on-surface-variant);
