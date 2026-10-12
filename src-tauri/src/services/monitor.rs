@@ -190,26 +190,30 @@ impl TaskEvent {
 
     /// Best-effort task name extraction matching the TS `getTaskName()`.
     pub(crate) fn extract_name(task: &Aria2Task) -> String {
+        Self::known_name(task).unwrap_or_else(|| "Unknown".to_string())
+    }
+
+    /// The task's name once the engine has decided it. An HTTP task has none
+    /// until its response arrives and the engine picks the output file.
+    pub(crate) fn known_name(task: &Aria2Task) -> Option<String> {
         // BT: prefer bittorrent.info.name
         if let Some(bt) = &task.bittorrent {
             if let Some(info) = &bt.info {
                 if !info.name.is_empty() {
-                    return info.name.clone();
+                    return Some(info.name.clone());
                 }
             }
         }
         // Fallback: first file's path basename
-        if let Some(first) = task.files.first() {
-            if !first.path.is_empty() {
-                let path = &first.path;
-                let sep = path.rfind('/').or_else(|| path.rfind('\\'));
-                if let Some(idx) = sep {
-                    return path[idx + 1..].to_string();
-                }
-                return path.to_string();
-            }
+        let path = &task.files.first()?.path;
+        if path.is_empty() {
+            return None;
         }
-        "Unknown".to_string()
+        let sep = path.rfind('/').or_else(|| path.rfind('\\'));
+        Some(
+            sep.map_or(path.as_str(), |idx| &path[idx + 1..])
+                .to_string(),
+        )
     }
 }
 
@@ -1002,6 +1006,19 @@ mod tests {
         task.files = vec![];
         let event = TaskEvent::from_aria2(&task);
         assert_eq!(event.name, "Unknown");
+    }
+
+    #[test]
+    fn task_has_no_known_name_before_the_engine_picks_its_file() {
+        let mut task = make_task("g1", "active");
+        task.files[0].path = String::new();
+        assert_eq!(TaskEvent::known_name(&task), None);
+
+        task.files[0].path = "C:\\Downloads\\iPhone1,1_3.1.3_7E18_Restore.ipsw".to_string();
+        assert_eq!(
+            TaskEvent::known_name(&task).as_deref(),
+            Some("iPhone1,1_3.1.3_7E18_Restore.ipsw")
+        );
     }
 
     // ── build_history_record unit tests ─────────────────────────────

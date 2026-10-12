@@ -41,8 +41,12 @@ pub async fn notify_started_tasks(
         {
             continue;
         }
+        // Announce a task by its real name: an unnamed one waits for a later poll.
+        let Some(name) = TaskEvent::known_name(task) else {
+            continue;
+        };
         if engine.tasks.take_start(&task.gid).await {
-            names.push(TaskEvent::from_aria2(task).name);
+            names.push(name);
         }
     }
     if names.is_empty() {
