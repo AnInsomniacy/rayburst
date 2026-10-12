@@ -83,7 +83,7 @@ impl MediaService {
 
     async fn run_probe(&self, record: &Operation, source: &Source) -> Result<Presentation, Error> {
         let mut options = json!({"gid":record.gid,"media":source.kind,"media-format":record.format,
-            "media-pause-after-probe":"true","header":"","http-user":"","http-passwd":"","referer":"",
+            "media-pause-after-probe":"true","header":"","http-user":"","http-passwd":"","referer":source.page_referrer(),
             "check-certificate":"true","auto-file-renaming":"true","load-cookies":"",
             "media-request-contexts": serde_json::to_string(&source.request_contexts.iter()
                 .map(|context| json!({"url":context.url,"headers":context.headers}))

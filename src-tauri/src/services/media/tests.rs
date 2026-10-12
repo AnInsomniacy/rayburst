@@ -406,3 +406,13 @@ fn selection_validates_track_identity_muxed_sources_and_live_duration() {
         .validate_selection(&presentation.defaults)
         .is_ok());
 }
+
+#[test]
+fn media_requests_default_to_the_page_origin_as_referer() {
+    let mut source = request().source;
+    assert_eq!(source.page_referrer(), "https://example.com/");
+    source.page_url = "https://www.bilibili.com/video/BV1xx?p=2#t=10".into();
+    assert_eq!(source.page_referrer(), "https://www.bilibili.com/");
+    source.page_url = "about:blank".into();
+    assert_eq!(source.page_referrer(), "");
+}

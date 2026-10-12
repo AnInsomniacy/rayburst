@@ -465,7 +465,7 @@ already checked elsewhere. Packaging and native UI acceptance are separate from 
 
 ## I. Testing Constraints
 
-> **DO NOT use browser tools (Playwright, browser subagent, etc.) to test this app.** Tauri renders in a native webview — `localhost:1420` in a browser lacks IPC, tray, and sidecar access. Use CLI checks (`vue-tsc`, `pnpm test`, `cargo test --workspace --all-targets`) or ask the user to verify UI via `pnpm tauri dev`.
+> **End-to-end debugging attaches to the real webview, not `localhost:1420`.** A plain browser lacks IPC, tray and sidecar access. On Windows start `pnpm tauri dev` with `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=<port>` and attach Playwright with `chromium.connectOverCDP`; verify backend effects through the local HTTP API and engine RPC. Keep E2E scripts and outputs outside the repository. CLI checks (`vue-tsc`, `pnpm test`, `cargo test --workspace --all-targets`) remain the required gate.
 
 ## Brand and delivery
 
@@ -477,8 +477,9 @@ and Chinese slogans. Keep the approved promotional banners in English. Review pr
 
 Follow `docs/BRAND.md` and `docs/RELEASING.md`. Preserve the `updater` release tag and
 existing updater key; browser store identities are configured separately. Local verification never submits to a store,
-publishes a website, changes remotes or starts release automation. Native end-to-end
-acceptance belongs to the user. Work on the current branch; do not spawn agents.
+publishes a website, changes remotes or starts release automation. Agents may run
+end-to-end debugging across the extension, desktop and engine; final acceptance
+belongs to the user. Work on the current branch; do not spawn agents.
 
 ## Documentation editing
 

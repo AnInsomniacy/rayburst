@@ -213,6 +213,16 @@ fn http_url(value: &str) -> Result<Url, Error> {
 }
 
 impl Source {
+    /// The Referer a browser sends for the page's cross-origin subresources
+    /// under its default policy: the page origin. Captured headers override it.
+    pub fn page_referrer(&self) -> String {
+        url::Url::parse(&self.page_url)
+            .ok()
+            .filter(|page| matches!(page.scheme(), "http" | "https"))
+            .map(|page| format!("{}/", page.origin().ascii_serialization()))
+            .unwrap_or_default()
+    }
+
     pub fn filename_hint(&self) -> &str {
         if self.title.trim().is_empty() {
             &self.filename
