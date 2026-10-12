@@ -435,21 +435,18 @@ impl StatEffects {
         #[cfg(target_os = "windows")]
         if let Some(window) = app.get_webview_window("main") {
             use tauri::window::{ProgressBarState, ProgressBarStatus};
-            let state = if cfg.show_progress_bar && stat.num_active > 0 {
-                let progress = task_progress(active);
-                ProgressBarState {
-                    status: Some(if progress.is_some() {
-                        ProgressBarStatus::Normal
-                    } else {
-                        ProgressBarStatus::Indeterminate
-                    }),
-                    progress,
-                }
-            } else {
-                ProgressBarState {
-                    status: Some(ProgressBarStatus::None),
-                    progress: None,
-                }
+            // Without a measurable download (seeding only, unknown sizes) the
+            // taskbar stays plain rather than running the marquee animation.
+            let progress = (cfg.show_progress_bar && stat.num_active > 0)
+                .then(|| task_progress(active))
+                .flatten();
+            let state = ProgressBarState {
+                status: Some(if progress.is_some() {
+                    ProgressBarStatus::Normal
+                } else {
+                    ProgressBarStatus::None
+                }),
+                progress,
             };
             let _ = window.set_progress_bar(state);
         }
