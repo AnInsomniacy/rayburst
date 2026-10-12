@@ -17,11 +17,11 @@ use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::{watch, Notify};
 
-/// Tick interval while the window is visible.
+/// Tick interval while the window shows live speeds and progress.
 const VISIBLE_INTERVAL: Duration = Duration::from_millis(500);
-/// Tick interval without a visible window while tasks are active.
-const ACTIVE_INTERVAL: Duration = Duration::from_secs(1);
-const IDLE_INTERVAL: Duration = Duration::from_secs(2);
+/// Tick interval otherwise: the tray and taskbar need no more, and engine
+/// notifications still wake the pump at once.
+const BACKGROUND_INTERVAL: Duration = Duration::from_secs(2);
 const REFRESH_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub const SNAPSHOT_EVENT: &str = "tasks:snapshot";
@@ -155,13 +155,12 @@ impl Pump {
                 .tick(&app, &aria2, window.is_some(), &mut effects, &mut monitor)
                 .await
             {
-                Ok(_) if visible => VISIBLE_INTERVAL,
-                Ok(true) => ACTIVE_INTERVAL,
-                Ok(false) => IDLE_INTERVAL,
+                Ok(()) if visible => VISIBLE_INTERVAL,
+                Ok(()) => BACKGROUND_INTERVAL,
                 Err(error) => {
                     // A busy engine answers late; only a process exit restarts it.
                     log::debug!("pump: read failed: {error}");
-                    IDLE_INTERVAL
+                    BACKGROUND_INTERVAL
                 }
             };
             tokio::select! {
@@ -176,7 +175,6 @@ impl Pump {
         }
     }
 
-    /// Returns whether any task is active.
     async fn tick(
         &self,
         app: &AppHandle,
@@ -184,7 +182,7 @@ impl Pump {
         window: bool,
         effects: &mut StatEffects,
         monitor: &mut Option<Monitor>,
-    ) -> Result<bool, AppError> {
+    ) -> Result<(), AppError> {
         // Stopped tasks matter only to the task list.
         let (stat, mut tasks) = aria2.snapshot(window).await?;
         let stat = stat_update(&stat);
@@ -215,7 +213,6 @@ impl Pump {
                 log::warn!("pump: selection state unavailable: {error}");
             }
         }
-        let any_active = stat.num_active > 0;
         let detailed = self
             .detailed
             .lock()
@@ -236,7 +233,7 @@ impl Pump {
             published.sequence += 1;
             published.snapshot = Some(snapshot);
         });
-        Ok(any_active)
+        Ok(())
     }
 }
 
