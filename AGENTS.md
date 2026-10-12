@@ -465,7 +465,7 @@ already checked elsewhere. Packaging and native UI acceptance are separate from 
 
 ## I. Testing Constraints
 
-> **End-to-end debugging attaches to the real webview, not `localhost:1420`.** A plain browser lacks IPC, tray and sidecar access. On Windows start `pnpm tauri dev` with `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=<port>` and attach Playwright with `chromium.connectOverCDP`; verify backend effects through the local HTTP API and engine RPC. Keep E2E scripts and outputs outside the repository. CLI checks (`vue-tsc`, `pnpm test`, `cargo test --workspace --all-targets`) remain the required gate.
+> **Do not test the desktop UI through a browser.** `localhost:1420` lacks IPC, tray and sidecar access. Use CLI checks (`vue-tsc`, `pnpm test`, `cargo test --workspace --all-targets`); the user verifies the UI. Extension ↔ desktop linkage has a Playwright suite in `rayburst-connect/e2e`; it needs this app running from `pnpm e2e:app`, which opens the WebView2 debugging port the suite uses to clean up its tasks.
 
 ## Brand and delivery
 
