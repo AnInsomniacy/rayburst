@@ -411,7 +411,13 @@ onMounted(() => {
 <template>
   <div class="preference-form-wrapper">
     <div class="preference-form-scroll">
-      <NForm label-placement="left" label-align="left" label-width="260px" size="small" class="form-preference">
+      <NForm
+        label-placement="left"
+        label-align="left"
+        label-width="260px"
+        size="small"
+        class="form-preference bt-switch-form"
+      >
         <NFormItem>
           <template #label>
             <PreferenceHintLabel
@@ -764,6 +770,11 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* Only the switch: the full-height form rule would push the settings below the fold. */
+.bt-switch-form {
+  min-height: 0;
+  padding-bottom: 0;
+}
 .bt-disabled {
   opacity: 0.5;
   pointer-events: none;
