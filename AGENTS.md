@@ -118,6 +118,10 @@ src-tauri/
 
 ---
 
+### Libraries and Tools
+
+Fixes and optimizations first look for a mature crate, npm package or tool (Tauri plugins, Naive UI, vitest, cargo test) before writing code. Existing hand-written code may be replaced when a library does the job better. Write it yourself only when nothing suitable exists or the integration would cost more than it saves; never adopt a tool for its own sake.
+
 ## B. Version Management
 
 **`src-tauri/Cargo.toml` is the single source of truth.** The `version` field in `package.json` must stay in sync.
