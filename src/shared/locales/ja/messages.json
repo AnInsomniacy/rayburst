@@ -598,7 +598,7 @@
     "site-rule-connections": "サーバーごとの接続数",
     "site-rule-invalid": "サイトルールに無効なホストパターンがあります",
     "bittorrent-enabled": "BitTorrent を有効にする",
-    "bittorrent-enabled-hint": "オフにすると、マグネットリンクとトレントは拒否され、ダウンロードした .torrent ファイルは保存のみされます。",
+    "bittorrent-enabled-hint": "オフにすると、マグネットリンクとトレントは拒否され、ダウンロードした .torrent ファイルは保存のみされます",
     "tracker-add": "トラッカーを追加",
     "ui-scale": "表示サイズ",
     "ui-scale-hint": "Ctrl と +、−、0 でも変更できます（macOS では ⌘）。",

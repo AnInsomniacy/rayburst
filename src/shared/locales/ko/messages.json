@@ -598,7 +598,7 @@
     "site-rule-connections": "서버당 연결 수",
     "site-rule-invalid": "사이트 규칙에 잘못된 호스트 패턴이 있습니다",
     "bittorrent-enabled": "BitTorrent 사용",
-    "bittorrent-enabled-hint": "끄면 마그넷 링크와 토렌트를 거부하고, 다운로드한 .torrent 파일은 저장만 합니다.",
+    "bittorrent-enabled-hint": "끄면 마그넷 링크와 토렌트를 거부하고, 다운로드한 .torrent 파일은 저장만 합니다",
     "tracker-add": "트래커 추가",
     "ui-scale": "인터페이스 크기",
     "ui-scale-hint": "Ctrl과 +, −, 0으로도 바꿀 수 있습니다(macOS에서는 ⌘).",

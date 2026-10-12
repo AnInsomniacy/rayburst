@@ -598,7 +598,7 @@
     "site-rule-connections": "每服务器连接数",
     "site-rule-invalid": "站点规则中有无效的主机匹配",
     "bittorrent-enabled": "启用 BitTorrent",
-    "bittorrent-enabled-hint": "关闭后将拒绝磁力链接和种子，下载的 .torrent 文件只会保存。",
+    "bittorrent-enabled-hint": "关闭后不接收磁力链接和种子，.torrent 文件仅保存",
     "tracker-add": "添加 Tracker",
     "ui-scale": "界面大小",
     "ui-scale-hint": "也可用 Ctrl 加 +、− 或 0 调整（macOS 上为 ⌘）。",

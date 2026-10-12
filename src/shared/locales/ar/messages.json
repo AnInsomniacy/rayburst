@@ -598,7 +598,7 @@
     "site-rule-connections": "الاتصالات لكل خادم",
     "site-rule-invalid": "تحتوي قاعدة موقع على نمط مضيف غير صالح",
     "bittorrent-enabled": "تفعيل BitTorrent",
-    "bittorrent-enabled-hint": "عند الإيقاف تُرفض روابط magnet والتورنت، وتُحفظ ملفات .torrent المنزّلة فقط.",
+    "bittorrent-enabled-hint": "عند الإيقاف تُرفض روابط magnet والتورنت، وتُحفظ ملفات .torrent المنزّلة فقط",
     "tracker-add": "إضافة متتبع",
     "ui-scale": "حجم الواجهة",
     "ui-scale-hint": "يمكن تغييره أيضًا بـ Ctrl مع + أو − أو 0 (⌘ على macOS).",

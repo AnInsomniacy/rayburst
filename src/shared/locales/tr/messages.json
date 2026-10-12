@@ -598,7 +598,7 @@
     "site-rule-connections": "Sunucu başına bağlantı",
     "site-rule-invalid": "Bir site kuralında geçersiz ana makine deseni var",
     "bittorrent-enabled": "BitTorrent'i etkinleştir",
-    "bittorrent-enabled-hint": "Kapalıyken magnet bağlantıları ve torrentler reddedilir, indirilen .torrent dosyaları yalnızca kaydedilir.",
+    "bittorrent-enabled-hint": "Kapalıyken magnet bağlantıları ve torrentler reddedilir, indirilen .torrent dosyaları yalnızca kaydedilir",
     "tracker-add": "İzleyici ekle",
     "ui-scale": "Arayüz boyutu",
     "ui-scale-hint": "Ctrl ile +, − veya 0 da değiştirir (macOS'ta ⌘).",

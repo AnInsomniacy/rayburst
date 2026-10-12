@@ -598,7 +598,7 @@
     "site-rule-connections": "Verbindingen per server",
     "site-rule-invalid": "Een siteregel heeft een ongeldig hostpatroon",
     "bittorrent-enabled": "BitTorrent inschakelen",
-    "bittorrent-enabled-hint": "Uitgeschakeld worden magnetlinks en torrents geweigerd en gedownloade .torrent-bestanden alleen opgeslagen.",
+    "bittorrent-enabled-hint": "Uitgeschakeld worden magnetlinks en torrents geweigerd en gedownloade .torrent-bestanden alleen opgeslagen",
     "tracker-add": "Tracker toevoegen",
     "ui-scale": "Interfacegrootte",
     "ui-scale-hint": "Ctrl met +, − of 0 wijzigt deze ook (⌘ op macOS).",

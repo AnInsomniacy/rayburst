@@ -598,7 +598,7 @@
     "site-rule-connections": "每伺服器連線數",
     "site-rule-invalid": "網站規則中有無效的主機比對",
     "bittorrent-enabled": "啟用 BitTorrent",
-    "bittorrent-enabled-hint": "關閉後將拒絕磁力連結和種子，下載的 .torrent 檔案只會儲存。",
+    "bittorrent-enabled-hint": "關閉後不接收磁力連結和種子，.torrent 檔案僅儲存",
     "tracker-add": "新增 Tracker",
     "ui-scale": "介面大小",
     "ui-scale-hint": "也可用 Ctrl 加 +、− 或 0 調整（macOS 上為 ⌘）。",

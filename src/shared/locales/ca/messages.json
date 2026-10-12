@@ -598,7 +598,7 @@
     "site-rule-connections": "Connexions per servidor",
     "site-rule-invalid": "Una regla de lloc té un patró d’amfitrió no vàlid",
     "bittorrent-enabled": "Activa BitTorrent",
-    "bittorrent-enabled-hint": "Si està desactivat, es rebutgen els enllaços magnet i els torrents, i els fitxers .torrent baixats només es desen.",
+    "bittorrent-enabled-hint": "Si està desactivat, es rebutgen els enllaços magnet i els torrents, i els fitxers .torrent baixats només es desen",
     "tracker-add": "Afegeix un tracker",
     "ui-scale": "Mida de la interfície",
     "ui-scale-hint": "Ctrl amb +, − o 0 també la canvia (⌘ a macOS).",

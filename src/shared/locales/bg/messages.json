@@ -598,7 +598,7 @@
     "site-rule-connections": "Връзки към сървър",
     "site-rule-invalid": "Правило за сайт има невалиден шаблон на хост",
     "bittorrent-enabled": "Включване на BitTorrent",
-    "bittorrent-enabled-hint": "Когато е изключено, magnet връзките и торентите се отказват, а изтеглените .torrent файлове само се запазват.",
+    "bittorrent-enabled-hint": "Когато е изключено, magnet връзките и торентите се отказват, а изтеглените .torrent файлове само се запазват",
     "tracker-add": "Добавяне на тракер",
     "ui-scale": "Размер на интерфейса",
     "ui-scale-hint": "Ctrl с +, − или 0 също го променя (⌘ в macOS).",

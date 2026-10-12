@@ -598,7 +598,7 @@
     "site-rule-connections": "Conexiones por servidor",
     "site-rule-invalid": "Una regla de sitio tiene un patrón de host no válido",
     "bittorrent-enabled": "Activar BitTorrent",
-    "bittorrent-enabled-hint": "Si está desactivado, se rechazan los enlaces magnet y los torrents, y los archivos .torrent descargados solo se guardan.",
+    "bittorrent-enabled-hint": "Si está desactivado, se rechazan los enlaces magnet y los torrents, y los archivos .torrent descargados solo se guardan",
     "tracker-add": "Añadir tracker",
     "ui-scale": "Tamaño de la interfaz",
     "ui-scale-hint": "Ctrl con +, − o 0 también lo cambia (⌘ en macOS).",

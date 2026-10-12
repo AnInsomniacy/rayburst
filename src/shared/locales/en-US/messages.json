@@ -598,7 +598,7 @@
     "site-rule-connections": "Connections per server",
     "site-rule-invalid": "A site rule has an invalid host pattern",
     "bittorrent-enabled": "Enable BitTorrent",
-    "bittorrent-enabled-hint": "When off, magnet links and torrents are refused, and downloaded .torrent files are only saved.",
+    "bittorrent-enabled-hint": "When off, magnet links and torrents are refused; .torrent files are only saved",
     "tracker-add": "Add tracker",
     "ui-scale": "Interface size",
     "ui-scale-hint": "Ctrl with +, − or 0 also changes it (⌘ on macOS).",

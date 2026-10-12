@@ -598,7 +598,7 @@
     "site-rule-connections": "Tilkoblinger per server",
     "site-rule-invalid": "En nettstedsregel har et ugyldig vertsmønster",
     "bittorrent-enabled": "Aktiver BitTorrent",
-    "bittorrent-enabled-hint": "Når av, avvises magnetlenker og torrenter, og nedlastede .torrent-filer bare lagres.",
+    "bittorrent-enabled-hint": "Når av, avvises magnetlenker og torrenter, og nedlastede .torrent-filer bare lagres",
     "tracker-add": "Legg til tracker",
     "ui-scale": "Grensesnittstørrelse",
     "ui-scale-hint": "Ctrl med +, − eller 0 endrer den også (⌘ på macOS).",

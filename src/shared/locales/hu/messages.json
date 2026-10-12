@@ -598,7 +598,7 @@
     "site-rule-connections": "Kapcsolatok kiszolgálónként",
     "site-rule-invalid": "Egy webhelyszabály érvénytelen gazdagépmintát tartalmaz",
     "bittorrent-enabled": "BitTorrent engedélyezése",
-    "bittorrent-enabled-hint": "Kikapcsolva a magnet hivatkozásokat és torrenteket elutasítja, a letöltött .torrent fájlokat csak menti.",
+    "bittorrent-enabled-hint": "Kikapcsolva a magnet hivatkozásokat és torrenteket elutasítja, a letöltött .torrent fájlokat csak menti",
     "tracker-add": "Tracker hozzáadása",
     "ui-scale": "Felület mérete",
     "ui-scale-hint": "A Ctrl és a +, − vagy 0 is módosítja (macOS-en ⌘).",

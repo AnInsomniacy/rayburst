@@ -598,7 +598,7 @@
     "site-rule-connections": "Connexions par serveur",
     "site-rule-invalid": "Une règle de site a un motif d’hôte invalide",
     "bittorrent-enabled": "Activer BitTorrent",
-    "bittorrent-enabled-hint": "Désactivé, les liens magnet et les torrents sont refusés, et les fichiers .torrent téléchargés sont seulement enregistrés.",
+    "bittorrent-enabled-hint": "Désactivé, les liens magnet et les torrents sont refusés, et les fichiers .torrent téléchargés sont seulement enregistrés",
     "tracker-add": "Ajouter un tracker",
     "ui-scale": "Taille de l'interface",
     "ui-scale-hint": "Ctrl avec +, − ou 0 la modifie aussi (⌘ sur macOS).",

@@ -598,7 +598,7 @@
     "site-rule-connections": "Connessioni per server",
     "site-rule-invalid": "Una regola del sito ha un modello di host non valido",
     "bittorrent-enabled": "Abilita BitTorrent",
-    "bittorrent-enabled-hint": "Se disattivato, i link magnet e i torrent vengono rifiutati e i file .torrent scaricati vengono solo salvati.",
+    "bittorrent-enabled-hint": "Se disattivato, i link magnet e i torrent vengono rifiutati e i file .torrent scaricati vengono solo salvati",
     "tracker-add": "Aggiungi tracker",
     "ui-scale": "Dimensione dell'interfaccia",
     "ui-scale-hint": "Anche Ctrl con +, − o 0 la modifica (⌘ su macOS).",

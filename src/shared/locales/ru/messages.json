@@ -598,7 +598,7 @@
     "site-rule-connections": "Соединений на сервер",
     "site-rule-invalid": "В правиле сайта неверный шаблон хоста",
     "bittorrent-enabled": "Включить BitTorrent",
-    "bittorrent-enabled-hint": "Если выключено, magnet-ссылки и торренты отклоняются, а загруженные файлы .torrent только сохраняются.",
+    "bittorrent-enabled-hint": "Если выключено, magnet-ссылки и торренты отклоняются, а загруженные файлы .torrent только сохраняются",
     "tracker-add": "Добавить трекер",
     "ui-scale": "Размер интерфейса",
     "ui-scale-hint": "Также меняется сочетанием Ctrl с +, − или 0 (⌘ в macOS).",

@@ -598,7 +598,7 @@
     "site-rule-connections": "Verbindungen pro Server",
     "site-rule-invalid": "Eine Website-Regel hat ein ungültiges Host-Muster",
     "bittorrent-enabled": "BitTorrent aktivieren",
-    "bittorrent-enabled-hint": "Ausgeschaltet werden Magnet-Links und Torrents abgelehnt und heruntergeladene .torrent-Dateien nur gespeichert.",
+    "bittorrent-enabled-hint": "Ausgeschaltet werden Magnet-Links und Torrents abgelehnt und heruntergeladene .torrent-Dateien nur gespeichert",
     "tracker-add": "Tracker hinzufügen",
     "ui-scale": "Oberflächengröße",
     "ui-scale-hint": "Strg mit +, − oder 0 ändert sie ebenfalls (⌘ unter macOS).",

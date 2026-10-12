@@ -598,7 +598,7 @@
     "site-rule-connections": "Συνδέσεις ανά διακομιστή",
     "site-rule-invalid": "Ένας κανόνας ιστότοπου έχει μη έγκυρο μοτίβο κεντρικού υπολογιστή",
     "bittorrent-enabled": "Ενεργοποίηση BitTorrent",
-    "bittorrent-enabled-hint": "Όταν είναι ανενεργό, οι σύνδεσμοι magnet και τα torrent απορρίπτονται και τα ληφθέντα αρχεία .torrent απλώς αποθηκεύονται.",
+    "bittorrent-enabled-hint": "Όταν είναι ανενεργό, οι σύνδεσμοι magnet και τα torrent απορρίπτονται και τα ληφθέντα αρχεία .torrent απλώς αποθηκεύονται",
     "tracker-add": "Προσθήκη tracker",
     "ui-scale": "Μέγεθος διεπαφής",
     "ui-scale-hint": "Αλλάζει και με Ctrl και +, − ή 0 (⌘ στο macOS).",

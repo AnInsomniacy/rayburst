@@ -598,7 +598,7 @@
     "site-rule-connections": "Conexiuni per server",
     "site-rule-invalid": "O regulă de site are un model de gazdă nevalid",
     "bittorrent-enabled": "Activează BitTorrent",
-    "bittorrent-enabled-hint": "Când este dezactivat, linkurile magnet și torrentele sunt refuzate, iar fișierele .torrent descărcate sunt doar salvate.",
+    "bittorrent-enabled-hint": "Când este dezactivat, linkurile magnet și torrentele sunt refuzate, iar fișierele .torrent descărcate sunt doar salvate",
     "tracker-add": "Adaugă tracker",
     "ui-scale": "Dimensiunea interfeței",
     "ui-scale-hint": "Ctrl cu +, − sau 0 o schimbă de asemenea (⌘ pe macOS).",

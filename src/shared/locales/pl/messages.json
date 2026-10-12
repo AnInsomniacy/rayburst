@@ -598,7 +598,7 @@
     "site-rule-connections": "Połączenia na serwer",
     "site-rule-invalid": "Reguła witryny ma nieprawidłowy wzorzec hosta",
     "bittorrent-enabled": "Włącz BitTorrent",
-    "bittorrent-enabled-hint": "Po wyłączeniu linki magnet i torrenty są odrzucane, a pobrane pliki .torrent są tylko zapisywane.",
+    "bittorrent-enabled-hint": "Po wyłączeniu linki magnet i torrenty są odrzucane, a pobrane pliki .torrent są tylko zapisywane",
     "tracker-add": "Dodaj tracker",
     "ui-scale": "Rozmiar interfejsu",
     "ui-scale-hint": "Ctrl z +, − lub 0 także go zmienia (⌘ w macOS).",

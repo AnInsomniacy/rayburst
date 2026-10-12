@@ -598,7 +598,7 @@
     "site-rule-connections": "Koneksi per server",
     "site-rule-invalid": "Ada aturan situs dengan pola host yang tidak valid",
     "bittorrent-enabled": "Aktifkan BitTorrent",
-    "bittorrent-enabled-hint": "Jika nonaktif, tautan magnet dan torrent ditolak, dan berkas .torrent yang diunduh hanya disimpan.",
+    "bittorrent-enabled-hint": "Jika nonaktif, tautan magnet dan torrent ditolak, dan berkas .torrent yang diunduh hanya disimpan",
     "tracker-add": "Tambah tracker",
     "ui-scale": "Ukuran antarmuka",
     "ui-scale-hint": "Ctrl dengan +, − atau 0 juga mengubahnya (⌘ di macOS).",

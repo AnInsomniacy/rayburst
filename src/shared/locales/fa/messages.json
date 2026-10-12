@@ -598,7 +598,7 @@
     "site-rule-connections": "اتصال به هر سرور",
     "site-rule-invalid": "یک قانون سایت الگوی میزبان نامعتبر دارد",
     "bittorrent-enabled": "فعال‌سازی BitTorrent",
-    "bittorrent-enabled-hint": "در حالت خاموش، پیوندهای magnet و تورنت‌ها رد می‌شوند و فایل‌های .torrent دانلودشده فقط ذخیره می‌شوند.",
+    "bittorrent-enabled-hint": "در حالت خاموش، پیوندهای magnet و تورنت‌ها رد می‌شوند و فایل‌های .torrent دانلودشده فقط ذخیره می‌شوند",
     "tracker-add": "افزودن ترکر",
     "ui-scale": "اندازه رابط کاربری",
     "ui-scale-hint": "با Ctrl و + یا − یا 0 هم تغییر می‌کند (در macOS ⌘).",
