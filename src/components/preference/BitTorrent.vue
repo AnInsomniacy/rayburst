@@ -418,6 +418,8 @@ onMounted(() => {
         size="small"
         class="form-preference bt-switch-form"
       >
+        <!-- BT Settings: the switch heads the section the rest of the page continues -->
+        <NDivider title-placement="left">{{ t('preferences.bt-settings') }}</NDivider>
         <NFormItem>
           <template #label>
             <PreferenceHintLabel
@@ -433,13 +435,10 @@ onMounted(() => {
         label-align="left"
         label-width="260px"
         size="small"
-        class="form-preference"
+        class="form-preference bt-settings-form"
         :class="{ 'bt-disabled': !form.bittorrentEnabled }"
         :disabled="!form.bittorrentEnabled"
       >
-        <!-- BT Settings -->
-        <NDivider title-placement="left">{{ t('preferences.bt-settings') }}</NDivider>
-
         <NFormItem :label="t('preferences.magnet-file-selection')">
           <NSelect
             v-model:value="form.magnetFileSelectionPolicy"
@@ -770,10 +769,13 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Only the switch: the full-height form rule would push the settings below the fold. */
+/* The switch and the settings it disables read as one section across two forms. */
 .bt-switch-form {
   min-height: 0;
   padding-bottom: 0;
+}
+.bt-settings-form {
+  padding-top: 0;
 }
 .bt-disabled {
   opacity: 0.5;
