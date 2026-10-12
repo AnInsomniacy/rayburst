@@ -25,6 +25,26 @@
   font-size: var(--font-size-xs);
   color: var(--m3-on-surface-variant);
 }
+.selection-heading {
+  min-width: 0;
+}
+.selection-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+.selection-subtitle {
+  min-height: 18px;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+  color: var(--m3-on-surface-variant);
+}
+.selection-files {
+  flex: 1;
+  min-height: 0;
+}
 .selection-loading {
   min-height: 240px;
   display: flex;

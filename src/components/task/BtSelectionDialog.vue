@@ -118,27 +118,29 @@ async function dismiss() {
     @after-leave="emit('afterLeave')"
   >
     <NCard
-      :title="t('task.select-files')"
       :bordered="false"
       :closable="!submitting"
       role="dialog"
       :aria-label="t('task.select-files')"
       aria-modal="true"
       class="selection-dialog"
-      :content-style="{ overflowY: 'auto', minHeight: '0', flex: '1' }"
+      :content-style="{ display: 'flex', flexDirection: 'column', minHeight: '0', flex: '1' }"
       :segmented="{ footer: true }"
       @close="dismiss"
     >
-      <div class="selection-summary">
-        <div class="selection-name" :title="name">{{ name || '' }}</div>
-      </div>
+      <template #header>
+        <div class="selection-heading">
+          <div class="selection-title">{{ t('task.select-files') }}</div>
+          <div class="selection-subtitle" :title="name">{{ name }}</div>
+        </div>
+      </template>
       <NAlert v-if="error" type="error" class="selection-error">{{ error }}</NAlert>
       <Transition name="selection-content" mode="out-in">
         <div v-if="loading" key="loading" class="selection-loading" role="status" aria-busy="true">
           <NSpin size="small" /> {{ t('task.bt-metadata-fetching') }}
         </div>
-        <div v-else-if="ready" key="files" :inert="submitting">
-          <BtFileSelector v-model:selected-indices="indices" :files="files" :max-height="360" />
+        <div v-else-if="ready" key="files" class="selection-files" :inert="submitting">
+          <BtFileSelector v-model:selected-indices="indices" :files="files" fill />
         </div>
       </Transition>
       <template #footer>

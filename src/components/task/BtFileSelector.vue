@@ -1,17 +1,29 @@
 <script setup lang="ts">
 /** @fileoverview Shared BitTorrent file selector for local torrents and magnets: a folder tree with type shortcuts. */
-import { computed, ref, watch } from 'vue'
+import { computed, h, ref, watch, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NButton, NDataTable } from 'naive-ui'
+import { NButton, NDataTable, NIcon } from 'naive-ui'
 import type { DataTableColumns, DataTableRowKey } from 'naive-ui'
+import {
+  AppsOutline,
+  ArchiveOutline,
+  DocumentOutline,
+  DocumentTextOutline,
+  FolderOutline,
+  ImageOutline,
+  MusicalNotesOutline,
+  VideocamOutline,
+} from '@vicons/ionicons5'
 import { bytesToSize } from '@shared/utils'
 import { calcColumnWidth } from '@shared/utils/calcColumnWidth'
 import {
+  btFileType,
   buildBtFileTree,
   groupBtFilesByType,
   invertBtFileSelection,
   toggleBtFileGroup,
   type BtFileTreeRow,
+  type BtFileType,
 } from '@shared/utils/btFileTree'
 import type { BtFileSelectionItem } from '@shared/types'
 
@@ -20,8 +32,10 @@ const props = withDefaults(
     files: BtFileSelectionItem[]
     selectedIndices: number[]
     maxHeight?: number
+    /** Fill the parent's height instead of capping the table at `maxHeight`. */
+    fill?: boolean
   }>(),
-  { maxHeight: 240 },
+  { maxHeight: 240, fill: false },
 )
 
 const emit = defineEmits<{
@@ -54,6 +68,21 @@ const treeIdentity = computed(() => `${props.files.length}:${props.files[0]?.pat
 const typeGroups = computed(() => groupBtFilesByType(props.files))
 const selectedSet = computed(() => new Set(props.selectedIndices))
 
+const TYPE_ICONS: Record<BtFileType, Component> = {
+  'file-category-videos': VideocamOutline,
+  'file-category-music': MusicalNotesOutline,
+  'file-category-images': ImageOutline,
+  'file-category-documents': DocumentTextOutline,
+  'file-category-archives': ArchiveOutline,
+  'file-category-programs': AppsOutline,
+}
+
+function rowIcon(row: BtFileTreeRow): Component {
+  if (row.children) return FolderOutline
+  const type = btFileType(row.name)
+  return type ? TYPE_ICONS[type] : DocumentOutline
+}
+
 function groupSelected(indices: number[]): boolean {
   return indices.every((index) => selectedSet.value.has(index))
 }
@@ -63,16 +92,11 @@ const columns = computed<DataTableColumns<BtFileTreeRow>>(() => [
   {
     title: t('task.file-name') || 'File Name',
     key: 'name',
-    ellipsis: { tooltip: true },
-  },
-  {
-    title: t('task.file-index') || '#',
-    key: 'index',
-    width: calcColumnWidth({
-      title: t('task.file-index') || '#',
-      values: props.files.map((file) => String(file.index)),
-    }),
-    render: (row) => row.index ?? '',
+    render: (row) =>
+      h('span', { class: 'bt-file-name', title: row.path || row.name }, [
+        h(NIcon, { size: 15, class: 'bt-file-icon', component: rowIcon(row) }),
+        h('span', { class: 'bt-file-label' }, row.name),
+      ]),
   },
   {
     title: t('task.file-size') || 'Size',
@@ -82,6 +106,8 @@ const columns = computed<DataTableColumns<BtFileTreeRow>>(() => [
       values: props.files.map((file) => bytesToSize(file.length)),
       sortable: true,
     }),
+    align: 'right',
+    className: 'bt-file-size',
     sorter: (a, b) => a.length - b.length,
     render: (row) => bytesToSize(row.length),
   },
@@ -122,22 +148,39 @@ function invertSelection() {
 </script>
 
 <template>
-  <div class="bt-file-selector">
-    <div v-if="files.length > 1" class="bt-file-toolbar">
-      <NButton
-        v-for="group in typeGroups"
-        :key="group.type"
-        size="tiny"
-        round
-        secondary
-        :type="groupSelected(group.indices) ? 'primary' : 'default'"
-        @click="toggleGroup(group.indices)"
-      >
-        {{ t(`preferences.${group.type}`) }} {{ group.indices.length }}
-      </NButton>
-      <NButton size="tiny" round quaternary class="bt-file-invert" @click="invertSelection">
-        {{ t('task.invert-selection') }}
-      </NButton>
+  <div :class="['bt-file-selector', { 'bt-file-selector--fill': fill }]">
+    <div class="bt-file-toolbar">
+      <template v-if="files.length > 1">
+        <NButton
+          v-for="group in typeGroups"
+          :key="group.type"
+          size="tiny"
+          round
+          :secondary="groupSelected(group.indices)"
+          :tertiary="!groupSelected(group.indices)"
+          :type="groupSelected(group.indices) ? 'primary' : 'default'"
+          @click="toggleGroup(group.indices)"
+        >
+          <template #icon>
+            <NIcon :component="TYPE_ICONS[group.type]" />
+          </template>
+          {{ t(`preferences.${group.type}`) }} {{ group.indices.length }}
+        </NButton>
+      </template>
+      <div class="file-summary" aria-live="polite">
+        <Transition :name="countDirection" mode="out-in">
+          <span :key="selectedIndices.length" class="summary-value">
+            {{ selectedIndices.length }}/{{ files.length }}
+          </span>
+        </Transition>
+        <span class="summary-divider">·</span>
+        <Transition :name="sizeDirection" mode="out-in">
+          <span :key="bytesToSize(selectedSize)" class="summary-value">{{ bytesToSize(selectedSize) }}</span>
+        </Transition>
+        <NButton v-if="files.length > 1" size="tiny" quaternary @click="invertSelection">
+          {{ t('task.invert-selection') }}
+        </NButton>
+      </div>
     </div>
     <NDataTable
       :key="treeIdentity"
@@ -148,23 +191,15 @@ function invertSelection() {
       :default-expanded-row-keys="expandedKeys"
       :indent="hasFolders ? 16 : 0"
       :checked-row-keys="selectedIndices"
-      :max-height="maxHeight"
+      :max-height="fill ? undefined : maxHeight"
+      :flex-height="fill"
       :virtual-scroll="files.length > 100"
-      :min-row-height="28"
+      :min-row-height="34"
+      :bordered="false"
       size="small"
+      class="bt-file-table"
       @update:checked-row-keys="updateSelection"
     />
-    <div class="file-summary" aria-live="polite">
-      <Transition :name="countDirection" mode="out-in">
-        <span :key="selectedIndices.length" class="summary-value">
-          {{ selectedIndices.length }}/{{ files.length }}
-        </span>
-      </Transition>
-      <span class="summary-divider">—</span>
-      <Transition :name="sizeDirection" mode="out-in">
-        <span :key="bytesToSize(selectedSize)" class="summary-value">{{ bytesToSize(selectedSize) }}</span>
-      </Transition>
-    </div>
   </div>
 </template>
 
@@ -174,27 +209,64 @@ function invertSelection() {
   gap: 10px;
 }
 
+.bt-file-selector--fill {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
 .bt-file-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+  min-height: 28px;
 }
 
-.bt-file-invert {
-  margin-left: auto;
+.bt-file-table {
+  border: 1px solid var(--m3-outline-variant);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.bt-file-selector--fill .bt-file-table {
+  height: 100%;
 }
 
 .bt-file-selector :deep(.bt-folder-row td) {
   font-weight: 600;
 }
 
+.bt-file-selector :deep(.bt-file-name) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.bt-file-selector :deep(.bt-file-icon) {
+  flex-shrink: 0;
+  color: var(--m3-on-surface-variant);
+}
+
+.bt-file-selector :deep(.bt-file-label) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bt-file-selector :deep(.bt-file-size) {
+  color: var(--m3-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+
 .file-summary {
   display: inline-flex;
-  justify-self: end;
-  align-items: baseline;
+  align-items: center;
   gap: 6px;
-  min-height: 20px;
+  margin-left: auto;
   color: var(--m3-on-surface-variant);
   font-size: var(--font-size-sm);
   font-variant-numeric: tabular-nums;
