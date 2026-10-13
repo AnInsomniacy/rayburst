@@ -1,4 +1,4 @@
-/** Advanced settings own RPC, extension access, logging, and clipboard behavior. */
+/** Advanced settings own RPC, extension access, the engine, logging, and rendering. */
 import { RANDOM_PORT_RANGE_END, RANDOM_PORT_RANGE_START } from '@shared/constants'
 import { generateRandomInt } from '@shared/utils'
 import type { AppConfig } from '@shared/types'
@@ -10,19 +10,10 @@ export interface AdvancedForm {
   extensionApiPort: number
   extensionApiSecret: string
   allowRemoteAccess: boolean
-  extensionTorrentAction: AppConfig['extensionTorrentAction']
   logLevel: AppConfig['logLevel']
   aria2LogLevel: AppConfig['aria2LogLevel']
   tempFilesDir: string
   softwareRendering: boolean
-  clipboardEnable: boolean
-  clipboardHttp: boolean
-  clipboardSftp: boolean
-  clipboardMagnet: boolean
-  clipboardEd2k: boolean
-  clipboardThunder: boolean
-  clipboardBtHash: boolean
-  clipboardHttpFilesOnly: boolean
 }
 
 export function buildAdvancedForm(config: AppConfig): AdvancedForm {
@@ -32,19 +23,10 @@ export function buildAdvancedForm(config: AppConfig): AdvancedForm {
     extensionApiPort: config.extensionApiPort,
     extensionApiSecret: config.extensionApiSecret,
     allowRemoteAccess: config.allowRemoteAccess,
-    extensionTorrentAction: config.extensionTorrentAction,
     logLevel: config.logLevel,
     aria2LogLevel: config.aria2LogLevel,
     tempFilesDir: config.tempFilesDir,
     softwareRendering: config.softwareRendering,
-    clipboardEnable: config.clipboard.enable,
-    clipboardHttp: config.clipboard.http,
-    clipboardSftp: config.clipboard.sftp,
-    clipboardMagnet: config.clipboard.magnet,
-    clipboardEd2k: config.clipboard.ed2k,
-    clipboardThunder: config.clipboard.thunder,
-    clipboardBtHash: config.clipboard.btHash,
-    clipboardHttpFilesOnly: config.clipboard.httpFilesOnly,
   }
 }
 
@@ -53,33 +35,6 @@ export function buildAdvancedSystemConfig(form: AdvancedForm): Record<string, st
     'rpc-listen-port': String(form.rpcListenPort),
     'allow-remote-access': String(form.allowRemoteAccess),
     'rpc-secret': form.rpcSecret,
-  }
-}
-
-export function transformAdvancedForStore(form: AdvancedForm): Partial<AppConfig> {
-  const {
-    clipboardEnable,
-    clipboardHttp,
-    clipboardSftp,
-    clipboardMagnet,
-    clipboardEd2k,
-    clipboardThunder,
-    clipboardBtHash,
-    clipboardHttpFilesOnly,
-    ...rest
-  } = form
-  return {
-    ...rest,
-    clipboard: {
-      enable: clipboardEnable,
-      http: clipboardHttp,
-      sftp: clipboardSftp,
-      magnet: clipboardMagnet,
-      ed2k: clipboardEd2k,
-      thunder: clipboardThunder,
-      btHash: clipboardBtHash,
-      httpFilesOnly: clipboardHttpFilesOnly,
-    },
   }
 }
 

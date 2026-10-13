@@ -14,7 +14,6 @@ describe('Network preference contract', () => {
       ...createDefaultAppConfig(),
       connectTimeout: 30,
       timeout: 60,
-      fileAllocation: 'prealloc',
       userAgent: 'Custom/1.0',
       proxy: {
         mode: 'manual',
@@ -29,7 +28,6 @@ describe('Network preference contract', () => {
     expect(form).toMatchObject({
       connectTimeout: 30,
       timeout: 60,
-      fileAllocation: 'prealloc',
       userAgent: 'Custom/1.0',
       proxy: {
         mode: 'manual',
@@ -46,7 +44,6 @@ describe('Network preference contract', () => {
     const form = buildNetworkForm(createDefaultAppConfig())
     form.connectTimeout = 30
     form.timeout = 60
-    form.fileAllocation = 'prealloc'
     form.userAgent = 'Custom/1.0'
     form.proxy = {
       mode: 'manual',
@@ -60,7 +57,6 @@ describe('Network preference contract', () => {
     expect(buildNetworkSystemConfig(form)).toMatchObject({
       'connect-timeout': '30',
       timeout: '60',
-      'file-allocation': 'prealloc',
       'user-agent': 'Custom/1.0',
       'all-proxy': 'http://proxy.example.com:8080',
       'all-proxy-user': 'user',

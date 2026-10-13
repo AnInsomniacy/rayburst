@@ -446,12 +446,6 @@ onMounted(() => {
             class="pref-control-auto"
           />
         </NFormItem>
-        <NFormItem :label="t('preferences.bt-encryption')">
-          <NSelect v-model:value="form.btEncryption" :options="encryptionOptions" class="pref-control-auto" />
-        </NFormItem>
-        <NFormItem :label="t('preferences.bt-transport')">
-          <NSelect v-model:value="form.btTransport" :options="transportOptions" class="pref-control-auto" />
-        </NFormItem>
         <NFormItem>
           <template #label>
             <PreferenceHintLabel
@@ -469,6 +463,106 @@ onMounted(() => {
             />
           </template>
           <NSwitch v-model:value="form.btSequentialDownload" />
+        </NFormItem>
+
+        <!-- Tracker Management -->
+        <NDivider title-placement="left">{{ t('preferences.bt-tracker') }}</NDivider>
+        <NFormItem :label="t('preferences.bt-tracker-source-preset')">
+          <NCheckboxGroup v-model:value="presetSources" class="tracker-source-group">
+            <div class="tracker-source-list">
+              <NCheckbox
+                v-for="source in TRACKER_SOURCE_OPTIONS"
+                :key="source.value"
+                :value="source.value"
+                class="tracker-source-option"
+              >
+                <span class="tracker-source-option__content">
+                  <span class="tracker-source-option__owner">{{ source.owner }}</span>
+                  <span class="tracker-source-option__repository">{{ source.repository }}</span>
+                </span>
+              </NCheckbox>
+            </div>
+          </NCheckboxGroup>
+        </NFormItem>
+        <NFormItem :label="t('preferences.bt-tracker-source-custom')">
+          <NInputGroup>
+            <NInput
+              v-model:value="customTrackerInput"
+              :placeholder="t('preferences.bt-tracker-source-custom-placeholder')"
+              clearable
+              class="pref-control-full"
+              @keydown.enter="onAddCustomTracker"
+            />
+            <NButton
+              :title="t('preferences.tracker-add')"
+              size="small"
+              class="pref-input-group-action"
+              @click="onAddCustomTracker"
+            >
+              <template #icon>
+                <NIcon><AddCircleOutline /></NIcon>
+              </template>
+            </NButton>
+          </NInputGroup>
+        </NFormItem>
+        <NFormItem label=" ">
+          <NSelect
+            v-model:value="customSources"
+            :options="customSelectOptions"
+            :render-option="renderCustomOption"
+            multiple
+            clearable
+            :placeholder="customPlaceholder"
+            max-tag-count="responsive"
+          />
+        </NFormItem>
+        <NFormItem label=" ">
+          <div class="pref-action-stack">
+            <NButton
+              class="pref-action-button bt-tracker-sync-button"
+              :loading="syncingTracker"
+              type="primary"
+              secondary
+              @click="handleSyncTracker"
+            >
+              <template #icon>
+                <NIcon><SyncOutline /></NIcon>
+              </template>
+              {{ t('preferences.bt-tracker-sync') }}
+            </NButton>
+            <NText depth="3" class="pref-inline-row__meta">
+              {{ t('preferences.bt-tracker-count', { count: mergedTrackerCount }) }} ·
+              {{ t('preferences.last-sync-time') }}
+              {{ form.lastSyncTrackerTime ? new Date(form.lastSyncTrackerTime as number).toLocaleString() : '—' }}
+            </NText>
+          </div>
+        </NFormItem>
+        <NFormItem :label="t('preferences.bt-tracker-content')">
+          <NInput
+            v-model:value="form.btTracker"
+            type="textarea"
+            :autosize="{ minRows: 3, maxRows: 8 }"
+            :placeholder="t('preferences.bt-tracker-input-tips')"
+          />
+        </NFormItem>
+        <NFormItem :label="t('preferences.auto-sync')">
+          <NSwitch v-model:value="form.btTrackerAutoSync" />
+        </NFormItem>
+        <NFormItem v-if="form.btTrackerAutoSync" :label="t('preferences.sync-frequency')">
+          <NSelect
+            v-model:value="form.btTrackerSyncIntervalHours"
+            :options="syncIntervalOptions"
+            class="pref-control-auto"
+          />
+        </NFormItem>
+
+        <!-- Protocol -->
+        <NDivider title-placement="left">{{ t('preferences.bt-protocol-section') }}</NDivider>
+        <NFormItem :label="t('preferences.bt-encryption')">
+          <NSelect v-model:value="form.btEncryption" :options="encryptionOptions" class="pref-control-auto" />
+        </NFormItem>
+        <NFormItem :label="t('preferences.bt-transport')">
+          <NSelect v-model:value="form.btTransport" :options="transportOptions" class="pref-control-auto" />
         </NFormItem>
 
         <NDivider title-placement="left">{{ t('preferences.bt-connection-section') }}</NDivider>
@@ -681,97 +775,6 @@ onMounted(() => {
             </NFormItem>
           </div>
         </div>
-
-        <!-- Tracker Management -->
-        <NDivider title-placement="left">{{ t('preferences.bt-tracker') }}</NDivider>
-        <NFormItem :label="t('preferences.bt-tracker-source-preset')">
-          <NCheckboxGroup v-model:value="presetSources" class="tracker-source-group">
-            <div class="tracker-source-list">
-              <NCheckbox
-                v-for="source in TRACKER_SOURCE_OPTIONS"
-                :key="source.value"
-                :value="source.value"
-                class="tracker-source-option"
-              >
-                <span class="tracker-source-option__content">
-                  <span class="tracker-source-option__owner">{{ source.owner }}</span>
-                  <span class="tracker-source-option__repository">{{ source.repository }}</span>
-                </span>
-              </NCheckbox>
-            </div>
-          </NCheckboxGroup>
-        </NFormItem>
-        <NFormItem :label="t('preferences.bt-tracker-source-custom')">
-          <NInputGroup>
-            <NInput
-              v-model:value="customTrackerInput"
-              :placeholder="t('preferences.bt-tracker-source-custom-placeholder')"
-              clearable
-              class="pref-control-full"
-              @keydown.enter="onAddCustomTracker"
-            />
-            <NButton
-              :title="t('preferences.tracker-add')"
-              size="small"
-              class="pref-input-group-action"
-              @click="onAddCustomTracker"
-            >
-              <template #icon>
-                <NIcon><AddCircleOutline /></NIcon>
-              </template>
-            </NButton>
-          </NInputGroup>
-        </NFormItem>
-        <NFormItem label=" ">
-          <NSelect
-            v-model:value="customSources"
-            :options="customSelectOptions"
-            :render-option="renderCustomOption"
-            multiple
-            clearable
-            :placeholder="customPlaceholder"
-            max-tag-count="responsive"
-          />
-        </NFormItem>
-        <NFormItem label=" ">
-          <div class="pref-action-stack">
-            <NButton
-              class="pref-action-button bt-tracker-sync-button"
-              :loading="syncingTracker"
-              type="primary"
-              secondary
-              @click="handleSyncTracker"
-            >
-              <template #icon>
-                <NIcon><SyncOutline /></NIcon>
-              </template>
-              {{ t('preferences.bt-tracker-sync') }}
-            </NButton>
-            <NText depth="3" class="pref-inline-row__meta">
-              {{ t('preferences.bt-tracker-count', { count: mergedTrackerCount }) }} ·
-              {{ t('preferences.last-sync-time') }}
-              {{ form.lastSyncTrackerTime ? new Date(form.lastSyncTrackerTime as number).toLocaleString() : '—' }}
-            </NText>
-          </div>
-        </NFormItem>
-        <NFormItem :label="t('preferences.bt-tracker-content')">
-          <NInput
-            v-model:value="form.btTracker"
-            type="textarea"
-            :autosize="{ minRows: 3, maxRows: 8 }"
-            :placeholder="t('preferences.bt-tracker-input-tips')"
-          />
-        </NFormItem>
-        <NFormItem :label="t('preferences.auto-sync')">
-          <NSwitch v-model:value="form.btTrackerAutoSync" />
-        </NFormItem>
-        <NFormItem v-if="form.btTrackerAutoSync" :label="t('preferences.sync-frequency')">
-          <NSelect
-            v-model:value="form.btTrackerSyncIntervalHours"
-            :options="syncIntervalOptions"
-            class="pref-control-auto"
-          />
-        </NFormItem>
       </NForm>
     </div>
     <PreferenceActionRegistration

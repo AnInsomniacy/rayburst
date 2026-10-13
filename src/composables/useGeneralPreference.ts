@@ -28,6 +28,22 @@ export interface GeneralForm {
   hideDockOnMinimize: boolean
   traySpeedometer: boolean
   lightweightMode: boolean
+  // How downloads arrive: the browser extension and the clipboard.
+  extensionDownloadBehavior: AppConfig['extensionDownloadBehavior']
+  extensionTorrentAction: AppConfig['extensionTorrentAction']
+  clipboardEnable: boolean
+  clipboardHttp: boolean
+  clipboardSftp: boolean
+  clipboardMagnet: boolean
+  clipboardEd2k: boolean
+  clipboardThunder: boolean
+  clipboardBtHash: boolean
+  clipboardHttpFilesOnly: boolean
+  // Notifications
+  taskNotification: boolean
+  notifyOnStart: boolean
+  notifyOnComplete: boolean
+  notificationClickAction: AppConfig['notificationClickAction']
 }
 
 // ── Pure Functions ──────────────────────────────────────────────────
@@ -61,5 +77,47 @@ export function buildGeneralForm(config: AppConfig): GeneralForm {
     hideDockOnMinimize: config.hideDockOnMinimize,
     traySpeedometer: config.traySpeedometer,
     lightweightMode: config.lightweightMode,
+    extensionDownloadBehavior: config.extensionDownloadBehavior,
+    extensionTorrentAction: config.extensionTorrentAction,
+    clipboardEnable: config.clipboard.enable,
+    clipboardHttp: config.clipboard.http,
+    clipboardSftp: config.clipboard.sftp,
+    clipboardMagnet: config.clipboard.magnet,
+    clipboardEd2k: config.clipboard.ed2k,
+    clipboardThunder: config.clipboard.thunder,
+    clipboardBtHash: config.clipboard.btHash,
+    clipboardHttpFilesOnly: config.clipboard.httpFilesOnly,
+    taskNotification: config.taskNotification,
+    notifyOnStart: config.notifyOnStart,
+    notifyOnComplete: config.notifyOnComplete,
+    notificationClickAction: config.notificationClickAction,
+  }
+}
+
+/** Folds the flat clipboard fields back into the stored `clipboard` object. */
+export function transformGeneralForStore(form: GeneralForm): Partial<AppConfig> {
+  const {
+    clipboardEnable,
+    clipboardHttp,
+    clipboardSftp,
+    clipboardMagnet,
+    clipboardEd2k,
+    clipboardThunder,
+    clipboardBtHash,
+    clipboardHttpFilesOnly,
+    ...rest
+  } = form
+  return {
+    ...rest,
+    clipboard: {
+      enable: clipboardEnable,
+      http: clipboardHttp,
+      sftp: clipboardSftp,
+      magnet: clipboardMagnet,
+      ed2k: clipboardEd2k,
+      thunder: clipboardThunder,
+      btHash: clipboardBtHash,
+      httpFilesOnly: clipboardHttpFilesOnly,
+    },
   }
 }

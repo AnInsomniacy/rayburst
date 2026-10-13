@@ -6,11 +6,10 @@ import { useI18n } from 'vue-i18n'
 import { usePreferenceStore } from '@/stores/preference'
 import { usePreferenceForm } from '@/composables/usePreferenceForm'
 import { usePreferenceNumericValidation } from '@/composables/usePreferenceNumericValidation'
-import { usePlatform } from '@/composables/usePlatform'
 import { useSystemProxyDetect } from '@/composables/useSystemProxyDetect'
 import { getErrorMessage } from '@shared/utils/errorMessage'
 import { useAppMessage } from '@/composables/useAppMessage'
-import { PROXY_SCOPE_OPTIONS, FILE_ALLOCATION_OPTIONS } from '@shared/constants'
+import { PROXY_SCOPE_OPTIONS } from '@shared/constants'
 import {
   buildNetworkForm,
   buildNetworkSystemConfig,
@@ -47,7 +46,6 @@ const { t } = useI18n()
 const preferenceStore = usePreferenceStore()
 const message = useAppMessage()
 const { constraint, configFieldProps, areConfigFieldsValid } = usePreferenceNumericValidation()
-const { isWindows } = usePlatform()
 
 const dnsOverHttpsOptions = computed(() => [
   { label: t('preferences.dns-over-https-system'), value: '' },
@@ -58,12 +56,6 @@ const proxyScopeOptions = PROXY_SCOPE_OPTIONS.map((s: string) => ({
   label: t(`preferences.proxy-scope-${s}`),
   value: s,
 }))
-const fileAllocationOptions = computed(() =>
-  FILE_ALLOCATION_OPTIONS.filter((value) => !(isWindows.value && value === 'falloc')).map((value) => ({
-    label: value,
-    value,
-  })),
-)
 
 // ── Proxy detection ─────────────────────────────────────────────────
 const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect({
@@ -168,60 +160,6 @@ onMounted(() => {
   <div class="preference-form-wrapper">
     <div class="preference-form-scroll">
       <NForm label-placement="left" label-align="left" label-width="260px" size="small" class="form-preference">
-        <!-- User-Agent -->
-        <NDivider title-placement="left">{{ t('preferences.user-agent') }}</NDivider>
-        <NFormItem :label="t('preferences.mock-user-agent')">
-          <div class="ua-field-wrapper">
-            <NInput
-              v-model:value="form.userAgent"
-              type="textarea"
-              :autosize="{ minRows: 2, maxRows: 4 }"
-              placeholder="User-Agent"
-            />
-            <div class="ua-warn-collapse" :class="{ 'ua-warn-collapse--open': uaHasIssue }">
-              <div class="ua-warn-collapse__inner">
-                <div class="ua-warn-bar">
-                  <span class="ua-warn-text">⚠ {{ t('preferences.ua-unsafe-chars-detected') }}</span>
-                  <NButton size="tiny" type="primary" ghost @click="cleanUserAgent">
-                    {{ t('preferences.ua-sanitize') }}
-                  </NButton>
-                </div>
-              </div>
-            </div>
-          </div>
-        </NFormItem>
-        <NFormItem label=" ">
-          <div class="ua-preset-row">
-            <NButtonGroup size="small">
-              <NButton @click="changeUA('chrome')">Chrome</NButton>
-              <NButton @click="changeUA('edge')">Edge</NButton>
-              <NButton @click="changeUA('safari')">Safari</NButton>
-              <NButton @click="changeUA('firefox')">Firefox</NButton>
-            </NButtonGroup>
-            <NButton type="error" size="small" ghost @click="form.userAgent = ''">
-              {{ t('preferences.ua-reset') }}
-            </NButton>
-          </div>
-        </NFormItem>
-        <NFormItem :label="t('preferences.ua-saved')">
-          <div class="ua-manager-entry">
-            <div class="ua-manager-entry-text">
-              <strong>{{ t('preferences.ua-manager-title') }}</strong>
-              <span>
-                {{
-                  t('preferences.ua-manager-summary', {
-                    profiles: form.userAgentProfiles.length,
-                    rules: form.userAgentRules.length,
-                  })
-                }}
-              </span>
-            </div>
-            <NButton size="small" @click="showUserAgentManager = true">
-              {{ t('preferences.ua-manage') }}
-            </NButton>
-          </div>
-        </NFormItem>
-
         <!-- Proxy -->
         <NDivider title-placement="left">{{ t('preferences.proxy') }}</NDivider>
         <NFormItem>
@@ -309,20 +247,70 @@ onMounted(() => {
           <NSwitch v-model:value="form.checkCertificate" />
         </NFormItem>
 
-        <!-- Site rules -->
-        <NDivider title-placement="left">{{ t('preferences.site-rules') }}</NDivider>
-        <NFormItem :show-label="false">
+        <!-- Request: what downloads send -->
+        <NDivider title-placement="left">{{ t('preferences.request-section') }}</NDivider>
+        <NFormItem :label="t('preferences.mock-user-agent')">
+          <div class="ua-field-wrapper">
+            <NInput
+              v-model:value="form.userAgent"
+              type="textarea"
+              :autosize="{ minRows: 2, maxRows: 4 }"
+              placeholder="User-Agent"
+            />
+            <div class="ua-warn-collapse" :class="{ 'ua-warn-collapse--open': uaHasIssue }">
+              <div class="ua-warn-collapse__inner">
+                <div class="ua-warn-bar">
+                  <span class="ua-warn-text">⚠ {{ t('preferences.ua-unsafe-chars-detected') }}</span>
+                  <NButton size="tiny" type="primary" ghost @click="cleanUserAgent">
+                    {{ t('preferences.ua-sanitize') }}
+                  </NButton>
+                </div>
+              </div>
+            </div>
+          </div>
+        </NFormItem>
+        <NFormItem label=" ">
+          <div class="ua-preset-row">
+            <NButtonGroup size="small">
+              <NButton @click="changeUA('chrome')">Chrome</NButton>
+              <NButton @click="changeUA('edge')">Edge</NButton>
+              <NButton @click="changeUA('safari')">Safari</NButton>
+              <NButton @click="changeUA('firefox')">Firefox</NButton>
+            </NButtonGroup>
+            <NButton type="error" size="small" ghost @click="form.userAgent = ''">
+              {{ t('preferences.ua-reset') }}
+            </NButton>
+          </div>
+        </NFormItem>
+        <NFormItem :label="t('preferences.ua-saved')">
+          <div class="ua-manager-entry">
+            <div class="ua-manager-entry-text">
+              <strong>{{ t('preferences.ua-manager-title') }}</strong>
+              <span>
+                {{
+                  t('preferences.ua-manager-summary', {
+                    profiles: form.userAgentProfiles.length,
+                    rules: form.userAgentRules.length,
+                  })
+                }}
+              </span>
+            </div>
+            <NButton size="small" @click="showUserAgentManager = true">
+              {{ t('preferences.ua-manage') }}
+            </NButton>
+          </div>
+        </NFormItem>
+
+        <NFormItem :label="t('preferences.site-rules')" label-placement="top">
           <SiteRulesEditor v-model:value="form.siteRules" />
         </NFormItem>
 
-        <!-- Port mapping -->
-        <NDivider title-placement="left">{{ t('preferences.port') }}</NDivider>
+        <!-- Connection -->
+        <NDivider title-placement="left">{{ t('preferences.connection-section') }}</NDivider>
         <NFormItem label="UPnP/NAT-PMP">
           <NSwitch v-model:value="form.enableUpnp" />
         </NFormItem>
 
-        <!-- Timeout & Disk -->
-        <NDivider title-placement="left">{{ t('preferences.transfer-params') }}</NDivider>
         <NFormItem
           :label="t('preferences.connect-timeout')"
           v-bind="configFieldProps('connectTimeout', form.connectTimeout)"
@@ -343,9 +331,6 @@ onMounted(() => {
             class="pref-number"
           />
           <NText depth="3" class="pref-inline-note">{{ t('preferences.unit-seconds') }}</NText>
-        </NFormItem>
-        <NFormItem :label="t('preferences.file-allocation')">
-          <NSelect v-model:value="form.fileAllocation" :options="fileAllocationOptions" class="pref-control-auto" />
         </NFormItem>
       </NForm>
     </div>

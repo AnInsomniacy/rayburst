@@ -7,6 +7,7 @@ import {
   NSelect,
   NInput,
   NInputGroup,
+  NInputGroupLabel,
   NCheckbox,
   NCollapseTransition,
   NButton,
@@ -100,7 +101,8 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
 </script>
 
 <template>
-  <NFormItem :show-label="false">
+  <!-- Closed, nothing follows the toggle, so it keeps no space for a message. -->
+  <NFormItem :show-label="false" :show-feedback="show">
     <NCheckbox :checked="show" @update:checked="$emit('update:show', $event)">
       {{ t('task.show-advanced-options') }}
     </NCheckbox>
@@ -164,6 +166,7 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
         />
       </NFormItem>
       <NFormItem
+        class="checksum-item"
         :label="t('task.checksum') + ':'"
         :validation-status="checksum?.trim() && !parsedChecksum ? 'error' : undefined"
         :feedback="checksumAvailable ? checksumFeedback : t('task.checksum-single-only')"
@@ -176,31 +179,34 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
           @update:value="$emit('update:checksum', $event)"
         />
       </NFormItem>
+      <!-- One place for credentials: HTTP authentication, or a raw Authorization header. -->
       <NFormItem :label="t('task.task-authorization') + ':'">
-        <NInput
-          :value="authorization"
-          type="textarea"
-          :autosize="{ minRows: 1, maxRows: 3 }"
-          @update:value="$emit('update:authorization', $event)"
-        />
-      </NFormItem>
-      <NFormItem :label="t('task.task-http-auth') + ':'">
         <div class="http-auth-fields">
-          <NInput
-            :value="httpAuthUsername"
-            :placeholder="t('task.task-http-auth-username-placeholder')"
-            @update:value="$emit('update:httpAuthUsername', $event)"
-          />
-          <NInput
-            :value="httpAuthPassword"
-            type="password"
-            show-password-on="click"
-            :placeholder="t('task.task-http-auth-password-placeholder')"
-            @update:value="$emit('update:httpAuthPassword', $event)"
-          />
+          <div class="http-auth-credentials">
+            <NInput
+              :value="httpAuthUsername"
+              :placeholder="t('task.task-http-auth-username-placeholder')"
+              @update:value="$emit('update:httpAuthUsername', $event)"
+            />
+            <NInput
+              :value="httpAuthPassword"
+              type="password"
+              show-password-on="click"
+              :placeholder="t('task.task-http-auth-password-placeholder')"
+              @update:value="$emit('update:httpAuthPassword', $event)"
+            />
+          </div>
           <NCheckbox :checked="saveHttpAuth" @update:checked="$emit('update:saveHttpAuth', $event)">
             {{ t('task.task-http-auth-save') }}
           </NCheckbox>
+          <NInputGroup>
+            <NInputGroupLabel>Authorization</NInputGroupLabel>
+            <NInput
+              :value="authorization"
+              :placeholder="t('task.task-authorization-placeholder')"
+              @update:value="$emit('update:authorization', $event)"
+            />
+          </NInputGroup>
         </div>
       </NFormItem>
       <NFormItem :label="t('task.task-referer') + ':'">
@@ -352,5 +358,15 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
   flex-direction: column;
   gap: 6px;
   width: 100%;
+}
+.http-auth-credentials {
+  display: flex;
+  gap: 6px;
+}
+
+/* The checksum's hint fills the space other items keep empty below them;
+ * give it the same gap to the next item. */
+.checksum-item :deep(.n-form-item-feedback-wrapper) {
+  padding-bottom: 8px;
 }
 </style>

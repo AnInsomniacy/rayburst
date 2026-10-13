@@ -30,7 +30,6 @@ export interface NetworkForm {
   enableUpnp: boolean
   connectTimeout: number
   timeout: number
-  fileAllocation: string
   userAgent: string
   userAgentProfiles: UserAgentProfile[]
   userAgentRules: UserAgentRule[]
@@ -77,7 +76,6 @@ export function buildNetworkForm(config: AppConfig): NetworkForm {
     enableUpnp: config.enableUpnp,
     connectTimeout: config.connectTimeout,
     timeout: config.timeout,
-    fileAllocation: config.fileAllocation,
     userAgent: config.userAgent,
     userAgentProfiles: config.userAgentProfiles,
     userAgentRules: config.userAgentRules,
@@ -97,7 +95,6 @@ export function buildNetworkSystemConfig(f: NetworkForm): Record<string, string>
     'user-agent': f.userAgent || '',
     'connect-timeout': String(f.connectTimeout),
     timeout: String(f.timeout),
-    'file-allocation': f.fileAllocation || D.fileAllocation,
     'bt-port-mapping': String(!!f.enableUpnp),
     'ed2k-port-mapping': String(!!f.enableUpnp),
     'dns-over-https': f.dnsOverHttps.trim(),

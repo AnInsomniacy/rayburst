@@ -18,4 +18,11 @@ describe('downloads preference contract', () => {
     expect(stored.keepSharing).toBe(true)
     expect(stored).not.toHaveProperty('sharingMode')
   })
+
+  it('owns disk allocation next to the save location', () => {
+    const form = buildDownloadsForm({ ...createDefaultAppConfig(), fileAllocation: 'prealloc' })
+
+    expect(form.fileAllocation).toBe('prealloc')
+    expect(buildDownloadsSystemConfig(form)).toMatchObject({ 'file-allocation': 'prealloc' })
+  })
 })

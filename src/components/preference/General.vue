@@ -1,5 +1,8 @@
 <script setup lang="ts">
-/** @fileoverview General preference tab: system info, language, update, appearance, startup & tray. */
+/**
+ * @fileoverview General preference tab: system info, language, how downloads arrive (browser
+ * extension, clipboard), notifications, update, appearance, startup & tray, default programs.
+ */
 import { ref, computed, watch, onMounted, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePreferenceStore } from '@/stores/preference'
@@ -17,7 +20,7 @@ import { loadLocale } from '@/composables/useLocale'
 import { isSupportedLocale, LOCALE_CATALOG, SUPPORTED_LOCALES } from '@shared/localeCatalog'
 import { logger } from '@shared/logger'
 import { writeAppClipboardText } from '@shared/utils'
-import { buildGeneralForm } from '@/composables/useGeneralPreference'
+import { buildGeneralForm, transformGeneralForStore } from '@/composables/useGeneralPreference'
 import { COLOR_SCHEMES, CUSTOM_COLOR_SCHEME_ID } from '@shared/constants'
 import { normalizeCustomColorScheme } from '@shared/utils/colorSchemeConfig'
 import { useAppMessage } from '@/composables/useAppMessage'
@@ -43,6 +46,8 @@ import MTooltip from '@/components/common/MTooltip.vue'
 import { CloudDownloadOutline } from '@vicons/ionicons5'
 import type { UpdateChannel } from '@shared/types'
 import PreferenceHintLabel from './PreferenceHintLabel.vue'
+import PreferenceCheckboxGrid from './PreferenceCheckboxGrid.vue'
+import PreferenceAssociations from './PreferenceAssociations.vue'
 import { UI_SCALE_STEPS } from '@/composables/useInterfaceScale'
 
 const { t, locale } = useI18n()
@@ -50,7 +55,7 @@ const preferenceStore = usePreferenceStore()
 const appStore = useAppStore()
 const dialog = useDialog()
 const message = useAppMessage()
-const { isMac, isLinux, platformLabel, archLabel: getArchLabel } = usePlatform()
+const { isMac, isLinux, isWindows, platformLabel, archLabel: getArchLabel } = usePlatform()
 
 // ─── System info card ────────────────────────────────────────────────
 const sysArch = ref('')
@@ -85,6 +90,7 @@ function buildForm() {
 
 const { form, isDirty, handleSave, handleReset, patchSnapshot, resetSnapshot } = usePreferenceForm({
   buildForm,
+  transformForStore: transformGeneralForStore,
   afterSave: async (f, prevConfig) => {
     // Locale change → restart prompt
     const prevLocale = prevConfig.locale || 'auto'
@@ -140,6 +146,64 @@ const { form, isDirty, handleSave, handleReset, patchSnapshot, resetSnapshot } =
     }
   },
 })
+
+// ── Download capture ─────────────────────────────────────────────────
+const extensionDownloadBehaviorOptions = computed(() => [
+  { value: 'confirm', label: t('preferences.extension-behavior-confirm') },
+  { value: 'background', label: t('preferences.extension-behavior-background') },
+  { value: 'show', label: t('preferences.extension-behavior-show') },
+])
+const extensionTorrentActionOptions = computed(() => [
+  { value: 'open', label: t('preferences.extension-torrent-open') },
+  { value: 'save', label: t('preferences.extension-torrent-save') },
+])
+
+type ClipboardType = 'http' | 'sftp' | 'magnet' | 'ed2k' | 'thunder' | 'btHash'
+const clipboardTypes: ClipboardType[] = ['http', 'sftp', 'magnet', 'ed2k', 'thunder', 'btHash']
+const clipboardTypeOptions = computed(() => [
+  { label: t('preferences.clipboard-http'), value: 'http' },
+  { label: t('preferences.clipboard-sftp'), value: 'sftp' },
+  { label: t('preferences.clipboard-magnet'), value: 'magnet' },
+  { label: t('preferences.clipboard-ed2k'), value: 'ed2k' },
+  { label: t('preferences.clipboard-thunder'), value: 'thunder' },
+  { label: t('preferences.clipboard-bt-hash'), value: 'btHash' },
+])
+const clipboardFieldByType: Record<ClipboardType, keyof typeof form.value> = {
+  http: 'clipboardHttp',
+  sftp: 'clipboardSftp',
+  magnet: 'clipboardMagnet',
+  ed2k: 'clipboardEd2k',
+  thunder: 'clipboardThunder',
+  btHash: 'clipboardBtHash',
+}
+const selectedClipboardTypes = computed<string[]>({
+  get: () => clipboardTypes.filter((type) => !!form.value[clipboardFieldByType[type]]),
+  set: (types) => {
+    const selected = new Set(types)
+    for (const type of clipboardTypes) {
+      form.value[clipboardFieldByType[type]] = selected.has(type)
+    }
+  },
+})
+
+// ── Notifications ────────────────────────────────────────────────────
+const notificationTypeOptions = computed(() => [
+  { label: t('preferences.notify-on-start'), value: 'start' },
+  { label: t('preferences.notify-on-complete'), value: 'complete' },
+])
+const selectedNotificationTypes = computed<string[]>({
+  get: () => [...(form.value.notifyOnStart ? ['start'] : []), ...(form.value.notifyOnComplete ? ['complete'] : [])],
+  set: (types) => {
+    const selected = new Set(types)
+    form.value.notifyOnStart = selected.has('start')
+    form.value.notifyOnComplete = selected.has('complete')
+  },
+})
+// Only Windows reports clicks on notifications.
+const notificationClickOptions = computed(() => [
+  { value: 'reveal', label: t('preferences.notification-click-reveal') },
+  { value: 'open', label: t('preferences.notification-click-open') },
+])
 
 // Note: the legacy one-shot locale sync watcher has been removed.
 // With 'auto' as an explicit option, there is no async race condition
@@ -331,6 +395,64 @@ onMounted(async () => {
           />
         </NFormItem>
 
+        <!-- How downloads reach Rayburst: the browser extension and the clipboard -->
+        <NDivider title-placement="left">{{ t('preferences.download-capture-section') }}</NDivider>
+        <NFormItem :label="t('preferences.extension-download-behavior')">
+          <NSelect
+            v-model:value="form.extensionDownloadBehavior"
+            :options="extensionDownloadBehaviorOptions"
+            class="pref-control-auto"
+          />
+        </NFormItem>
+        <NFormItem>
+          <template #label>
+            <PreferenceHintLabel
+              :label="t('preferences.extension-torrent-action')"
+              :hint="t('preferences.extension-torrent-action-hint')"
+            />
+          </template>
+          <NSelect
+            v-model:value="form.extensionTorrentAction"
+            :options="extensionTorrentActionOptions"
+            class="pref-control-auto"
+          />
+        </NFormItem>
+        <NFormItem>
+          <template #label>
+            <PreferenceHintLabel
+              :label="t('preferences.clipboard-auto-detect')"
+              :hint="t('preferences.clipboard-filter-hint')"
+            />
+          </template>
+          <NSwitch v-model:value="form.clipboardEnable" />
+        </NFormItem>
+        <NCollapseTransition :show="form.clipboardEnable">
+          <NFormItem label=" ">
+            <PreferenceCheckboxGrid v-model:value="selectedClipboardTypes" :options="clipboardTypeOptions" />
+          </NFormItem>
+          <NFormItem v-if="form.clipboardHttp" :label="t('preferences.clipboard-http-files-only')">
+            <NSwitch v-model:value="form.clipboardHttpFilesOnly" />
+          </NFormItem>
+        </NCollapseTransition>
+
+        <!-- Notifications -->
+        <NDivider title-placement="left">{{ t('preferences.notification-section') }}</NDivider>
+        <NFormItem :label="t('preferences.task-completed-notify')">
+          <NSwitch v-model:value="form.taskNotification" />
+        </NFormItem>
+        <NCollapseTransition :show="form.taskNotification">
+          <NFormItem label=" ">
+            <PreferenceCheckboxGrid v-model:value="selectedNotificationTypes" :options="notificationTypeOptions" />
+          </NFormItem>
+          <NFormItem v-if="isWindows" :label="t('preferences.notification-click-action')">
+            <NSelect
+              v-model:value="form.notificationClickAction"
+              :options="notificationClickOptions"
+              class="pref-control-auto"
+            />
+          </NFormItem>
+        </NCollapseTransition>
+
         <!-- ③ Auto Update -->
         <NDivider title-placement="left">{{ t('preferences.auto-update') }}</NDivider>
         <NFormItem :label="t('preferences.auto-check-update')">
@@ -517,6 +639,8 @@ onMounted(async () => {
           </template>
           <NSwitch v-model:value="form.lightweightMode" />
         </NFormItem>
+
+        <PreferenceAssociations />
       </NForm>
     </div>
     <PreferenceActionRegistration :is-dirty="isDirty" @save="handleSave" @discard="handleReset" />

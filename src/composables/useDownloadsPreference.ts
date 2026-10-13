@@ -1,8 +1,8 @@
 /**
  * @fileoverview Pure functions for the Downloads preference tab.
  *
- * Manages: download paths, task concurrency, retry/recovery, speed limits,
- * notifications/automation, and auto-cleanup. This is the core download
+ * Manages: download paths and disk allocation, task concurrency, retry/recovery,
+ * speed limits, task actions, automation, and auto-cleanup. This is the core download
  * experience tab — most fields map to aria2 engine options.
  */
 import type { AppConfig, FileCategory, FileDeletionMode } from '@shared/types'
@@ -26,6 +26,7 @@ export interface DownloadsForm {
   maxTries: number
   retryWait: number
   remoteTime: boolean
+  fileAllocation: string
   maxOverallDownloadLimit: string
   maxOverallUploadLimit: string
   speedScheduleEnabled: boolean
@@ -34,15 +35,10 @@ export interface DownloadsForm {
   speedScheduleDays: number
   mediaSelectBeforeDownload: boolean
   mediaDefaultFormat: 'mp4' | 'mkv'
-  extensionDownloadBehavior: AppConfig['extensionDownloadBehavior']
   newTaskShowDownloading: boolean
   noConfirmBeforeDeleteTask: boolean
   fileDeletionMode: FileDeletionMode
   deleteFilesWhenSkipConfirm: boolean
-  taskNotification: boolean
-  notifyOnStart: boolean
-  notifyOnComplete: boolean
-  notificationClickAction: AppConfig['notificationClickAction']
   shutdownWhenComplete: boolean
   keepAwake: boolean
   postDownloadProgram: string
@@ -77,6 +73,7 @@ export function buildDownloadsForm(config: AppConfig, defaultDir: string = ''): 
     maxTries: config.maxTries ?? D.maxTries,
     retryWait: config.retryWait ?? D.retryWait,
     remoteTime: config.remoteTime ?? D.remoteTime,
+    fileAllocation: config.fileAllocation ?? D.fileAllocation,
     maxOverallDownloadLimit: String(config.maxOverallDownloadLimit ?? D.maxOverallDownloadLimit),
     maxOverallUploadLimit: String(config.maxOverallUploadLimit ?? D.maxOverallUploadLimit),
     speedScheduleEnabled: config.speedScheduleEnabled ?? D.speedScheduleEnabled,
@@ -85,15 +82,10 @@ export function buildDownloadsForm(config: AppConfig, defaultDir: string = ''): 
     speedScheduleDays: config.speedScheduleDays ?? D.speedScheduleDays,
     mediaSelectBeforeDownload: config.mediaSelectBeforeDownload ?? D.mediaSelectBeforeDownload,
     mediaDefaultFormat: config.mediaDefaultFormat ?? D.mediaDefaultFormat,
-    extensionDownloadBehavior: config.extensionDownloadBehavior ?? D.extensionDownloadBehavior,
     newTaskShowDownloading: config.newTaskShowDownloading ?? D.newTaskShowDownloading,
     noConfirmBeforeDeleteTask: config.noConfirmBeforeDeleteTask ?? D.noConfirmBeforeDeleteTask,
     fileDeletionMode: config.fileDeletionMode ?? D.fileDeletionMode,
     deleteFilesWhenSkipConfirm: config.deleteFilesWhenSkipConfirm ?? D.deleteFilesWhenSkipConfirm,
-    taskNotification: config.taskNotification ?? D.taskNotification,
-    notifyOnStart: config.notifyOnStart ?? D.notifyOnStart,
-    notifyOnComplete: config.notifyOnComplete ?? D.notifyOnComplete,
-    notificationClickAction: config.notificationClickAction ?? D.notificationClickAction,
     shutdownWhenComplete: config.shutdownWhenComplete ?? D.shutdownWhenComplete,
     keepAwake: config.keepAwake ?? D.keepAwake,
     postDownloadProgram: config.postDownloadProgram ?? D.postDownloadProgram,
@@ -107,7 +99,7 @@ export function buildDownloadsForm(config: AppConfig, defaultDir: string = ''): 
 
 /**
  * Converts the downloads form into aria2 system config key-value pairs.
- * Only engine-level download params; app-only keys (notifications, cleanup)
+ * Only engine-level download params; app-only keys (task actions, cleanup)
  * are excluded.
  */
 export function buildDownloadsSystemConfig(f: DownloadsForm): Record<string, string> {
@@ -121,6 +113,7 @@ export function buildDownloadsSystemConfig(f: DownloadsForm): Record<string, str
     'max-overall-upload-limit': f.maxOverallUploadLimit,
     continue: String(f.continue !== false),
     'remote-time': String(!!f.remoteTime),
+    'file-allocation': f.fileAllocation || D.fileAllocation,
     'max-tries': String(f.maxTries),
     'retry-wait': String(f.retryWait),
     'seed-ratio': keepSharing ? '0' : String(f.shareRatio),

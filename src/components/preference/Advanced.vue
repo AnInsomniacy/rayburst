@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** @fileoverview Advanced preference tab: RPC, extension, clipboard, default programs, engine, log, history, diagnostics. */
+/** @fileoverview Advanced preference tab: extension API, RPC, engine, log, history, diagnostics. */
 import { ref, computed, onMounted } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { open as openDialog } from '@tauri-apps/plugin-dialog'
@@ -12,16 +12,10 @@ import { useEngineStore } from '@/stores/engine'
 import { useHistoryStore } from '@/stores/history'
 import { useAdvancedActions } from '@/composables/useAdvancedActions'
 import { useEngineRestart } from '@/composables/useEngineRestart'
-import PreferenceAssociations from './PreferenceAssociations.vue'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { appDataDir, appLogDir, join, tempDir } from '@tauri-apps/api/path'
 import { APP_LOG_LEVELS, ARIA2_LOG_LEVELS } from '@shared/constants'
-import {
-  buildAdvancedForm,
-  buildAdvancedSystemConfig,
-  transformAdvancedForStore,
-  randomRpcPort,
-} from '@/composables/useAdvancedPreference'
+import { buildAdvancedForm, buildAdvancedSystemConfig, randomRpcPort } from '@/composables/useAdvancedPreference'
 import { generateConfigSecret } from '@shared/utils/configHydration'
 import {
   NForm,
@@ -39,7 +33,6 @@ import {
   NCard,
   NDataTable,
   NEmpty,
-  NCollapseTransition,
   useDialog,
 } from 'naive-ui'
 import { useAppMessage } from '@/composables/useAppMessage'
@@ -54,7 +47,6 @@ import {
 } from '@vicons/ionicons5'
 import { logger } from '@shared/logger'
 import PreferenceActionRegistration from './PreferenceActionRegistration.vue'
-import PreferenceCheckboxGrid from './PreferenceCheckboxGrid.vue'
 import PreferenceHintLabel from './PreferenceHintLabel.vue'
 
 const engineStore = useEngineStore()
@@ -74,34 +66,6 @@ import { writeAppClipboardText } from '@shared/utils'
 const appLogLevelOptions = APP_LOG_LEVELS.map((level) => ({ label: level, value: level }))
 const aria2LogLevelOptions = ARIA2_LOG_LEVELS.map((level) => ({ label: level, value: level }))
 
-type ClipboardType = 'http' | 'sftp' | 'magnet' | 'ed2k' | 'thunder' | 'btHash'
-const clipboardTypes: ClipboardType[] = ['http', 'sftp', 'magnet', 'ed2k', 'thunder', 'btHash']
-const clipboardTypeOptions = computed(() => [
-  { label: t('preferences.clipboard-http'), value: 'http' },
-  { label: t('preferences.clipboard-sftp'), value: 'sftp' },
-  { label: t('preferences.clipboard-magnet'), value: 'magnet' },
-  { label: t('preferences.clipboard-ed2k'), value: 'ed2k' },
-  { label: t('preferences.clipboard-thunder'), value: 'thunder' },
-  { label: t('preferences.clipboard-bt-hash'), value: 'btHash' },
-])
-const clipboardFieldByType: Record<ClipboardType, keyof typeof form.value> = {
-  http: 'clipboardHttp',
-  sftp: 'clipboardSftp',
-  magnet: 'clipboardMagnet',
-  ed2k: 'clipboardEd2k',
-  thunder: 'clipboardThunder',
-  btHash: 'clipboardBtHash',
-}
-const selectedClipboardTypes = computed<string[]>({
-  get: () => clipboardTypes.filter((type) => !!form.value[clipboardFieldByType[type]]),
-  set: (types) => {
-    const selected = new Set(types)
-    for (const type of clipboardTypes) {
-      form.value[clipboardFieldByType[type]] = selected.has(type)
-    }
-  },
-})
-
 const aria2ConfPath = ref('')
 const engineStatePath = ref('')
 const logPath = ref('')
@@ -110,7 +74,6 @@ const defaultTempPath = ref('')
 const { form, isDirty, handleSave, handleReset, resetSnapshot } = usePreferenceForm({
   buildForm,
   buildSystemConfig: buildAdvancedSystemConfig,
-  transformForStore: transformAdvancedForStore,
   beforeSave: async (f) => {
     // Only warn when user actively clears the secret (non-empty → empty).
     // If it was already empty before this edit session, no need to re-warn.
@@ -350,22 +313,6 @@ onMounted(async () => {
     <div class="preference-form-scroll">
       <NForm label-placement="left" label-align="left" label-width="260px" size="small" class="form-preference">
         <NDivider title-placement="left">{{ t('preferences.extension-section') }}</NDivider>
-        <NFormItem>
-          <template #label>
-            <PreferenceHintLabel
-              :label="t('preferences.extension-torrent-action')"
-              :hint="t('preferences.extension-torrent-action-hint')"
-            />
-          </template>
-          <NSelect
-            v-model:value="form.extensionTorrentAction"
-            class="pref-control-auto"
-            :options="[
-              { value: 'open', label: t('preferences.extension-torrent-open') },
-              { value: 'save', label: t('preferences.extension-torrent-save') },
-            ]"
-          />
-        </NFormItem>
         <NFormItem
           :label="t('preferences.extension-api-port')"
           v-bind="configFieldProps('extensionApiPort', form.extensionApiPort)"
@@ -663,28 +610,6 @@ onMounted(async () => {
             </NSpace>
           </div>
         </NFormItem>
-
-        <!-- Clipboard Detection (migrated from Basic) -->
-        <NDivider title-placement="left">{{ t('preferences.clipboard-detection') }}</NDivider>
-        <NFormItem>
-          <template #label>
-            <PreferenceHintLabel
-              :label="t('preferences.clipboard-auto-detect')"
-              :hint="t('preferences.clipboard-filter-hint')"
-            />
-          </template>
-          <NSwitch v-model:value="form.clipboardEnable" />
-        </NFormItem>
-        <NCollapseTransition :show="form.clipboardEnable">
-          <NFormItem label=" ">
-            <PreferenceCheckboxGrid v-model:value="selectedClipboardTypes" :options="clipboardTypeOptions" />
-          </NFormItem>
-          <NFormItem v-if="form.clipboardHttp" :label="t('preferences.clipboard-http-files-only')">
-            <NSwitch v-model:value="form.clipboardHttpFilesOnly" />
-          </NFormItem>
-        </NCollapseTransition>
-
-        <PreferenceAssociations />
       </NForm>
     </div>
 

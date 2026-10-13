@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { invoke } from '@tauri-apps/api/core'
-/** @fileoverview Downloads preference tab: paths, concurrency, speed limits, notifications, cleanup. */
+/** @fileoverview Downloads preference tab: paths, speed and concurrency, retries, media, task actions, sharing, automation, cleanup. */
 import { ref, computed, onMounted } from 'vue'
 import { speedUnitOptions as speedUnits } from '@shared/utils/format'
 import { useI18n } from 'vue-i18n'
@@ -14,7 +14,7 @@ import { getErrorMessage } from '@shared/utils/errorMessage'
 import { resolveUserVisibleDownloadDir } from '@shared/utils/userVisibleDirectory'
 import { toggleSpeedLimit } from '@/composables/useSpeedLimiter'
 import { changeGlobalOption, isEngineReady } from '@/api/aria2'
-import { SCHEDULE_DAY } from '@shared/constants'
+import { FILE_ALLOCATION_OPTIONS, SCHEDULE_DAY } from '@shared/constants'
 import { useAppMessage } from '@/composables/useAppMessage'
 import { usePlatform } from '@/composables/usePlatform'
 import {
@@ -43,7 +43,6 @@ import {
   NRadioGroup,
 } from 'naive-ui'
 import PreferenceActionRegistration from './PreferenceActionRegistration.vue'
-import PreferenceCheckboxGrid from './PreferenceCheckboxGrid.vue'
 import PreferenceHintLabel from './PreferenceHintLabel.vue'
 import DirectoryPopover from '@/components/common/DirectoryPopover.vue'
 import FileCategoryManager from './FileCategoryManager.vue'
@@ -127,21 +126,13 @@ const scheduleDayOptions = computed(() => [
   { label: t('preferences.schedule-days-weekends'), value: SCHEDULE_DAY.WEEKENDS },
 ])
 
-const notificationTypeOptions = computed(() => [
-  { label: t('preferences.notify-on-start'), value: 'start' },
-  { label: t('preferences.notify-on-complete'), value: 'complete' },
-])
-const extensionDownloadBehaviorOptions = computed(() => [
-  { value: 'confirm', label: t('preferences.extension-behavior-confirm') },
-  { value: 'background', label: t('preferences.extension-behavior-background') },
-  { value: 'show', label: t('preferences.extension-behavior-show') },
-])
-const notificationClickOptions = computed(() => [
-  { value: 'reveal', label: t('preferences.notification-click-reveal') },
-  { value: 'open', label: t('preferences.notification-click-open') },
-])
-// Only Windows reports clicks on notifications.
 const { isWindows } = usePlatform()
+const fileAllocationOptions = computed(() =>
+  FILE_ALLOCATION_OPTIONS.filter((value) => !(isWindows.value && value === 'falloc')).map((value) => ({
+    label: value,
+    value,
+  })),
+)
 const completedRecordRetentionOptions = computed(() => [
   { label: t('preferences.completed-record-retention-forever'), value: 0 },
   { label: t('preferences.completed-record-retention-1-day'), value: 1 },
@@ -159,14 +150,6 @@ const completedRecordRetentionSelectValue = computed<number>({
       value,
       Number(form.value.completedRecordRetentionDays),
     )
-  },
-})
-const selectedNotificationTypes = computed<string[]>({
-  get: () => [...(form.value.notifyOnStart ? ['start'] : []), ...(form.value.notifyOnComplete ? ['complete'] : [])],
-  set: (types) => {
-    const selected = new Set(types)
-    form.value.notifyOnStart = selected.has('start')
-    form.value.notifyOnComplete = selected.has('complete')
   },
 })
 const numericFieldsValid = computed(
@@ -299,106 +282,7 @@ onMounted(async () => {
   <div class="preference-form-wrapper">
     <div class="preference-form-scroll">
       <NForm label-placement="left" label-align="left" label-width="260px" size="small" class="form-preference">
-        <NDivider title-placement="left">{{ t('preferences.media-downloads') }}</NDivider>
-        <NFormItem :label="t('preferences.media-select-before-download')">
-          <NSwitch v-model:value="form.mediaSelectBeforeDownload" />
-        </NFormItem>
-        <NFormItem :label="t('preferences.media-default-format')">
-          <NSelect
-            v-model:value="form.mediaDefaultFormat"
-            :options="[
-              { label: 'MP4', value: 'mp4' },
-              { label: 'MKV', value: 'mkv' },
-            ]"
-            class="pref-control-auto"
-          />
-        </NFormItem>
-        <NDivider title-placement="left">{{ t('preferences.download-concurrency') }}</NDivider>
-        <NFormItem
-          :label="t('preferences.max-concurrent-downloads')"
-          v-bind="configFieldProps('maxConcurrentDownloads', form.maxConcurrentDownloads)"
-        >
-          <NInputNumber
-            v-model:value="form.maxConcurrentDownloads"
-            :min="constraint('maxConcurrentDownloads').min"
-            :max="constraint('maxConcurrentDownloads').max"
-            class="pref-number"
-          />
-        </NFormItem>
-        <NFormItem
-          :label="t('preferences.stream-max-connections')"
-          v-bind="configFieldProps('streamMaxConnections', form.streamMaxConnections)"
-        >
-          <NInputNumber
-            v-model:value="form.streamMaxConnections"
-            :min="constraint('streamMaxConnections').min"
-            :max="constraint('streamMaxConnections').max"
-            class="pref-number"
-          />
-        </NFormItem>
-        <NDivider title-placement="left">{{ t('preferences.p2p-sharing-section') }}</NDivider>
-        <NFormItem :label="t('preferences.sharing-mode')">
-          <NRadioGroup v-model:value="form.sharingMode" size="small">
-            <NRadioButton value="stop-by-condition">
-              {{ t('preferences.sharing-mode-stop-by-condition') }}
-            </NRadioButton>
-            <NRadioButton value="manual-stop">{{ t('preferences.sharing-mode-manual-stop') }}</NRadioButton>
-          </NRadioGroup>
-        </NFormItem>
-        <NCollapseTransition :show="form.sharingMode === 'stop-by-condition'" class="collapse-indent">
-          <NFormItem :label="t('preferences.share-ratio')" v-bind="configFieldProps('shareRatio', form.shareRatio)">
-            <NInputNumber
-              v-model:value="form.shareRatio"
-              :min="constraint('shareRatio').min"
-              :max="constraint('shareRatio').max"
-              :step="0.1"
-              class="pref-number"
-            />
-          </NFormItem>
-          <NFormItem
-            :label="t('preferences.share-time') + ' (' + t('preferences.share-time-unit') + ')'"
-            v-bind="configFieldProps('shareTime', form.shareTime)"
-          >
-            <NInputNumber
-              v-model:value="form.shareTime"
-              :min="constraint('shareTime').min"
-              :max="constraint('shareTime').max"
-              class="pref-number"
-            />
-          </NFormItem>
-        </NCollapseTransition>
-        <NCollapseTransition :show="form.sharingMode === 'manual-stop'" class="collapse-indent">
-          <NFormItem label=" ">
-            <NText depth="3">{{ t('preferences.sharing-mode-manual-stop-tips') }}</NText>
-          </NFormItem>
-        </NCollapseTransition>
-        <!-- Retry & File Options -->
-        <NDivider title-placement="left">{{ t('preferences.retry-and-file-behavior') }}</NDivider>
-        <NFormItem :label="t('preferences.max-tries')" v-bind="configFieldProps('maxTries', form.maxTries)">
-          <NInputNumber
-            v-model:value="form.maxTries"
-            :min="constraint('maxTries').min"
-            :max="constraint('maxTries').max"
-            class="pref-number"
-          />
-          <NText depth="3" class="pref-inline-note">
-            {{ t('preferences.max-tries-hint') }}
-          </NText>
-        </NFormItem>
-        <NFormItem :label="t('preferences.retry-wait')" v-bind="configFieldProps('retryWait', form.retryWait)">
-          <NInputNumber
-            v-model:value="form.retryWait"
-            :min="constraint('retryWait').min"
-            :max="constraint('retryWait').max"
-            class="pref-number"
-          />
-          <NText depth="3" class="pref-inline-note">{{ t('preferences.unit-seconds') }}</NText>
-        </NFormItem>
-        <NFormItem :label="t('preferences.continue')">
-          <NSwitch v-model:value="form.continue" />
-        </NFormItem>
-
-        <!-- Download Path -->
+        <!-- Save location -->
         <NDivider title-placement="left">{{ t('preferences.download-path') }}</NDivider>
         <NFormItem :label="t('preferences.default-path')">
           <NInputGroup>
@@ -422,6 +306,9 @@ onMounted(async () => {
             @update:value="handleFileTimestampChange"
           />
         </NFormItem>
+        <NFormItem :label="t('preferences.file-allocation')">
+          <NSelect v-model:value="form.fileAllocation" :options="fileAllocationOptions" class="pref-control-auto" />
+        </NFormItem>
         <NFormItem>
           <template #label>
             <PreferenceHintLabel
@@ -443,8 +330,30 @@ onMounted(async () => {
           </div>
         </NFormItem>
 
-        <!-- Speed Limit -->
-        <NDivider title-placement="left">{{ t('preferences.speed-limit') }}</NDivider>
+        <!-- Speed & concurrency -->
+        <NDivider title-placement="left">{{ t('preferences.speed-and-concurrency') }}</NDivider>
+        <NFormItem
+          :label="t('preferences.max-concurrent-downloads')"
+          v-bind="configFieldProps('maxConcurrentDownloads', form.maxConcurrentDownloads)"
+        >
+          <NInputNumber
+            v-model:value="form.maxConcurrentDownloads"
+            :min="constraint('maxConcurrentDownloads').min"
+            :max="constraint('maxConcurrentDownloads').max"
+            class="pref-number"
+          />
+        </NFormItem>
+        <NFormItem
+          :label="t('preferences.stream-max-connections')"
+          v-bind="configFieldProps('streamMaxConnections', form.streamMaxConnections)"
+        >
+          <NInputNumber
+            v-model:value="form.streamMaxConnections"
+            :min="constraint('streamMaxConnections').min"
+            :max="constraint('streamMaxConnections').max"
+            class="pref-number"
+          />
+        </NFormItem>
         <NFormItem :label="t('app.speedometer-enable-limit')">
           <NSwitch :value="preferenceStore.config.speedLimitEnabled" @update:value="handleSpeedLimitToggle" />
         </NFormItem>
@@ -514,15 +423,49 @@ onMounted(async () => {
           </NFormItem>
         </div>
 
-        <!-- Notification & Confirm -->
-        <NDivider title-placement="left">{{ t('preferences.notification-and-confirm') }}</NDivider>
-        <NFormItem :label="t('preferences.extension-download-behavior')">
+        <!-- Retry & File Options -->
+        <NDivider title-placement="left">{{ t('preferences.retry-and-file-behavior') }}</NDivider>
+        <NFormItem :label="t('preferences.max-tries')" v-bind="configFieldProps('maxTries', form.maxTries)">
+          <NInputNumber
+            v-model:value="form.maxTries"
+            :min="constraint('maxTries').min"
+            :max="constraint('maxTries').max"
+            class="pref-number"
+          />
+          <NText depth="3" class="pref-inline-note">
+            {{ t('preferences.max-tries-hint') }}
+          </NText>
+        </NFormItem>
+        <NFormItem :label="t('preferences.retry-wait')" v-bind="configFieldProps('retryWait', form.retryWait)">
+          <NInputNumber
+            v-model:value="form.retryWait"
+            :min="constraint('retryWait').min"
+            :max="constraint('retryWait').max"
+            class="pref-number"
+          />
+          <NText depth="3" class="pref-inline-note">{{ t('preferences.unit-seconds') }}</NText>
+        </NFormItem>
+        <NFormItem :label="t('preferences.continue')">
+          <NSwitch v-model:value="form.continue" />
+        </NFormItem>
+
+        <!-- Media -->
+        <NDivider title-placement="left">{{ t('preferences.media-downloads') }}</NDivider>
+        <NFormItem :label="t('preferences.media-select-before-download')">
+          <NSwitch v-model:value="form.mediaSelectBeforeDownload" />
+        </NFormItem>
+        <NFormItem :label="t('preferences.media-default-format')">
           <NSelect
-            v-model:value="form.extensionDownloadBehavior"
-            :options="extensionDownloadBehaviorOptions"
+            v-model:value="form.mediaDefaultFormat"
+            :options="[
+              { label: 'MP4', value: 'mp4' },
+              { label: 'MKV', value: 'mkv' },
+            ]"
             class="pref-control-auto"
           />
         </NFormItem>
+        <!-- Task actions -->
+        <NDivider title-placement="left">{{ t('preferences.task-actions-section') }}</NDivider>
         <NFormItem :label="t('preferences.new-task-show-downloading')">
           <NSwitch v-model:value="form.newTaskShowDownloading" />
         </NFormItem>
@@ -539,22 +482,44 @@ onMounted(async () => {
             </NCheckbox>
           </NFormItem>
         </NCollapseTransition>
-        <NFormItem :label="t('preferences.task-completed-notify')">
-          <NSwitch v-model:value="form.taskNotification" />
+
+        <!-- P2P sharing -->
+        <NDivider title-placement="left">{{ t('preferences.p2p-sharing-section') }}</NDivider>
+        <NFormItem :label="t('preferences.sharing-mode')">
+          <NRadioGroup v-model:value="form.sharingMode" size="small">
+            <NRadioButton value="stop-by-condition">
+              {{ t('preferences.sharing-mode-stop-by-condition') }}
+            </NRadioButton>
+            <NRadioButton value="manual-stop">{{ t('preferences.sharing-mode-manual-stop') }}</NRadioButton>
+          </NRadioGroup>
         </NFormItem>
-        <NCollapseTransition :show="form.taskNotification">
-          <NFormItem label=" ">
-            <PreferenceCheckboxGrid v-model:value="selectedNotificationTypes" :options="notificationTypeOptions" />
+        <NCollapseTransition :show="form.sharingMode === 'stop-by-condition'" class="collapse-indent">
+          <NFormItem :label="t('preferences.share-ratio')" v-bind="configFieldProps('shareRatio', form.shareRatio)">
+            <NInputNumber
+              v-model:value="form.shareRatio"
+              :min="constraint('shareRatio').min"
+              :max="constraint('shareRatio').max"
+              :step="0.1"
+              class="pref-number"
+            />
           </NFormItem>
-          <NFormItem v-if="isWindows" :label="t('preferences.notification-click-action')">
-            <NSelect
-              v-model:value="form.notificationClickAction"
-              :options="notificationClickOptions"
-              class="pref-control-auto"
+          <NFormItem
+            :label="t('preferences.share-time') + ' (' + t('preferences.share-time-unit') + ')'"
+            v-bind="configFieldProps('shareTime', form.shareTime)"
+          >
+            <NInputNumber
+              v-model:value="form.shareTime"
+              :min="constraint('shareTime').min"
+              :max="constraint('shareTime').max"
+              class="pref-number"
             />
           </NFormItem>
         </NCollapseTransition>
-
+        <NCollapseTransition :show="form.sharingMode === 'manual-stop'" class="collapse-indent">
+          <NFormItem label=" ">
+            <NText depth="3">{{ t('preferences.sharing-mode-manual-stop-tips') }}</NText>
+          </NFormItem>
+        </NCollapseTransition>
         <!-- Automation -->
         <NDivider title-placement="left">{{ t('preferences.automation-section') }}</NDivider>
         <NFormItem :label="t('preferences.shutdown-when-complete')">
