@@ -13,6 +13,8 @@ import type { GlobalThemeOverrides } from 'naive-ui'
 
 export const APP_COLOR_TOKENS_KEY: InjectionKey<ComputedRef<AppColorTokens>> = Symbol('app-color-tokens')
 
+const MESSAGE_SHADOW = '0 2px 8px var(--m3-shadow)'
+
 export function buildCssVariables(tokens: AppColorTokens): Record<string, string> {
   return {
     '--m3-primary': tokens.primary.color,
@@ -203,6 +205,16 @@ export function buildNaiveTheme(tokens: AppColorTokens): GlobalThemeOverrides {
       borderColor: tokens.outlineVariant,
     },
     Message: {
+      // Stacked toasts need a visible gap: the default 8px is filled by Naive's wide
+      // shadow, so a tight shadow and an outline keep each toast distinct.
+      margin: '0 0 10px 0',
+      border: `1px solid ${tokens.outlineVariant}`,
+      boxShadow: MESSAGE_SHADOW,
+      boxShadowInfo: MESSAGE_SHADOW,
+      boxShadowSuccess: MESSAGE_SHADOW,
+      boxShadowWarning: MESSAGE_SHADOW,
+      boxShadowError: MESSAGE_SHADOW,
+      boxShadowLoading: MESSAGE_SHADOW,
       color: tokens.surfaceContainerHighest,
       textColor: tokens.onSurface,
       closeIconColor: tokens.onSurfaceVariant,
