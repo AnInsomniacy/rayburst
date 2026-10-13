@@ -21,7 +21,8 @@ const { t } = useI18n()
           <BanOutline v-if="torrentDragState === 'reject'" />
           <CloudUploadOutline v-else />
         </NIcon>
-        <span>{{ t(torrentDragState === 'reject' ? 'task.drop-torrent-only' : 'task.drop-torrent-release') }}</span>
+        <span v-if="torrentDragState === 'reject'">{{ t('task.drop-torrent-only') }}</span>
+        <span v-else>{{ t('task.drop-torrent-release') }}</span>
       </div>
     </div>
   </Transition>
