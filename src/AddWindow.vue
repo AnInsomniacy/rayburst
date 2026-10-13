@@ -44,7 +44,9 @@ const PANEL_WIDTH = 600
 const PANEL_INSET = 16
 /** Height of the drawn title bar. */
 const TITLE_BAR_HEIGHT = 32
-/** Share of the screen's work area the window may take before its content scrolls. */
+/** How far the window may grow beyond its height with nothing expanded before its content scrolls. */
+const MAX_GROWTH = 1.2
+/** Share of the screen's work area the window never exceeds. */
 const MAX_SCREEN_SHARE = 0.9
 /** Quiet time after which the content has finished animating; longer than its transitions. */
 const SETTLE_MS = 400
@@ -61,6 +63,8 @@ const addTask = ref<InstanceType<typeof AddTask> | null>(null)
 const root = ref<HTMLElement | null>(null)
 /** Tallest the window may be, in CSS pixels. */
 const capHeight = ref(0)
+/** Height of the freshly mounted window, links tab, advanced options closed, in CSS pixels. */
+let baseHeight = 0
 const phase = ref<'hidden' | 'shown' | 'leaving'>('hidden')
 const unlisteners: UnlistenFn[] = []
 let closing = false
@@ -206,11 +210,15 @@ function onContentResize() {
   settleTimer = setTimeout(() => void applyHeight(fitHeight()), systemTitleBar.value ? 0 : SETTLE_MS)
 }
 
-/** Caps the window at a share of the work area of the screen it opens on. */
+/**
+ * Caps the window a little above its plain height, so expanding the advanced
+ * options scrolls instead of stretching it, and below most of the screen.
+ */
 async function measureScreen() {
   const monitor = await currentMonitor().catch(() => null)
   const logical = monitor ? monitor.workArea.size.height / monitor.scaleFactor : window.screen.availHeight
-  capHeight.value = Math.floor((logical * MAX_SCREEN_SHARE) / zoom.value)
+  const screenCap = Math.floor((logical * MAX_SCREEN_SHARE) / zoom.value)
+  capHeight.value = baseHeight ? Math.min(screenCap, Math.round(baseHeight * MAX_GROWTH)) : screenCap
 }
 
 const resizeObserver = new ResizeObserver(onContentResize)
@@ -244,7 +252,11 @@ watch(
 
 onMounted(async () => {
   document.documentElement.classList.add('add-window-document')
-  if (root.value) resizeObserver.observe(root.value)
+  if (root.value) {
+    // Freshly mounted, nothing is expanded yet.
+    baseHeight = root.value.getBoundingClientRect().height
+    resizeObserver.observe(root.value)
+  }
   appStore.setExternalInputErrorHandler((error) => {
     message.error(getErrorMessage(error, { fallback: t('task.error-unknown') }), { closable: true })
     appStore.showAddTaskDialog()
