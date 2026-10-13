@@ -8,7 +8,7 @@
 import { useTaskSelectionStore } from '@/stores/taskSelection'
 import { listen } from '@tauri-apps/api/event'
 import { updateTaskFileStates, type TaskFileState } from '@/composables/useTaskFileMissing'
-import { getCurrentWebview } from '@tauri-apps/api/webview'
+import { listenForTorrentDrops } from '@/composables/useTorrentDrop'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { open as openDialog } from '@tauri-apps/plugin-dialog'
 import { openUrl } from '@tauri-apps/plugin-opener'
@@ -379,19 +379,9 @@ export function useAppEvents(deps: AppEventsDeps): AppEventsReturn {
 
   // ─── Drag & drop .torrent files ──────────────────────────────────
   async function setupDragDropListener() {
-    const webview = getCurrentWebview()
     return registerCleanup(
-      await webview.onDragDropEvent((event) => {
-        if (event.payload.type === 'drop') {
-          const paths = event.payload.paths
-          const validPaths = paths?.filter((p: string) => p.endsWith('.torrent')) || []
-          if (validPaths.length > 0) {
-            logger.info('DragDrop', `dropped ${validPaths.length} file(s): [${validPaths.join(', ')}]`)
-            const items = validPaths.map((p: string) => createBatchItem(detectKind(p), p))
-            const skipped = appStore.enqueueBatch(items)
-            if (skipped > 0) message.warning(t('task.duplicate-task'))
-          }
-        }
+      await listenForTorrentDrops((items) => {
+        if (appStore.enqueueBatch(items) > 0) message.warning(t('task.duplicate-task'))
       }),
     )
   }

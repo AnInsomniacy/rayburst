@@ -27,6 +27,7 @@ import { usePreferenceStore } from '@/stores/preference'
 import { useAppMessage } from '@/composables/useAppMessage'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 import { usePlatform } from '@/composables/usePlatform'
+import { listenForTorrentDrops } from '@/composables/useTorrentDrop'
 import { logger } from '@shared/logger'
 import { getErrorMessage } from '@shared/utils/errorMessage'
 import type { BatchItem, ExternalDownloadInput } from '@shared/types'
@@ -263,6 +264,9 @@ onMounted(async () => {
   })
   unlisteners.push(
     await view.listen<AddWindowInputs>('add-window:inputs', ({ payload }) => void receive(payload)),
+    await listenForTorrentDrops((items) => {
+      if (appStore.enqueueBatch(items) > 0) message.warning(t('task.duplicate-task'))
+    }),
     await view.onCloseRequested((event) => {
       event.preventDefault()
       void addTask.value?.dismiss()
