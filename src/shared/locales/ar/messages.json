@@ -961,7 +961,9 @@
     "invert-selection": "عكس التحديد",
     "space-free": "المساحة الحرة {free}",
     "space-size-free": "{size} للتنزيل، والمساحة الحرة {free}",
-    "space-short": "المساحة غير كافية: {size} للتنزيل، والمتاح {free} فقط"
+    "space-short": "المساحة غير كافية: {size} للتنزيل، والمتاح {free} فقط",
+    "drop-torrent-release": "أفلِت لإضافة ملفات التورنت",
+    "drop-torrent-only": "يمكن إفلات ملفات .torrent فقط هنا"
   },
   "media": {
     "probing": "جارٍ فحص الوسائط",

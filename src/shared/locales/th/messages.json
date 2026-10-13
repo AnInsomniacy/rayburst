@@ -961,7 +961,9 @@
     "invert-selection": "กลับการเลือก",
     "space-free": "ว่าง {free}",
     "space-size-free": "ต้องดาวน์โหลด {size} ว่าง {free}",
-    "space-short": "พื้นที่ไม่พอ: ต้องดาวน์โหลด {size} ว่างเพียง {free}"
+    "space-short": "พื้นที่ไม่พอ: ต้องดาวน์โหลด {size} ว่างเพียง {free}",
+    "drop-torrent-release": "ปล่อยเพื่อเพิ่มทอร์เรนต์",
+    "drop-torrent-only": "ลากมาวางได้เฉพาะไฟล์ .torrent เท่านั้น"
   },
   "media": {
     "probing": "กำลังตรวจสอบสื่อ",

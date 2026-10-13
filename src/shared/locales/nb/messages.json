@@ -961,7 +961,9 @@
     "invert-selection": "Inverter utvalg",
     "space-free": "{free} ledig",
     "space-size-free": "{size} å laste ned, {free} ledig",
-    "space-short": "Ikke nok plass: {size} å laste ned, bare {free} ledig"
+    "space-short": "Ikke nok plass: {size} å laste ned, bare {free} ledig",
+    "drop-torrent-release": "Slipp for å legge til torrenter",
+    "drop-torrent-only": "Bare .torrent-filer kan slippes her"
   },
   "media": {
     "probing": "Undersøker medier",

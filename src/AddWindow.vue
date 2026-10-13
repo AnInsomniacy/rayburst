@@ -22,6 +22,7 @@ import { LogicalSize, currentMonitor } from '@tauri-apps/api/window'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import AddTask from '@/components/task/AddTask.vue'
 import WindowControls from '@/components/layout/WindowControls.vue'
+import TorrentDropOverlay from '@/components/task/TorrentDropOverlay.vue'
 import { useAppStore } from '@/stores/app'
 import { usePreferenceStore } from '@/stores/preference'
 import { useAppMessage } from '@/composables/useAppMessage'
@@ -264,9 +265,7 @@ onMounted(async () => {
   })
   unlisteners.push(
     await view.listen<AddWindowInputs>('add-window:inputs', ({ payload }) => void receive(payload)),
-    await listenForTorrentDrops((items) => {
-      if (appStore.enqueueBatch(items) > 0) message.warning(t('task.duplicate-task'))
-    }),
+    await listenForTorrentDrops({ enqueue: (items) => appStore.enqueueBatch(items), warn: message.warning, t }),
     await view.onCloseRequested((event) => {
       event.preventDefault()
       void addTask.value?.dismiss()
@@ -306,6 +305,7 @@ onBeforeUnmount(() => {
         @close="close"
         @submitted="emit('add-window:submitted').catch(() => undefined)"
       />
+      <TorrentDropOverlay />
     </div>
   </div>
 </template>

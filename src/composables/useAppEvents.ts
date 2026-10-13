@@ -380,9 +380,7 @@ export function useAppEvents(deps: AppEventsDeps): AppEventsReturn {
   // ─── Drag & drop .torrent files ──────────────────────────────────
   async function setupDragDropListener() {
     return registerCleanup(
-      await listenForTorrentDrops((items) => {
-        if (appStore.enqueueBatch(items) > 0) message.warning(t('task.duplicate-task'))
-      }),
+      await listenForTorrentDrops({ enqueue: (items) => appStore.enqueueBatch(items), warn: message.warning, t }),
     )
   }
 

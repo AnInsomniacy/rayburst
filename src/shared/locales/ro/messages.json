@@ -961,7 +961,9 @@
     "invert-selection": "Inversează selecția",
     "space-free": "{free} liber",
     "space-size-free": "{size} de descărcat, {free} liber",
-    "space-short": "Spațiu insuficient: {size} de descărcat, doar {free} liber"
+    "space-short": "Spațiu insuficient: {size} de descărcat, doar {free} liber",
+    "drop-torrent-release": "Eliberați pentru a adăuga torrente",
+    "drop-torrent-only": "Aici se pot plasa doar fișiere .torrent"
   },
   "media": {
     "probing": "Analizare conținut",

@@ -36,6 +36,7 @@ import EngineRecoveryDialog from '@/components/layout/EngineRecoveryDialog.vue'
 import AboutPanel from '@/components/about/AboutPanel.vue'
 import ExtensionPanel from '@/components/extension/ExtensionPanel.vue'
 import AddTask from '@/components/task/AddTask.vue'
+import TorrentDropOverlay from '@/components/task/TorrentDropOverlay.vue'
 import UpdateDialog from '@/components/preference/UpdateDialog.vue'
 import TaskSelectionHost from '@/components/task/TaskSelectionHost.vue'
 import { useTaskStore } from '@/stores/task'
@@ -914,6 +915,7 @@ onUnmounted(() => {
         style="margin-top: 12px"
       />
     </NModal>
+    <TorrentDropOverlay />
   </div>
 </template>
 

@@ -961,7 +961,9 @@
     "invert-selection": "Invert selection",
     "space-free": "{free} free",
     "space-size-free": "{size} to download, {free} free",
-    "space-short": "Not enough space: {size} to download, only {free} free"
+    "space-short": "Not enough space: {size} to download, only {free} free",
+    "drop-torrent-release": "Drop to add torrents",
+    "drop-torrent-only": "Only .torrent files can be dropped here"
   },
   "media": {
     "probing": "Inspecting media",

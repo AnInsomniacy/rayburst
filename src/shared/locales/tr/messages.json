@@ -961,7 +961,9 @@
     "invert-selection": "Seçimi tersine çevir",
     "space-free": "{free} boş",
     "space-size-free": "İndirilecek {size}, boş {free}",
-    "space-short": "Yetersiz alan: indirilecek {size}, yalnızca {free} boş"
+    "space-short": "Yetersiz alan: indirilecek {size}, yalnızca {free} boş",
+    "drop-torrent-release": "Torrent eklemek için bırakın",
+    "drop-torrent-only": "Buraya yalnızca .torrent dosyaları bırakılabilir"
   },
   "media": {
     "probing": "Medya inceleniyor",

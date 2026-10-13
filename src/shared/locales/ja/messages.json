@@ -961,7 +961,9 @@
     "invert-selection": "選択を反転",
     "space-free": "空き {free}",
     "space-size-free": "ダウンロード {size}、空き {free}",
-    "space-short": "空き容量が不足しています：ダウンロード {size}、空き {free}"
+    "space-short": "空き容量が不足しています：ダウンロード {size}、空き {free}",
+    "drop-torrent-release": "ドロップしてトレントを追加",
+    "drop-torrent-only": "ドロップできるのは .torrent ファイルのみです"
   },
   "media": {
     "probing": "メディアを解析中",

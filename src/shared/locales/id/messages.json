@@ -961,7 +961,9 @@
     "invert-selection": "Balikkan pilihan",
     "space-free": "{free} kosong",
     "space-size-free": "{size} untuk diunduh, {free} kosong",
-    "space-short": "Ruang tidak cukup: {size} untuk diunduh, hanya {free} kosong"
+    "space-short": "Ruang tidak cukup: {size} untuk diunduh, hanya {free} kosong",
+    "drop-torrent-release": "Lepaskan untuk menambahkan torrent",
+    "drop-torrent-only": "Hanya file .torrent yang dapat dilepas di sini"
   },
   "media": {
     "probing": "Memeriksa media",

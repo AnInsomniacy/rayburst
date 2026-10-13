@@ -961,7 +961,9 @@
     "invert-selection": "Kijelölés megfordítása",
     "space-free": "{free} szabad",
     "space-size-free": "{size} letöltendő, {free} szabad",
-    "space-short": "Nincs elég hely: {size} letöltendő, csak {free} szabad"
+    "space-short": "Nincs elég hely: {size} letöltendő, csak {free} szabad",
+    "drop-torrent-release": "Engedje el a torrentek hozzáadásához",
+    "drop-torrent-only": "Ide csak .torrent fájlok húzhatók"
   },
   "media": {
     "probing": "Média vizsgálata",

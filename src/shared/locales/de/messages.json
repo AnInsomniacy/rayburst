@@ -961,7 +961,9 @@
     "invert-selection": "Auswahl umkehren",
     "space-free": "{free} frei",
     "space-size-free": "{size} herunterzuladen, {free} frei",
-    "space-short": "Nicht genug Speicherplatz: {size} herunterzuladen, nur {free} frei"
+    "space-short": "Nicht genug Speicherplatz: {size} herunterzuladen, nur {free} frei",
+    "drop-torrent-release": "Loslassen, um Torrents hinzuzufügen",
+    "drop-torrent-only": "Hier können nur .torrent-Dateien abgelegt werden"
   },
   "media": {
     "probing": "Medium wird untersucht",

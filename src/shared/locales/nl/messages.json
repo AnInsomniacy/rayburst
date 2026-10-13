@@ -961,7 +961,9 @@
     "invert-selection": "Selectie omkeren",
     "space-free": "{free} vrij",
     "space-size-free": "{size} te downloaden, {free} vrij",
-    "space-short": "Onvoldoende ruimte: {size} te downloaden, slechts {free} vrij"
+    "space-short": "Onvoldoende ruimte: {size} te downloaden, slechts {free} vrij",
+    "drop-torrent-release": "Loslaten om torrents toe te voegen",
+    "drop-torrent-only": "Hier kunnen alleen .torrent-bestanden worden neergezet"
   },
   "media": {
     "probing": "Media onderzoeken",

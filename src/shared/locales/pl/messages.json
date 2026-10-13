@@ -961,7 +961,9 @@
     "invert-selection": "Odwróć zaznaczenie",
     "space-free": "Wolne: {free}",
     "space-size-free": "Do pobrania {size}, wolne {free}",
-    "space-short": "Za mało miejsca: do pobrania {size}, wolne tylko {free}"
+    "space-short": "Za mało miejsca: do pobrania {size}, wolne tylko {free}",
+    "drop-torrent-release": "Upuść, aby dodać torrenty",
+    "drop-torrent-only": "Można tu upuszczać tylko pliki .torrent"
   },
   "media": {
     "probing": "Analizowanie multimediów",

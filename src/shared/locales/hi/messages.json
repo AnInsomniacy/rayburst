@@ -961,7 +961,9 @@
     "invert-selection": "चयन उलटें",
     "space-free": "{free} खाली",
     "space-size-free": "{size} डाउनलोड करना है, {free} खाली",
-    "space-short": "पर्याप्त जगह नहीं: {size} डाउनलोड करना है, केवल {free} खाली"
+    "space-short": "पर्याप्त जगह नहीं: {size} डाउनलोड करना है, केवल {free} खाली",
+    "drop-torrent-release": "टोरेंट जोड़ने के लिए छोड़ें",
+    "drop-torrent-only": "यहाँ केवल .torrent फ़ाइलें छोड़ी जा सकती हैं"
   },
   "media": {
     "probing": "मीडिया की जाँच जारी",

@@ -961,7 +961,9 @@
     "invert-selection": "معکوس کردن انتخاب",
     "space-free": "{free} فضای آزاد",
     "space-size-free": "{size} برای دانلود، {free} فضای آزاد",
-    "space-short": "فضای کافی نیست: {size} برای دانلود، فقط {free} آزاد"
+    "space-short": "فضای کافی نیست: {size} برای دانلود، فقط {free} آزاد",
+    "drop-torrent-release": "برای افزودن تورنت رها کنید",
+    "drop-torrent-only": "فقط فایل‌های .torrent را می‌توان اینجا رها کرد"
   },
   "media": {
     "probing": "در حال بررسی رسانه",

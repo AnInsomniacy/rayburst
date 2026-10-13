@@ -961,7 +961,9 @@
     "invert-selection": "Inverter seleção",
     "space-free": "{free} livres",
     "space-size-free": "{size} para baixar, {free} livres",
-    "space-short": "Espaço insuficiente: {size} para baixar, apenas {free} livres"
+    "space-short": "Espaço insuficiente: {size} para baixar, apenas {free} livres",
+    "drop-torrent-release": "Solte para adicionar torrents",
+    "drop-torrent-only": "Somente arquivos .torrent podem ser soltos aqui"
   },
   "media": {
     "probing": "Analisando mídia",

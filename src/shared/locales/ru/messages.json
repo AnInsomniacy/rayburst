@@ -961,7 +961,9 @@
     "invert-selection": "Инвертировать выбор",
     "space-free": "Свободно {free}",
     "space-size-free": "Скачать {size}, свободно {free}",
-    "space-short": "Недостаточно места: скачать {size}, свободно лишь {free}"
+    "space-short": "Недостаточно места: скачать {size}, свободно лишь {free}",
+    "drop-torrent-release": "Отпустите, чтобы добавить торренты",
+    "drop-torrent-only": "Сюда можно перетащить только файлы .torrent"
   },
   "media": {
     "probing": "Анализ медиа",

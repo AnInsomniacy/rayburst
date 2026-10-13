@@ -961,7 +961,9 @@
     "invert-selection": "선택 반전",
     "space-free": "여유 공간 {free}",
     "space-size-free": "다운로드 {size}, 여유 공간 {free}",
-    "space-short": "공간 부족: 다운로드 {size}, 여유 공간 {free}뿐"
+    "space-short": "공간 부족: 다운로드 {size}, 여유 공간 {free}뿐",
+    "drop-torrent-release": "놓아서 토렌트 추가",
+    "drop-torrent-only": ".torrent 파일만 끌어다 놓을 수 있습니다"
   },
   "media": {
     "probing": "미디어 분석 중",

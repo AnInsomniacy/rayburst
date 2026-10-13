@@ -961,7 +961,9 @@
     "invert-selection": "Đảo lựa chọn",
     "space-free": "Còn trống {free}",
     "space-size-free": "Cần tải {size}, còn trống {free}",
-    "space-short": "Không đủ dung lượng: cần tải {size}, chỉ còn {free}"
+    "space-short": "Không đủ dung lượng: cần tải {size}, chỉ còn {free}",
+    "drop-torrent-release": "Thả để thêm torrent",
+    "drop-torrent-only": "Chỉ có thể thả tệp .torrent vào đây"
   },
   "media": {
     "probing": "Đang phân tích nội dung",

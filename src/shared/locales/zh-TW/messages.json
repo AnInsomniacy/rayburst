@@ -961,7 +961,9 @@
     "invert-selection": "反向選取",
     "space-free": "可用 {free}",
     "space-size-free": "需下載 {size}，可用 {free}",
-    "space-short": "空間不足：需下載 {size}，僅剩 {free}"
+    "space-short": "空間不足：需下載 {size}，僅剩 {free}",
+    "drop-torrent-release": "放開以新增種子",
+    "drop-torrent-only": "只能拖入 .torrent 種子檔案"
   },
   "media": {
     "probing": "正在探測媒體",
