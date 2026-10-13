@@ -55,6 +55,8 @@ export interface AppColorTokens {
   onSurface: string
   onSurfaceVariant: string
   surfaceDim: string
+  /** Floating content such as toasts: a step lighter than the window in either mode, never glaring. */
+  surfaceRaised: string
   surfaceContainerLowest: string
   surfaceContainerLow: string
   surfaceContainer: string
@@ -74,6 +76,7 @@ export interface AppColorTokens {
 const SURFACE_TONES = {
   light: {
     surfaceDim: 84,
+    surfaceRaised: 97,
     surfaceContainerLowest: 98,
     surfaceContainerLow: 94,
     surfaceContainer: 91,
@@ -82,6 +85,7 @@ const SURFACE_TONES = {
   },
   dark: {
     surfaceDim: 6,
+    surfaceRaised: 20,
     surfaceContainerLowest: 4,
     surfaceContainerLow: 10,
     surfaceContainer: 12,
@@ -203,6 +207,7 @@ export function buildAppColorTokens(theme: Theme, dark: boolean): AppColorTokens
     onSurface: hexFromArgb(scheme.onSurface),
     onSurfaceVariant: hexFromArgb(scheme.onSurfaceVariant),
     surfaceDim: hexFromArgb(neutral.tone(surfaceTones.surfaceDim)),
+    surfaceRaised: hexFromArgb(neutral.tone(surfaceTones.surfaceRaised)),
     surfaceContainerLowest: hexFromArgb(neutral.tone(surfaceTones.surfaceContainerLowest)),
     surfaceContainerLow: hexFromArgb(neutral.tone(surfaceTones.surfaceContainerLow)),
     surfaceContainer: hexFromArgb(neutral.tone(surfaceTones.surfaceContainer)),
