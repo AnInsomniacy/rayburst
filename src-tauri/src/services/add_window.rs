@@ -26,6 +26,9 @@ const FALLBACK_EVENT: &str = "add-window:fallback";
 /// How long a new window may take to load before its inputs go to the main
 /// window instead.
 const READY_TIMEOUT: Duration = Duration::from_secs(10);
+/// Transparent margin around the panel the window draws, which holds the
+/// panel's shadow. Matches `PANEL_INSET` in `AddWindow.vue`.
+const PANEL_INSET: f64 = 16.0;
 
 /// Inputs for the add window: structured browser handoffs, plain links and
 /// torrent paths, batch items prepared by the main window, and a request for
@@ -321,8 +324,12 @@ fn open(app: &AppHandle, source: &'static str) {
 /// The add window starts from the main window's configuration. WebView2 refuses
 /// a second webview whose environment (browser arguments, proxy, extensions)
 /// differs from the first one in the same data directory, so both windows must
-/// share those settings. It keeps the main window's title bar style too; its
-/// height follows its content, so the user does not resize it.
+/// share those settings. It keeps the main window's title bar style too.
+///
+/// The window is transparent and its page draws the panel, with rounded
+/// corners and a shadow, so the panel can animate in and out and grow and
+/// shrink smoothly inside a window that is resized only once per change. The
+/// native shadow would outline the whole transparent window instead.
 fn window_config(app: &AppHandle) -> tauri::Result<tauri::utils::config::WindowConfig> {
     let mut config = app
         .config()
@@ -335,17 +342,23 @@ fn window_config(app: &AppHandle) -> tauri::Result<tauri::utils::config::WindowC
     config.label = LABEL.to_owned();
     config.url = WebviewUrl::default();
     config.title = "Rayburst".to_owned();
-    config.width = 600.0;
-    config.height = 520.0;
+    config.width = 600.0 + 2.0 * PANEL_INSET;
+    config.height = 560.0;
     config.min_width = None;
     config.min_height = None;
     config.x = None;
     config.y = None;
     config.center = true;
     config.visible = false;
-    config.transparent = false;
+    config.transparent = true;
+    config.shadow = false;
     config.resizable = false;
     config.maximizable = false;
+    // macOS: the traffic lights sit in the panel's title bar, not the margin.
+    config.traffic_light_position = Some(tauri::utils::config::LogicalPosition {
+        x: PANEL_INSET + 14.0,
+        y: PANEL_INSET + 10.0,
+    });
     Ok(config)
 }
 

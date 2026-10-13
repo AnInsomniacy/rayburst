@@ -6,8 +6,13 @@
  * download: browser handoffs, links, torrent files and manual entry from the
  * main window. It shows itself once there is something to confirm, and puts
  * itself away after the user submits or cancels, or after handing
- * auto-submitted downloads to the engine. Its height follows its content, so
- * expanding the advanced options grows the window with them.
+ * auto-submitted downloads to the engine.
+ *
+ * The window is transparent and draws its panel, rounded and shadowed, with a
+ * margin around it. Motion stays inside the page, where it runs on the
+ * compositor: the panel scales in and out like the in-app dialog did, and
+ * grows or shrinks with its content inside a window that is resized once per
+ * change instead of on every frame.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -33,10 +38,18 @@ interface AddWindowInputs {
   manual: boolean
 }
 
-/** Logical width of the window at 100% interface size. */
-const WINDOW_WIDTH = 600
+/** Logical width of the panel at 100% interface size. */
+const PANEL_WIDTH = 600
+/** Transparent margin around the panel for its shadow; `PANEL_INSET` in add_window.rs. */
+const PANEL_INSET = 16
+/** Height of the drawn title bar. */
+const TITLE_BAR_HEIGHT = 32
 /** Share of the screen's work area the window may take before its content scrolls. */
 const MAX_SCREEN_SHARE = 0.9
+/** Quiet time after which the content has finished animating; longer than its transitions. */
+const SETTLE_MS = 400
+/** Duration of the leave animation in the styles below. */
+const LEAVE_MS = 150
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -46,7 +59,9 @@ const { platform, isMac, isLinux } = usePlatform()
 const view = getCurrentWebviewWindow()
 const addTask = ref<InstanceType<typeof AddTask> | null>(null)
 const root = ref<HTMLElement | null>(null)
-const maxHeight = ref(0)
+/** Tallest the window may be, in CSS pixels. */
+const capHeight = ref(0)
+const phase = ref<'hidden' | 'shown' | 'leaving'>('hidden')
 const unlisteners: UnlistenFn[] = []
 let closing = false
 // Put away after an earlier download; preferences may have changed since.
@@ -55,6 +70,11 @@ let parked = false
 // Window managers that force server-side decorations draw their own title bar (#533).
 const systemTitleBar = computed(() => isLinux.value && preferenceStore.config.systemTitleBar)
 const zoom = computed(() => preferenceStore.config.uiScale || 1)
+// A system title bar frames the window itself; no drawn panel, shadow or margin.
+const inset = computed(() => (systemTitleBar.value ? 0 : PANEL_INSET))
+const cardMaxHeight = computed(() =>
+  capHeight.value ? capHeight.value - 2 * inset.value - (systemTitleBar.value ? 0 : TITLE_BAR_HEIGHT) : 0,
+)
 
 useEscapeKey(() => void addTask.value?.dismiss(), { fromEditable: true })
 
@@ -110,6 +130,7 @@ async function close() {
   }
   // The main window keeps its own copy of the preferences this window may have saved.
   await emit('add-window:closed').catch(() => undefined)
+  await leave()
   try {
     const late = await invoke<AddWindowInputs>('add_window_park')
     parked = true
@@ -121,56 +142,94 @@ async function close() {
   }
 }
 
+// ── Motion ──────────────────────────────────────────────────────────
+
+function reducedMotion(): boolean {
+  return document.documentElement.classList.contains('reduce-motion')
+}
+
+function nextFrame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()))
+}
+
+/** Fades the panel out before the window is put away. */
+async function leave() {
+  if (phase.value !== 'shown') return
+  phase.value = 'leaving'
+  if (!reducedMotion()) await new Promise((resolve) => setTimeout(resolve, LEAVE_MS))
+}
+
 // ── Size ────────────────────────────────────────────────────────────
-// The window follows its content's height. Resizes are sent one at a time and
-// coalesced, so an animated expansion moves the window frame by frame.
+// Resizing the window relays out the whole webview, too slow to follow an
+// animation frame by frame. When the content grows, the window grows at once to
+// the most the panel may take, so the panel expands smoothly inside its
+// transparent margin; once the content has stopped moving, the window shrinks
+// to fit it again.
 
-let sentHeight = 0
+let appliedHeight = 0
+let wantedHeight = 0
 let sizing = false
-let resizeAgain = false
+let settleTimer: ReturnType<typeof setTimeout> | undefined
 
-async function syncSize() {
-  if (!root.value) return
-  if (sizing) {
-    resizeAgain = true
-    return
-  }
+function fitHeight(): number {
+  return root.value ? Math.ceil(root.value.getBoundingClientRect().height * zoom.value) : 0
+}
+
+/** Sends one resize at a time, always ending on the latest wanted height. */
+async function applyHeight(height: number) {
+  if (height <= 0) return
+  wantedHeight = height
+  if (sizing) return
   sizing = true
   try {
-    do {
-      resizeAgain = false
-      const height = Math.ceil(root.value.getBoundingClientRect().height * zoom.value)
-      if (height > 0 && height !== sentHeight) {
-        sentHeight = height
-        await view.setSize(new LogicalSize(Math.round(WINDOW_WIDTH * zoom.value), height))
-      }
-    } while (resizeAgain)
+    while (wantedHeight !== appliedHeight) {
+      const next = wantedHeight
+      const width = Math.round((PANEL_WIDTH + 2 * inset.value) * zoom.value)
+      await view.setSize(new LogicalSize(width, next))
+      appliedHeight = next
+    }
   } catch (error) {
-    logger.debug('AddWindow.setSize', error)
+    appliedHeight = 0
+    logger.warn('AddWindow.setSize', getErrorMessage(error))
   } finally {
     sizing = false
   }
 }
 
-/** Caps the content at a share of the work area of the screen it opens on. */
-async function measureScreen() {
-  const monitor = await currentMonitor().catch(() => null)
-  if (!monitor) return
-  const logical = monitor.workArea.size.height / monitor.scaleFactor
-  maxHeight.value = Math.floor((logical * MAX_SCREEN_SHARE) / zoom.value)
+function onContentResize() {
+  const fit = fitHeight()
+  // Without a transparent margin the window has to follow the content directly.
+  if (fit > appliedHeight) {
+    void applyHeight(systemTitleBar.value ? fit : Math.max(fit, Math.round(capHeight.value * zoom.value)))
+  }
+  clearTimeout(settleTimer)
+  settleTimer = setTimeout(() => void applyHeight(fitHeight()), systemTitleBar.value ? 0 : SETTLE_MS)
 }
 
-const resizeObserver = new ResizeObserver(() => void syncSize())
+/** Caps the window at a share of the work area of the screen it opens on. */
+async function measureScreen() {
+  const monitor = await currentMonitor().catch(() => null)
+  const logical = monitor ? monitor.workArea.size.height / monitor.scaleFactor : window.screen.availHeight
+  capHeight.value = Math.floor((logical * MAX_SCREEN_SHARE) / zoom.value)
+}
+
+const resizeObserver = new ResizeObserver(onContentResize)
 
 watch(
   () => appStore.addTaskVisible,
   async (visible) => {
     if (!visible) return
+    phase.value = 'hidden'
     await view.setTitle(`${t('task.new-task')} - Rayburst`).catch(() => undefined)
     await measureScreen()
     await nextTick()
-    await syncSize()
+    clearTimeout(settleTimer)
+    await applyHeight(fitHeight())
     await invoke('add_window_present').catch((error: unknown) => logger.warn('AddWindow.present', error))
+    // Let the shown window paint the panel's start state before it animates.
+    await nextFrame()
+    await nextFrame()
+    phase.value = 'shown'
   },
 )
 
@@ -202,6 +261,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  clearTimeout(settleTimer)
   resizeObserver.disconnect()
   appStore.setExternalInputErrorHandler(null)
   for (const unlisten of unlisteners) unlisten()
@@ -212,27 +272,61 @@ onBeforeUnmount(() => {
   <div
     ref="root"
     class="add-window"
-    :style="maxHeight ? { '--add-window-max-height': `${maxHeight - (systemTitleBar ? 0 : 32)}px` } : undefined"
+    :class="[`add-window--${phase}`, { 'add-window--framed': !systemTitleBar }]"
+    :style="{
+      padding: `${inset}px`,
+      ...(cardMaxHeight ? { '--add-window-max-height': `${cardMaxHeight}px` } : {}),
+    }"
   >
-    <header v-if="!systemTitleBar" class="add-window-titlebar" :class="{ mac: isMac }" data-tauri-drag-region>
-      <span class="add-window-title" data-tauri-drag-region>{{ t('task.new-task') }}</span>
-      <WindowControls :is-maximized="false" :platform="platform" :maximizable="false" @close="addTask?.dismiss()" />
-    </header>
-    <AddTask
-      ref="addTask"
-      standalone
-      :show="appStore.addTaskVisible"
-      @close="close"
-      @submitted="emit('add-window:submitted').catch(() => undefined)"
-    />
+    <div class="add-window-panel">
+      <header v-if="!systemTitleBar" class="add-window-titlebar" :class="{ mac: isMac }" data-tauri-drag-region>
+        <span class="add-window-title" data-tauri-drag-region>{{ t('task.new-task') }}</span>
+        <WindowControls :is-maximized="false" :platform="platform" :maximizable="false" @close="addTask?.dismiss()" />
+      </header>
+      <AddTask
+        ref="addTask"
+        standalone
+        :show="appStore.addTaskVisible"
+        @close="close"
+        @submitted="emit('add-window:submitted').catch(() => undefined)"
+      />
+    </div>
   </div>
 </template>
 
 <style scoped>
-.add-window {
+.add-window-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: var(--main-bg);
+  transform-origin: center;
+  /* Entering matches the in-app dialog's open motion. */
+  transition:
+    opacity 0.3s cubic-bezier(0.2, 0, 0, 1),
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.add-window--framed .add-window-panel {
+  border-radius: var(--radius-md);
+  box-shadow:
+    0 2px 12px var(--m3-shadow),
+    0 0 0 1px var(--m3-outline-variant);
+}
+
+.add-window--hidden .add-window-panel {
+  opacity: 0;
+  transform: scale(0.92);
+  transition: none;
+}
+
+.add-window--leaving .add-window-panel {
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity 0.15s cubic-bezier(0.3, 0, 0.8, 0.15),
+    transform 0.15s cubic-bezier(0.3, 0, 0.8, 0.15);
 }
 
 .add-window-titlebar {
@@ -242,6 +336,11 @@ onBeforeUnmount(() => {
   height: 32px;
   flex-shrink: 0;
   padding-inline: 16px;
+}
+
+/* The caption buttons belong to the panel's corner, not the window's. */
+.add-window-titlebar :deep(.caption-bar) {
+  position: absolute;
 }
 
 /* macOS draws its traffic lights over the left of the title bar. */
@@ -259,10 +358,13 @@ onBeforeUnmount(() => {
 </style>
 
 <style>
-/* The page itself stays the content's color while the window catches up. */
+/* The window is transparent around the panel, and the page never scrolls:
+ * focusing a field below the window's edge would otherwise move the whole
+ * page. Only the card's content scrolls, once the window is full. */
 html.add-window-document,
 html.add-window-document body {
-  background: var(--main-bg);
+  background: transparent;
+  overflow: clip;
 }
 
 html.add-window-document #app {

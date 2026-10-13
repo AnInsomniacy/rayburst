@@ -14,6 +14,7 @@
     "core:window:allow-show",
     "core:window:allow-hide",
     "core:window:allow-set-focus",
+    "core:window:allow-set-size",
     "core:window:allow-set-title",
     "core:window:allow-set-decorations",
     "core:webview:allow-set-webview-zoom",
