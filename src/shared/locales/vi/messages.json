@@ -35,7 +35,6 @@
     "retry": "Thử lại",
     "close": "Đóng",
     "engine-not-ready": "Engine đang khởi động, vui lòng đợi...",
-    "engine-ready": "Công cụ Aria2 Next đã sẵn sàng",
     "engine-failed": "Không thể khởi động engine",
     "new-version-available": "Có bản cập nhật",
     "tray-new-task": "Tác vụ mới",

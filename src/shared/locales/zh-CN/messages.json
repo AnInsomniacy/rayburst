@@ -35,7 +35,6 @@
     "retry": "重试",
     "close": "关闭",
     "engine-not-ready": "引擎正在启动，请稍候...",
-    "engine-ready": "Aria2 Next 引擎已就绪",
     "engine-failed": "引擎启动失败",
     "new-version-available": "版本更新可用",
     "tray-new-task": "新建任务",

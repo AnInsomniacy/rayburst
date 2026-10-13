@@ -35,7 +35,6 @@
     "retry": "Prøv igjen",
     "close": "Lukk",
     "engine-not-ready": "Motoren starter, vennligst vent...",
-    "engine-ready": "Aria2 Next-motoren er klar",
     "engine-failed": "Kunne ikke starte motoren",
     "new-version-available": "Oppdatering tilgjengelig",
     "tray-new-task": "Ny oppgave",

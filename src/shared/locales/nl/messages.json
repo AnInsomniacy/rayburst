@@ -35,7 +35,6 @@
     "retry": "Opnieuw proberen",
     "close": "Sluiten",
     "engine-not-ready": "Engine wordt gestart, even geduld...",
-    "engine-ready": "De Aria2 Next-engine is gereed",
     "engine-failed": "Engine starten mislukt",
     "new-version-available": "Update beschikbaar",
     "tray-new-task": "Nieuwe taak",

@@ -35,7 +35,6 @@
     "retry": "Riprova",
     "close": "Chiudi",
     "engine-not-ready": "Il motore si sta avviando, attendere...",
-    "engine-ready": "Il motore Aria2 Next è pronto",
     "engine-failed": "Avvio del motore non riuscito",
     "new-version-available": "Aggiornamento disponibile",
     "tray-new-task": "Nuova attività",

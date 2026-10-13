@@ -35,7 +35,6 @@
     "retry": "재시도",
     "close": "닫기",
     "engine-not-ready": "엔진 시작 중입니다. 잠시만 기다려 주세요...",
-    "engine-ready": "Aria2 Next 엔진이 준비되었습니다",
     "engine-failed": "엔진 시작 실패",
     "new-version-available": "업데이트 가능",
     "tray-new-task": "새 작업",

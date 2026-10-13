@@ -35,7 +35,6 @@
     "retry": "Retry",
     "close": "Close",
     "engine-not-ready": "Engine is starting, please wait...",
-    "engine-ready": "Aria2 Next engine is ready",
     "engine-failed": "Engine failed to start",
     "new-version-available": "Update Available",
     "tray-new-task": "New Task",

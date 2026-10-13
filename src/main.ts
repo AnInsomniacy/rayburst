@@ -153,10 +153,6 @@ if (isAddWindow) {
     }
   }
 
-  function emitAppToast(payload: { type: 'success' | 'info' | 'warning' | 'error'; key: string }): void {
-    window.dispatchEvent(new CustomEvent('app:toast', { detail: payload }))
-  }
-
   async function syncBtTrackersIfDue(startup: boolean) {
     const config = preferenceStore.config
     if (
@@ -192,7 +188,6 @@ if (isAddWindow) {
         await aria2Api.changeGlobalOption({ 'bt-tracker': comma } as Partial<AppConfig>)
       }
       logger.info('Tracker', `Auto-synced: ${result.data.length}/${sources.length} source(s) succeeded`)
-      emitAppToast({ type: 'success', key: 'preferences.bt-tracker-sync-succeed' })
     } catch (e) {
       logger.debug('Tracker', 'auto-sync failed: ' + (e as Error).message)
     }
@@ -224,7 +219,6 @@ if (isAddWindow) {
         proxy: resolveAppProxyUrl(config.proxy, PROXY_SCOPES.UPDATE_TRACKERS) ?? undefined,
       })
       logger.info('ED2K', 'Bootstrap files auto-synced')
-      emitAppToast({ type: 'success', key: 'preferences.ed2k-bootstrap-sync-succeed' })
     } catch (e) {
       logger.debug('ED2K.bootstrapAutoSync', e)
     }
@@ -407,7 +401,6 @@ if (isAddWindow) {
       if (ok) {
         await preferenceStore.reloadPreferenceFromDisk()
         logger.debug('Engine', 'runtime_services_ready')
-        emitAppToast({ type: 'success', key: 'app.engine-ready' })
       }
     } catch (e) {
       logger.error('Engine', `unexpected startup error: ${getErrorMessage(e)}`)

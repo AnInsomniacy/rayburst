@@ -35,7 +35,6 @@
     "retry": "Coba lagi",
     "close": "Tutup",
     "engine-not-ready": "Mesin sedang dimulai, harap tunggu...",
-    "engine-ready": "Mesin Aria2 Next siap",
     "engine-failed": "Gagal memulai mesin",
     "new-version-available": "Pembaruan tersedia",
     "tray-new-task": "Tugas baru",

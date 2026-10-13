@@ -10,7 +10,6 @@ export const INDIRECT_I18N_KEYS = [
   'about.license',
   'about.release',
   'about.support',
-  'app.engine-ready',
   'app.schedule-disabled',
   'app.schedule-enabled',
   'preferences.advanced',

@@ -35,7 +35,6 @@
     "retry": "Повторити",
     "close": "Закрити",
     "engine-not-ready": "Рушій запускається, зачекайте...",
-    "engine-ready": "Рушій Aria2 Next готовий",
     "engine-failed": "Не вдалося запустити двигун",
     "new-version-available": "Доступне оновлення",
     "tray-new-task": "Нове завдання",

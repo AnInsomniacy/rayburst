@@ -146,7 +146,6 @@ let unlistenAddWindowSubmit: (() => void) | null = null
 let unlistenSnapshot: (() => void) | null = null
 let unlistenTaskMonitor: Array<() => void> = []
 let unlistenFocusRecheck: (() => void) | null = null
-let unlistenAppToast: (() => void) | null = null
 
 // ── Notification action helpers (reuse existing IPC commands) ────────
 
@@ -239,26 +238,6 @@ const { setupListeners } = useAppEvents({
     showAbout.value = true
   },
 })
-
-function startAppToastListener() {
-  stopAppToastListener()
-  const handler = (event: Event) => {
-    const detail = (event as CustomEvent<{ type?: string; key?: string }>).detail
-    if (!detail?.key) return
-    const text = t(detail.key)
-    if (detail.type === 'error') message.error(text)
-    else if (detail.type === 'warning') message.warning(text)
-    else if (detail.type === 'info') message.info(text)
-    else message.success(text)
-  }
-  window.addEventListener('app:toast', handler)
-  unlistenAppToast = () => window.removeEventListener('app:toast', handler)
-}
-
-function stopAppToastListener() {
-  unlistenAppToast?.()
-  unlistenAppToast = null
-}
 
 // ── Engine snapshots ─────────────────────────────────────────────────
 // The native pump is the only reader of engine state. It pushes every
@@ -451,7 +430,6 @@ async function checkShutdownCondition() {
 }
 
 onMounted(async () => {
-  startAppToastListener()
   // Platform is initialised by usePlatform() singleton — no per-component call needed.
 
   // Show the main window now that the frontend has mounted and the
@@ -753,7 +731,6 @@ onUnmounted(() => {
   if (unlistenExitDialog) unlistenExitDialog()
   if (unlistenAddWindowSubmit) unlistenAddWindowSubmit()
   if (unlistenPowerCountdown) unlistenPowerCountdown()
-  stopAppToastListener()
   dismissCountdown()
   cancelPendingResize()
 })

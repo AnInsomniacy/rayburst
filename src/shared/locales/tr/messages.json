@@ -35,7 +35,6 @@
     "retry": "Tekrar dene",
     "close": "Kapat",
     "engine-not-ready": "Motor başlatılıyor, lütfen bekleyin...",
-    "engine-ready": "Aria2 Next motoru hazır",
     "engine-failed": "Motor başlatılamadı",
     "new-version-available": "Güncelleme mevcut",
     "tray-new-task": "Yeni görev",

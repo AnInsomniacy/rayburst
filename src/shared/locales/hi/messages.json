@@ -35,7 +35,6 @@
     "retry": "फिर कोशिश करें",
     "close": "बंद करें",
     "engine-not-ready": "इंजन शुरू हो रहा है, कृपया प्रतीक्षा करें...",
-    "engine-ready": "Aria2 Next इंजन तैयार है",
     "engine-failed": "इंजन शुरू नहीं हो सका",
     "new-version-available": "अपडेट उपलब्ध है",
     "tray-new-task": "नया कार्य",

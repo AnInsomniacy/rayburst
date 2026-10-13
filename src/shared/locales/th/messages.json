@@ -35,7 +35,6 @@
     "retry": "ลองอีกครั้ง",
     "close": "ปิด",
     "engine-not-ready": "เอนจินกำลังเริ่มต้น กรุณารอ...",
-    "engine-ready": "เอนจิน Aria2 Next พร้อมแล้ว",
     "engine-failed": "ไม่สามารถเริ่มเอนจินได้",
     "new-version-available": "มีอัปเดต",
     "tray-new-task": "งานใหม่",

@@ -35,7 +35,6 @@
     "retry": "再試行",
     "close": "閉じる",
     "engine-not-ready": "エンジンを起動中です。お待ちください...",
-    "engine-ready": "Aria2 Next エンジンの準備が完了しました",
     "engine-failed": "エンジンの起動に失敗しました",
     "new-version-available": "アップデートがあります",
     "tray-new-task": "新規タスク",

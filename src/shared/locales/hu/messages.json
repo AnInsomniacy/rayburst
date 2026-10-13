@@ -35,7 +35,6 @@
     "retry": "Újra",
     "close": "Bezárás",
     "engine-not-ready": "A motor elindul, kérjük várjon...",
-    "engine-ready": "Az Aria2 Next motor készen áll",
     "engine-failed": "A motor indítása sikertelen",
     "new-version-available": "Frissítés elérhető",
     "tray-new-task": "Új feladat",

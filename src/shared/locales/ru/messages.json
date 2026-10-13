@@ -35,7 +35,6 @@
     "retry": "Повторить",
     "close": "Закрыть",
     "engine-not-ready": "Движок запускается, подождите...",
-    "engine-ready": "Движок Aria2 Next готов",
     "engine-failed": "Не удалось запустить движок",
     "new-version-available": "Доступно обновление",
     "tray-new-task": "Новая задача",

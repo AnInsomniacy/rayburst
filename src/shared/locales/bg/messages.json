@@ -35,7 +35,6 @@
     "retry": "Опитай отново",
     "close": "Затвори",
     "engine-not-ready": "Двигателят се стартира, моля изчакайте...",
-    "engine-ready": "Двигателят Aria2 Next е готов",
     "engine-failed": "Неуспешно стартиране на двигателя",
     "new-version-available": "Налична актуализация",
     "tray-new-task": "Нова задача",

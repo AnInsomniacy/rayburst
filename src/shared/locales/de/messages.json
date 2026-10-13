@@ -35,7 +35,6 @@
     "retry": "Erneut versuchen",
     "close": "Schließen",
     "engine-not-ready": "Engine wird gestartet, bitte warten...",
-    "engine-ready": "Aria2 Next-Engine ist bereit",
     "engine-failed": "Engine konnte nicht gestartet werden",
     "new-version-available": "Update verfügbar",
     "tray-new-task": "Neue Aufgabe",

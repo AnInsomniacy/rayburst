@@ -35,7 +35,6 @@
     "retry": "Επανάληψη",
     "close": "Κλείσιμο",
     "engine-not-ready": "Η μηχανή εκκινεί, παρακαλώ περιμένετε...",
-    "engine-ready": "Η μηχανή Aria2 Next είναι έτοιμη",
     "engine-failed": "Αποτυχία εκκίνησης κινητήρα",
     "new-version-available": "Διαθέσιμη ενημέρωση",
     "tray-new-task": "Νέα εργασία",
