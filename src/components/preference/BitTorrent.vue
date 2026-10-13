@@ -452,8 +452,23 @@ onMounted(() => {
         <NFormItem :label="t('preferences.bt-transport')">
           <NSelect v-model:value="form.btTransport" :options="transportOptions" class="pref-control-auto" />
         </NFormItem>
-        <NFormItem :label="t('preferences.bt-first-last-piece-first')">
+        <NFormItem>
+          <template #label>
+            <PreferenceHintLabel
+              :label="t('preferences.bt-first-last-piece-first')"
+              :hint="t('preferences.bt-first-last-piece-first-hint')"
+            />
+          </template>
           <NSwitch v-model:value="form.btFirstLastPieceFirst" />
+        </NFormItem>
+        <NFormItem>
+          <template #label>
+            <PreferenceHintLabel
+              :label="t('preferences.bt-sequential-download')"
+              :hint="t('preferences.bt-sequential-download-hint')"
+            />
+          </template>
+          <NSwitch v-model:value="form.btSequentialDownload" />
         </NFormItem>
 
         <NDivider title-placement="left">{{ t('preferences.bt-connection-section') }}</NDivider>

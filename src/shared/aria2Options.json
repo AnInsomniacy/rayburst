@@ -25,6 +25,7 @@
     "bt-tracker",
     "bt-transport",
     "bt-user-agent",
+    "check-certificate",
     "check-integrity",
     "checksum",
     "connect-timeout",

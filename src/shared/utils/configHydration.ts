@@ -209,6 +209,13 @@ function normalizeScalarValues(config: Record<string, unknown>, repairs: string[
   )
   repairEnum(
     config,
+    'notificationClickAction',
+    ['reveal', 'open'] as const,
+    DEFAULT_APP_CONFIG.notificationClickAction,
+    repairs,
+  )
+  repairEnum(
+    config,
     'extensionTorrentAction',
     ['open', 'save'] as const,
     DEFAULT_APP_CONFIG.extensionTorrentAction,

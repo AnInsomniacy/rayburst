@@ -189,6 +189,7 @@ pub enum TaskNotificationKind {
 pub enum NotificationTarget {
     Window,
     Reveal(std::path::PathBuf),
+    Open(std::path::PathBuf),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -260,7 +261,11 @@ pub fn build_task_notification(
 
     let target = match kind {
         TaskNotificationKind::Complete | TaskNotificationKind::P2pDownloadComplete => {
-            NotificationTarget::Reveal(event.output_path())
+            if config.notification_click_action == "open" {
+                NotificationTarget::Open(event.output_path())
+            } else {
+                NotificationTarget::Reveal(event.output_path())
+            }
         }
         _ => NotificationTarget::Window,
     };
@@ -489,13 +494,21 @@ async fn send_platform_notification(
 /// Opens what a clicked notification names.
 #[cfg(windows)]
 fn open_target(app: &tauri::AppHandle, target: &NotificationTarget) {
-    if let NotificationTarget::Reveal(path) = target {
-        if path.exists() {
+    match target {
+        NotificationTarget::Reveal(path) if path.exists() => {
             match crate::commands::show_item_in_dir(path.to_string_lossy().into_owned()) {
                 Ok(()) => return,
                 Err(error) => log::warn!("notification:reveal-failed error={error}"),
             }
         }
+        NotificationTarget::Open(path) if path.exists() => {
+            let path = path.to_string_lossy().into_owned();
+            match crate::commands::open_path_normalized(app.clone(), path) {
+                Ok(()) => return,
+                Err(error) => log::warn!("notification:open-failed error={error}"),
+            }
+        }
+        _ => {}
     }
     crate::tray::request_main_window(app, "notification", true);
 }
@@ -646,6 +659,17 @@ mod tests {
         assert_eq!(
             content.target,
             NotificationTarget::Reveal(std::path::PathBuf::from("/tmp"))
+        );
+    }
+
+    #[test]
+    fn completion_notification_can_open_the_file() {
+        let mut config = cfg();
+        config.notification_click_action = "open".into();
+        let content = build_task_notification(events::TASK_COMPLETE, &event(), &config).unwrap();
+        assert_eq!(
+            content.target,
+            NotificationTarget::Open(std::path::PathBuf::from("/tmp"))
         );
     }
 

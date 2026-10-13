@@ -34,6 +34,7 @@ export interface DownloadsForm {
   speedScheduleDays: number
   mediaSelectBeforeDownload: boolean
   mediaDefaultFormat: 'mp4' | 'mkv'
+  extensionDownloadBehavior: AppConfig['extensionDownloadBehavior']
   newTaskShowDownloading: boolean
   noConfirmBeforeDeleteTask: boolean
   fileDeletionMode: FileDeletionMode
@@ -41,6 +42,7 @@ export interface DownloadsForm {
   taskNotification: boolean
   notifyOnStart: boolean
   notifyOnComplete: boolean
+  notificationClickAction: AppConfig['notificationClickAction']
   shutdownWhenComplete: boolean
   keepAwake: boolean
   postDownloadProgram: string
@@ -83,6 +85,7 @@ export function buildDownloadsForm(config: AppConfig, defaultDir: string = ''): 
     speedScheduleDays: config.speedScheduleDays ?? D.speedScheduleDays,
     mediaSelectBeforeDownload: config.mediaSelectBeforeDownload ?? D.mediaSelectBeforeDownload,
     mediaDefaultFormat: config.mediaDefaultFormat ?? D.mediaDefaultFormat,
+    extensionDownloadBehavior: config.extensionDownloadBehavior ?? D.extensionDownloadBehavior,
     newTaskShowDownloading: config.newTaskShowDownloading ?? D.newTaskShowDownloading,
     noConfirmBeforeDeleteTask: config.noConfirmBeforeDeleteTask ?? D.noConfirmBeforeDeleteTask,
     fileDeletionMode: config.fileDeletionMode ?? D.fileDeletionMode,
@@ -90,6 +93,7 @@ export function buildDownloadsForm(config: AppConfig, defaultDir: string = ''): 
     taskNotification: config.taskNotification ?? D.taskNotification,
     notifyOnStart: config.notifyOnStart ?? D.notifyOnStart,
     notifyOnComplete: config.notifyOnComplete ?? D.notifyOnComplete,
+    notificationClickAction: config.notificationClickAction ?? D.notificationClickAction,
     shutdownWhenComplete: config.shutdownWhenComplete ?? D.shutdownWhenComplete,
     keepAwake: config.keepAwake ?? D.keepAwake,
     postDownloadProgram: config.postDownloadProgram ?? D.postDownloadProgram,

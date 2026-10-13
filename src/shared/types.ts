@@ -470,6 +470,8 @@ export interface AppConfig {
   btMaxUploadsPerTorrent: number
   btTransport: BtTransportMode
   btFirstLastPieceFirst: boolean
+  /** BitTorrent pieces are downloaded in order, so a torrent's files finish one after another. */
+  btSequentialDownload: boolean
   btRateLimitOverhead: boolean
   btAnonymousMode: boolean
   btUserAgent: string
@@ -539,10 +541,14 @@ export interface AppConfig {
   siteRules: SiteRule[]
   /** DNS-over-HTTPS resolver URL for downloads; empty uses the system resolver. */
   dnsOverHttps: string
+  /** Verify TLS certificates of download servers. */
+  checkCertificate: boolean
   /** Program run on every finished download, e.g. a virus scanner. Empty runs nothing. */
   postDownloadProgram: string
   /** Its arguments; `{file}`, `{dir}` and `{name}` name the download. Empty passes `"{file}"`. */
   postDownloadArguments: string
+  /** Clicking a completion notification reveals the file in its folder or opens it. */
+  notificationClickAction: 'reveal' | 'open'
   rpcListenPort: number
   /** Port for the embedded HTTP API that browser extensions use to submit
    *  downloads. Defaults to 29110. */

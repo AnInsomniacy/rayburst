@@ -350,17 +350,6 @@ onMounted(async () => {
     <div class="preference-form-scroll">
       <NForm label-placement="left" label-align="left" label-width="260px" size="small" class="form-preference">
         <NDivider title-placement="left">{{ t('preferences.extension-section') }}</NDivider>
-        <NFormItem :label="t('preferences.extension-download-behavior')">
-          <NSelect
-            v-model:value="form.extensionDownloadBehavior"
-            class="pref-control-auto"
-            :options="[
-              { value: 'confirm', label: t('preferences.extension-behavior-confirm') },
-              { value: 'background', label: t('preferences.extension-behavior-background') },
-              { value: 'show', label: t('preferences.extension-behavior-show') },
-            ]"
-          />
-        </NFormItem>
         <NFormItem>
           <template #label>
             <PreferenceHintLabel

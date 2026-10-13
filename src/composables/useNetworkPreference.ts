@@ -37,6 +37,7 @@ export interface NetworkForm {
   recentUserAgentProfileIds: string[]
   siteRules: SiteRule[]
   dnsOverHttps: string
+  checkCertificate: boolean
 }
 
 /** Public DNS-over-HTTPS resolvers offered as presets. */
@@ -83,6 +84,7 @@ export function buildNetworkForm(config: AppConfig): NetworkForm {
     recentUserAgentProfileIds: config.recentUserAgentProfileIds,
     siteRules: config.siteRules.map((rule) => ({ ...rule })),
     dnsOverHttps: config.dnsOverHttps,
+    checkCertificate: config.checkCertificate,
   }
 }
 
@@ -99,6 +101,7 @@ export function buildNetworkSystemConfig(f: NetworkForm): Record<string, string>
     'bt-port-mapping': String(!!f.enableUpnp),
     'ed2k-port-mapping': String(!!f.enableUpnp),
     'dns-over-https': f.dnsOverHttps.trim(),
+    'check-certificate': String(f.checkCertificate),
     ...buildDownloadProxyOptions(f.proxy),
   }
 

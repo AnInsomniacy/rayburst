@@ -16,6 +16,7 @@ import { toggleSpeedLimit } from '@/composables/useSpeedLimiter'
 import { changeGlobalOption, isEngineReady } from '@/api/aria2'
 import { SCHEDULE_DAY } from '@shared/constants'
 import { useAppMessage } from '@/composables/useAppMessage'
+import { usePlatform } from '@/composables/usePlatform'
 import {
   buildDownloadsForm,
   buildDownloadsSystemConfig,
@@ -130,6 +131,17 @@ const notificationTypeOptions = computed(() => [
   { label: t('preferences.notify-on-start'), value: 'start' },
   { label: t('preferences.notify-on-complete'), value: 'complete' },
 ])
+const extensionDownloadBehaviorOptions = computed(() => [
+  { value: 'confirm', label: t('preferences.extension-behavior-confirm') },
+  { value: 'background', label: t('preferences.extension-behavior-background') },
+  { value: 'show', label: t('preferences.extension-behavior-show') },
+])
+const notificationClickOptions = computed(() => [
+  { value: 'reveal', label: t('preferences.notification-click-reveal') },
+  { value: 'open', label: t('preferences.notification-click-open') },
+])
+// Only Windows reports clicks on notifications.
+const { isWindows } = usePlatform()
 const completedRecordRetentionOptions = computed(() => [
   { label: t('preferences.completed-record-retention-forever'), value: 0 },
   { label: t('preferences.completed-record-retention-1-day'), value: 1 },
@@ -504,6 +516,13 @@ onMounted(async () => {
 
         <!-- Notification & Confirm -->
         <NDivider title-placement="left">{{ t('preferences.notification-and-confirm') }}</NDivider>
+        <NFormItem :label="t('preferences.extension-download-behavior')">
+          <NSelect
+            v-model:value="form.extensionDownloadBehavior"
+            :options="extensionDownloadBehaviorOptions"
+            class="pref-control-auto"
+          />
+        </NFormItem>
         <NFormItem :label="t('preferences.new-task-show-downloading')">
           <NSwitch v-model:value="form.newTaskShowDownloading" />
         </NFormItem>
@@ -527,7 +546,17 @@ onMounted(async () => {
           <NFormItem label=" ">
             <PreferenceCheckboxGrid v-model:value="selectedNotificationTypes" :options="notificationTypeOptions" />
           </NFormItem>
+          <NFormItem v-if="isWindows" :label="t('preferences.notification-click-action')">
+            <NSelect
+              v-model:value="form.notificationClickAction"
+              :options="notificationClickOptions"
+              class="pref-control-auto"
+            />
+          </NFormItem>
         </NCollapseTransition>
+
+        <!-- Automation -->
+        <NDivider title-placement="left">{{ t('preferences.automation-section') }}</NDivider>
         <NFormItem :label="t('preferences.shutdown-when-complete')">
           <NSwitch v-model:value="form.shutdownWhenComplete" />
         </NFormItem>

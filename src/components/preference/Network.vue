@@ -297,6 +297,18 @@ onMounted(() => {
           />
         </NFormItem>
 
+        <!-- TLS -->
+        <NDivider title-placement="left">TLS</NDivider>
+        <NFormItem>
+          <template #label>
+            <PreferenceHintLabel
+              :label="t('preferences.check-certificate')"
+              :hint="t('preferences.check-certificate-hint')"
+            />
+          </template>
+          <NSwitch v-model:value="form.checkCertificate" />
+        </NFormItem>
+
         <!-- Site rules -->
         <NDivider title-placement="left">{{ t('preferences.site-rules') }}</NDivider>
         <NFormItem :show-label="false">

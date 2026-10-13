@@ -56,6 +56,9 @@ pub struct RuntimeConfig {
     pub post_download_program: String,
     /// Its arguments; `{file}`, `{dir}` and `{name}` name the download.
     pub post_download_arguments: String,
+    /// What clicking a completion notification does: `reveal` shows the file
+    /// in its folder, `open` opens it with its default application.
+    pub notification_click_action: String,
 }
 
 impl Default for RuntimeConfig {
@@ -86,6 +89,7 @@ impl Default for RuntimeConfig {
             allow_remote_access: false,
             post_download_program: String::new(),
             post_download_arguments: String::new(),
+            notification_click_action: "reveal".into(),
         }
     }
 }

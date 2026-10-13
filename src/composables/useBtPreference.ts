@@ -51,6 +51,7 @@ export interface BtForm {
   btMaxUploads: number
   btMaxUploadsPerTorrent: number
   btFirstLastPieceFirst: boolean
+  btSequentialDownload: boolean
   btRateLimitOverhead: boolean
   btAnonymousMode: boolean
   btUserAgent: string
@@ -90,6 +91,7 @@ export function buildBtForm(config: AppConfig): BtForm {
     btMaxUploads: config.btMaxUploads ?? D.btMaxUploads,
     btMaxUploadsPerTorrent: config.btMaxUploadsPerTorrent ?? D.btMaxUploadsPerTorrent,
     btFirstLastPieceFirst: config.btFirstLastPieceFirst ?? D.btFirstLastPieceFirst,
+    btSequentialDownload: config.btSequentialDownload ?? D.btSequentialDownload,
     btRateLimitOverhead: config.btRateLimitOverhead ?? D.btRateLimitOverhead,
     btAnonymousMode: config.btAnonymousMode ?? D.btAnonymousMode,
     btUserAgent: config.btUserAgent ?? D.btUserAgent,
@@ -139,6 +141,7 @@ export function buildBtSystemConfig(f: BtForm): Record<string, string> {
     'bt-max-uploads': String(f.btMaxUploads),
     'bt-max-uploads-per-torrent': String(f.btMaxUploadsPerTorrent),
     'bt-first-last-piece-first': String(!!f.btFirstLastPieceFirst),
+    'force-sequential': String(!!f.btSequentialDownload),
     'bt-rate-limit-overhead': String(!!f.btRateLimitOverhead),
     'bt-anonymous-mode': String(!!f.btAnonymousMode),
     'bt-user-agent': f.btUserAgent,
