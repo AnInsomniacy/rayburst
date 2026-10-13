@@ -74,7 +74,6 @@ impl ksni::Tray for NativeTray {
     }
     fn watcher_offline(&self, reason: ksni::OfflineReason) -> bool {
         log::warn!("tray:watcher-offline reason={reason:?}");
-        super::request_main_window(&self.app, "tray-watcher-offline", true);
         true
     }
     fn icon_pixmap(&self) -> Vec<ksni::Icon> {
