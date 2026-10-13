@@ -141,6 +141,7 @@ let unlistenSingleInstance: (() => void) | null = null
 let unlistenTrayMenu: (() => void) | null = null
 let unlistenResize: (() => void) | null = null
 let unlistenExitDialog: (() => void) | null = null
+let unlistenAddWindowSubmit: (() => void) | null = null
 let unlistenSnapshot: (() => void) | null = null
 let unlistenTaskMonitor: Array<() => void> = []
 let unlistenFocusRecheck: (() => void) | null = null
@@ -686,6 +687,7 @@ onMounted(async () => {
       showExitDialog.value = true
     }
   })
+  unlistenAddWindowSubmit = await listen('add-window:submitted', showDownloadsAfterSubmit)
 
   // Sync native menu labels with current locale
   try {
@@ -748,6 +750,7 @@ onUnmounted(() => {
   if (unlistenTrayMenu) unlistenTrayMenu()
   if (unlistenResize) unlistenResize()
   if (unlistenExitDialog) unlistenExitDialog()
+  if (unlistenAddWindowSubmit) unlistenAddWindowSubmit()
   if (unlistenPowerCountdown) unlistenPowerCountdown()
   stopAppToastListener()
   dismissCountdown()

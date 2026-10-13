@@ -110,17 +110,23 @@ pub fn mark_frontend_unready(app: &AppHandle) {
     }
 }
 
-/// Route external inputs to the add window while the main window is out of
-/// sight, otherwise to the main window.
+/// Routes downloads to the add window and app activations (`rayburst:`) to
+/// the main window, which they bring into view.
 pub fn route_external_inputs(app: &AppHandle, urls: Vec<String>, source: &'static str) {
+    let (activations, urls): (Vec<String>, Vec<String>) = urls
+        .into_iter()
+        .partition(|url| url.to_ascii_lowercase().starts_with("rayburst:"));
+    if !activations.is_empty() {
+        route_to_main_window(app, activations, source, false);
+    }
     if urls.is_empty() {
         log::debug!("deep_link:route source={source} count=0 skipped=true");
         return;
     }
     if super::add_window::wanted(app) {
         let batch = super::add_window::AddWindowInputs {
-            inputs: Vec::new(),
             links: urls,
+            ..Default::default()
         };
         super::add_window::route(app, batch, source);
         return;

@@ -15,6 +15,11 @@ function genId(): string {
   return `batch-${++nextId}`
 }
 
+/** Gives an item built in another window an ID that is unique in this one. */
+export function reissueBatchItem(item: BatchItem): BatchItem {
+  return { ...item, id: genId() }
+}
+
 /**
  * Classify a source string as a download kind for the batch add-task model.
  *

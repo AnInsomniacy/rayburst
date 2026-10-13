@@ -2,10 +2,10 @@
 /**
  * @fileoverview Content of the standalone add-task window.
  *
- * The desktop opens this window, hidden, for downloads handed over while the
- * main window is out of sight. It shows itself once there is something to
- * confirm, and closes after the user submits or cancels, or after handing
- * auto-submitted downloads to the engine.
+ * The desktop opens this window, hidden, for every new download: browser
+ * handoffs, links, torrent files and manual entry from the main window. It
+ * shows itself once there is something to confirm, and closes after the user
+ * submits or cancels, or after handing auto-submitted downloads to the engine.
  */
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -18,11 +18,13 @@ import { useAppMessage } from '@/composables/useAppMessage'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 import { logger } from '@shared/logger'
 import { getErrorMessage } from '@shared/utils/errorMessage'
-import type { ExternalDownloadInput } from '@shared/types'
+import type { BatchItem, ExternalDownloadInput } from '@shared/types'
 
 interface AddWindowInputs {
   inputs: ExternalDownloadInput[]
   links: string[]
+  items: BatchItem[]
+  manual: boolean
 }
 
 const { t } = useI18n()
@@ -36,7 +38,7 @@ let closing = false
 useEscapeKey(() => void addTask.value?.dismiss(), { fromEditable: true })
 
 function isEmpty(batch: AddWindowInputs): boolean {
-  return batch.inputs.length === 0 && batch.links.length === 0
+  return !batch.manual && batch.inputs.length === 0 && batch.links.length === 0 && batch.items.length === 0
 }
 
 function submissionsSettled(): Promise<void> {
@@ -54,6 +56,10 @@ function submissionsSettled(): Promise<void> {
 }
 
 async function receive(batch: AddWindowInputs) {
+  if (batch.manual && !appStore.addTaskVisible) appStore.showAddTaskDialog()
+  if (batch.items.length > 0 && appStore.enqueueForwardedItems(batch.items) > 0) {
+    message.warning(t('task.duplicate-task'))
+  }
   if (batch.links.length > 0) appStore.handleDeepLinkUrls(batch.links)
   if (batch.inputs.length > 0) await appStore.handleExternalInputs(batch.inputs)
   if (appStore.addTaskVisible) return
@@ -114,5 +120,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <AddTask ref="addTask" standalone :show="appStore.addTaskVisible" @close="close" />
+  <AddTask
+    ref="addTask"
+    standalone
+    :show="appStore.addTaskVisible"
+    @close="close"
+    @submitted="emit('add-window:submitted').catch(() => undefined)"
+  />
 </template>

@@ -262,7 +262,6 @@ export function useAppEvents(deps: AppEventsDeps): AppEventsReturn {
         deps.onAbout()
         break
       case 'new-task':
-        await surfaceMainWindow()
         appStore.showAddTaskDialog()
         break
       case 'open-torrent': {
@@ -310,7 +309,6 @@ export function useAppEvents(deps: AppEventsDeps): AppEventsReturn {
         await surfaceMainWindow()
         break
       case 'new-task':
-        await surfaceMainWindow()
         appStore.showAddTaskDialog()
         break
       case 'resume-all':

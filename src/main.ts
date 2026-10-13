@@ -10,7 +10,7 @@ import { isSupportedLocale, SUPPORTED_LOCALES, type SupportedLocale } from '@sha
 import { setI18nLocale } from '@shared/utils/i18n'
 import { usePreferenceStore } from './stores/preference'
 import { useTaskStore } from './stores/task'
-import { useAppStore } from './stores/app'
+import { useAppStore, type AddTaskForward } from './stores/app'
 import { useHistoryStore } from './stores/history'
 import { useDatabaseStore } from './stores/database'
 import { useEngineStore } from './stores/engine'
@@ -348,9 +348,25 @@ if (isAddWindow) {
     // MainLayout.onMounted explicitly shows it.
     app.mount('#app')
     // The add-task window saves directory history and remembered locations.
-    void import('@tauri-apps/api/event').then(({ listen }) =>
-      listen('add-window:closed', () => preferenceStore.reloadPreferenceFromDisk()),
-    )
+    void import('@tauri-apps/api/event').then(({ listen }) => {
+      void listen('add-window:closed', () => preferenceStore.reloadPreferenceFromDisk())
+      // The add window could not take these after all; confirm them here.
+      void listen<AddTaskForward>('add-window:fallback', ({ payload }) => {
+        if (payload.manual) appStore.showLocalAddTaskDialog()
+        if (payload.items?.length) appStore.enqueueForwardedItems(payload.items)
+      })
+    })
+    // Every new download is confirmed in the standalone add window.
+    appStore.setAddTaskForwarder(async (batch) => {
+      const { invoke } = await import('@tauri-apps/api/core')
+      try {
+        await invoke('add_window_open', { batch: { items: batch.items ?? [], manual: batch.manual ?? false } })
+        return true
+      } catch (error) {
+        logger.warn('main.addWindow', getErrorMessage(error))
+        return false
+      }
+    })
     // The UI remains usable if database inspection fails.
     const database = useDatabaseStore()
     await database.init().catch(() => undefined)

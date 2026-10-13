@@ -109,7 +109,7 @@ pub fn route_external_inputs(
     if !silent && super::add_window::wanted(app) {
         let batch = super::add_window::AddWindowInputs {
             inputs,
-            links: Vec::new(),
+            ..Default::default()
         };
         super::add_window::route(app, batch, source);
         return;

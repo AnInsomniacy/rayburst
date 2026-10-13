@@ -40,6 +40,15 @@ pub fn add_window_attach(
     crate::services::add_window::attach(state.inner())
 }
 
+/// The main window hands every new download to the add window.
+#[tauri::command]
+pub fn add_window_open(
+    app: tauri::AppHandle,
+    batch: crate::services::add_window::AddWindowInputs,
+) -> Result<(), AppError> {
+    crate::services::add_window::forward(&app, batch)
+}
+
 #[tauri::command]
 pub fn add_window_detach(
     state: tauri::State<'_, crate::services::add_window::AddWindowState>,

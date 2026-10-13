@@ -8,7 +8,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { logger } from '@shared/logger'
-import { detectExternalInputKind, detectKind, createBatchItem } from '@shared/utils/batchHelpers'
+import { detectExternalInputKind, detectKind, createBatchItem, reissueBatchItem } from '@shared/utils/batchHelpers'
 import { summarizeExternalInput } from '@shared/utils/externalInputDiagnostics'
 import { submitManualUris } from '@/composables/useAddTaskSubmit'
 import { usePreferenceStore } from '@/stores/preference'
@@ -24,6 +24,12 @@ import type {
 } from '@shared/types'
 import type { AddTaskForm } from '@/composables/useAddTaskSubmit'
 import { getDefaultTaskProxyMode } from '@shared/utils/proxy'
+
+/** What the main window hands to the standalone add window. */
+export interface AddTaskForward {
+  items?: BatchItem[]
+  manual?: boolean
+}
 
 export interface DeepLinkHandlingResult {
   received: number
@@ -69,6 +75,8 @@ export const useAppStore = defineStore('app', () => {
   let externalInputSubmitCount = 0
   let externalInputErrorHandler: ((error: unknown) => void) | null = null
   let externalInputStartHandler: ((taskNames: string[]) => void) | null = null
+  /** Set in the main window: new downloads open the add window instead of the in-app dialog. */
+  let addTaskForwarder: ((batch: AddTaskForward) => Promise<boolean>) | null = null
 
   function clearPendingExternalMetadata() {
     pendingReferer.value = ''
@@ -98,6 +106,20 @@ export const useAppStore = defineStore('app', () => {
     externalInputStartHandler = handler
   }
 
+  function setAddTaskForwarder(forwarder: ((batch: AddTaskForward) => Promise<boolean>) | null) {
+    addTaskForwarder = forwarder
+  }
+
+  /** Hands a batch to the add window; the in-app dialog takes it when that window is unavailable. */
+  function forwardOrShow(batch: AddTaskForward, local: () => void): boolean {
+    const forwarder = addTaskForwarder
+    if (!forwarder) return false
+    void forwarder(batch).then((forwarded) => {
+      if (!forwarded) local()
+    })
+    return true
+  }
+
   /**
    * Unified entry point for all external inputs.
    * Accepts pre-built BatchItems (already resolved) and appends them to
@@ -106,6 +128,11 @@ export const useAppStore = defineStore('app', () => {
    */
   function enqueueBatch(items: BatchItem[]): number {
     if (items.length === 0) return 0
+    if (forwardOrShow({ items }, () => enqueueLocal(items))) return 0
+    return enqueueLocal(items)
+  }
+
+  function enqueueLocal(items: BatchItem[]): number {
     // Deduplicate against existing batch AND within incoming items
     const seen = new Set(pendingBatch.value.map((i) => i.source))
     const unique: BatchItem[] = []
@@ -125,8 +152,24 @@ export const useAppStore = defineStore('app', () => {
 
   /** Opens an empty add-task dialog for manual URI entry. */
   function showAddTaskDialog() {
+    if (forwardOrShow({ manual: true }, showLocalAddTaskDialog)) return
+    showLocalAddTaskDialog()
+  }
+
+  function showLocalAddTaskDialog() {
     clearPendingExternalMetadata()
     addTaskVisible.value = true
+  }
+
+  /**
+   * Takes items forwarded by the main window, restoring the browser context
+   * the dialog pre-fills from.
+   * @returns Number of duplicate items skipped.
+   */
+  function enqueueForwardedItems(items: BatchItem[]): number {
+    const context = [...items].reverse().find((item) => item.browserContext)?.browserContext
+    if (context) setPendingExternalMetadata(context, context.filename?.trim() ?? '')
+    return enqueueLocal(items.map(reissueBatchItem))
   }
 
   function hideAddTaskDialog() {
@@ -392,7 +435,10 @@ export const useAppStore = defineStore('app', () => {
     updateCheckRequestId,
     requestUpdateCheck,
     enqueueBatch,
+    enqueueForwardedItems,
     showAddTaskDialog,
+    showLocalAddTaskDialog,
+    setAddTaskForwarder,
     hideAddTaskDialog,
     updateAddTaskOptions,
     applyStat,

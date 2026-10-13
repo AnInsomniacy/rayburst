@@ -733,6 +733,7 @@ pub fn run() {
             commands::take_pending_external_inputs,
             commands::add_window_attach,
             commands::add_window_detach,
+            commands::add_window_open,
             commands::take_pending_frontend_actions,
             commands::history_get_record,
             commands::rename_completed_file,
