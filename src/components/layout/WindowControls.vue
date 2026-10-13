@@ -20,11 +20,16 @@ import { useI18n } from 'vue-i18n'
 import MTooltip from '@/components/common/MTooltip.vue'
 import { usePreferenceStore } from '@/stores/preference'
 
-const props = defineProps<{
-  isMaximized: boolean
-  /** Current OS platform identifier (e.g. 'macos', 'windows', 'linux'). */
-  platform: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    isMaximized: boolean
+    /** Current OS platform identifier (e.g. 'macos', 'windows', 'linux'). */
+    platform: string
+    /** Fixed-size windows show no maximize button. */
+    maximizable?: boolean
+  }>(),
+  { maximizable: true },
+)
 
 const emit = defineEmits<{
   close: []
@@ -91,7 +96,7 @@ async function close() {
       {{ t('app.menu-minimize') }}
     </MTooltip>
 
-    <MTooltip placement="bottom">
+    <MTooltip v-if="maximizable" placement="bottom">
       <template #trigger>
         <button
           class="caption-btn"

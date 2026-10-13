@@ -734,6 +734,9 @@ pub fn run() {
             commands::add_window_attach,
             commands::add_window_detach,
             commands::add_window_open,
+            commands::add_window_park,
+            commands::add_window_prepare,
+            commands::add_window_present,
             commands::take_pending_frontend_actions,
             commands::history_get_record,
             commands::rename_completed_file,
@@ -862,6 +865,8 @@ pub fn run() {
                 log::info!("window:destroyed label={}", window.label());
                 if window.label() == services::add_window::LABEL {
                     services::add_window::destroyed(window.app_handle());
+                } else if window.label() == "main" {
+                    services::add_window::main_window_destroyed(window.app_handle());
                 }
             }
             _ => {}

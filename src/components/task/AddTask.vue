@@ -901,7 +901,15 @@ const frame = computed(() =>
 )
 const cardStyle = computed(() =>
   props.standalone
-    ? { height: '100%', display: 'flex', flexDirection: 'column', borderRadius: '0', border: 'none' }
+    ? {
+        // The standalone window takes the card's natural height, up to the screen.
+        maxHeight: 'var(--add-window-max-height, 100vh)',
+        display: 'flex',
+        flexDirection: 'column',
+        borderRadius: '0',
+        border: 'none',
+        background: 'transparent',
+      }
     : {
         maxWidth: '680px',
         minWidth: 'min(380px, calc(100vw - 24px))',
@@ -1120,10 +1128,6 @@ defineExpose({ dismiss: () => handleClose() })
 </template>
 
 <style scoped>
-.add-task-window {
-  height: 100vh;
-}
-
 .filename-extension {
   color: var(--m3-on-surface-variant);
 }

@@ -367,6 +367,10 @@ if (isAddWindow) {
         return false
       }
     })
+    // Build the add window now, hidden, so the first download does not wait for it.
+    void import('@tauri-apps/api/core').then(({ invoke }) =>
+      invoke('add_window_prepare').catch((error: unknown) => logger.debug('main.addWindowPrepare', error)),
+    )
     // The UI remains usable if database inspection fails.
     const database = useDatabaseStore()
     await database.init().catch(() => undefined)

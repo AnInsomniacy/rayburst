@@ -5,6 +5,9 @@
 //! handoffs and manual entry alike. It opens over the main window while that is
 //! in view, and on the screen under the pointer otherwise. The main window only
 //! shows its own add dialog when this window cannot be created.
+//!
+//! While the main window exists, the add window is built ahead of time and only
+//! hidden between downloads, so it appears without loading a new webview.
 
 use std::sync::Mutex;
 use std::time::Duration;
@@ -93,10 +96,78 @@ pub fn wanted(app: &AppHandle) -> bool {
     if state.lock().broken {
         return false;
     }
-    app.get_webview_window(LABEL).is_some()
+    app.get_webview_window(LABEL)
+        .is_some_and(|window| window.is_visible().unwrap_or(false))
         || app
             .try_state::<crate::engine::supervisor::EngineSupervisor>()
             .is_some_and(|supervisor| supervisor.is_running())
+}
+
+/// Builds the window ahead of its first use, hidden, so it appears at once.
+pub fn prepare(app: &AppHandle) {
+    let Some(state) = app.try_state::<AddWindowState>() else {
+        return;
+    };
+    let mut inner = state.lock();
+    if inner.broken || inner.opening || app.get_webview_window(LABEL).is_some() {
+        return;
+    }
+    inner.opening = true;
+    inner.resident = false;
+    drop(inner);
+    open(app, "prepare");
+}
+
+/// Shows the window, placed for this download, once its content is sized.
+pub fn present(app: &AppHandle) -> Result<(), AppError> {
+    let window = app
+        .get_webview_window(LABEL)
+        .ok_or_else(|| AppError::NotFound("add window".into()))?;
+    if !window.is_visible().unwrap_or(false) {
+        place(app, &window);
+    }
+    let failed = |error: tauri::Error| AppError::Io(format!("add window: {error}"));
+    window.show().map_err(failed)?;
+    let _ = window.unminimize();
+    window.set_focus().map_err(failed)?;
+    Ok(())
+}
+
+/// Puts the window away after a download was confirmed or dismissed. It stays
+/// built, hidden, while the main window exists, and returns inputs that arrived
+/// while it was closing; without the main window it is destroyed, so the
+/// process keeps no webview it does not show.
+pub fn park(app: &AppHandle) -> AddWindowInputs {
+    let Some(window) = app.get_webview_window(LABEL) else {
+        return AddWindowInputs::default();
+    };
+    let Some(state) = app.try_state::<AddWindowState>() else {
+        return AddWindowInputs::default();
+    };
+    if app.get_webview_window("main").is_some() && window.hide().is_ok() {
+        let mut inner = state.lock();
+        inner.ready = true;
+        inner.resident = false;
+        return std::mem::take(&mut inner.queue);
+    }
+    if let Err(error) = window.destroy() {
+        log::warn!("add_window:destroy-failed error={error}");
+    }
+    AddWindowInputs::default()
+}
+
+/// Releases a hidden window together with the main window, so it neither holds
+/// memory in the tray nor keeps the process alive as its last window.
+pub fn main_window_destroyed(app: &AppHandle) {
+    let Some(window) = app.get_webview_window(LABEL) else {
+        return;
+    };
+    if window.is_visible().unwrap_or(false) {
+        return;
+    }
+    if let Err(error) = window.destroy() {
+        log::warn!("add_window:destroy-failed error={error}");
+    }
 }
 
 /// Takes inputs the main window forwards; fails when the window cannot be
@@ -227,8 +298,7 @@ fn open(app: &AppHandle, source: &'static str) {
             .and_then(|config| WebviewWindowBuilder::from_config(&app, &config))
             .and_then(WebviewWindowBuilder::build);
         match built {
-            Ok(window) => {
-                place(&app, &window);
+            Ok(_) => {
                 log::info!("add_window:opened source={source}");
                 tauri::async_runtime::spawn(expect_ready(app, generation, source));
             }
@@ -251,7 +321,8 @@ fn open(app: &AppHandle, source: &'static str) {
 /// The add window starts from the main window's configuration. WebView2 refuses
 /// a second webview whose environment (browser arguments, proxy, extensions)
 /// differs from the first one in the same data directory, so both windows must
-/// share those settings.
+/// share those settings. It keeps the main window's title bar style too; its
+/// height follows its content, so the user does not resize it.
 fn window_config(app: &AppHandle) -> tauri::Result<tauri::utils::config::WindowConfig> {
     let mut config = app
         .config()
@@ -265,21 +336,22 @@ fn window_config(app: &AppHandle) -> tauri::Result<tauri::utils::config::WindowC
     config.url = WebviewUrl::default();
     config.title = "Rayburst".to_owned();
     config.width = 600.0;
-    config.height = 640.0;
-    config.min_width = Some(420.0);
-    config.min_height = Some(460.0);
+    config.height = 520.0;
+    config.min_width = None;
+    config.min_height = None;
     config.x = None;
     config.y = None;
     config.center = true;
     config.visible = false;
     config.transparent = false;
-    config.decorations = true;
+    config.resizable = false;
+    config.maximizable = false;
     Ok(config)
 }
 
-/// Centers a new window over the main window while that is in view, and on
-/// the work area of the screen under the pointer otherwise, where the user
-/// just clicked the download.
+/// Centers the window over the main window while that is in view, and on the
+/// work area of the screen under the pointer otherwise, where the user just
+/// clicked the download.
 fn place(app: &AppHandle, window: &WebviewWindow) {
     let Ok(size) = window.outer_size() else {
         return;
