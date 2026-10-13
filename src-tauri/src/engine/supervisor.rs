@@ -153,6 +153,15 @@ impl EngineSupervisor {
             || snapshot.phase != EnginePhase::Running
     }
 
+    /// Whether a start is in progress, so an exit now is a failed start
+    /// handled by that start rather than a runtime crash.
+    pub(crate) fn is_starting(&self) -> bool {
+        matches!(
+            self.snapshot().phase,
+            EnginePhase::Starting | EnginePhase::Probing
+        )
+    }
+
     pub(crate) fn allows_process_spawn(&self) -> bool {
         self.desired_state() == DesiredEngineState::Running
     }
@@ -459,6 +468,32 @@ impl EngineSupervisor {
                 return self.fail(app, operation_id, attempt, cause, failure);
             }
 
+            // An engine that dies while it is initialized exits before it is
+            // Running, which crash recovery ignores; that is a failed start.
+            if !engine_process_alive(app) {
+                last_failure = Some(failure_from_message(
+                    EngineFailureStage::Initialization,
+                    "Engine exited during startup".into(),
+                    true,
+                    app,
+                ));
+                if let Err(stop_error) = self.stop_runtime(app, true, None).await {
+                    log::error!(
+                        "engine_supervisor: cleanup after startup exit failed: {stop_error}"
+                    );
+                }
+                if attempt < START_ATTEMPTS {
+                    continue;
+                }
+                return self.fail(
+                    app,
+                    operation_id,
+                    attempt,
+                    cause,
+                    last_failure.expect("startup exit failure must exist"),
+                );
+            }
+
             ensure_active(self, operation_id, cancelled)?;
             self.publish(
                 app,
@@ -468,6 +503,11 @@ impl EngineSupervisor {
                 cause,
                 None,
             );
+            // An exit observed between the check above and Running was ignored
+            // as a startup exit; recover from it as from a crash.
+            if !engine_process_alive(app) {
+                spawn_crash_recovery(app.clone());
+            }
             return Ok(self.snapshot());
         }
 
@@ -803,6 +843,11 @@ fn cancelled_error() -> AppError {
     AppError::Engine("Engine operation cancelled".into())
 }
 
+fn engine_process_alive(app: &AppHandle) -> bool {
+    app.try_state::<EngineState>()
+        .is_some_and(|state| state.is_running())
+}
+
 fn is_cancelled_error(error: &AppError) -> bool {
     matches!(error, AppError::Engine(message) if message == "Engine operation cancelled")
 }
@@ -833,6 +878,21 @@ fn failure_from_error(
     app: &AppHandle,
 ) -> EngineFailure {
     failure_from_message(stage, error.to_string(), retryable, app)
+}
+
+/// Recovers from an exit that a start in progress could not observe.
+fn spawn_crash_recovery(app: AppHandle) {
+    tauri::async_runtime::spawn(async move {
+        let failure = failure_from_message(
+            EngineFailureStage::Runtime,
+            "Engine exited unexpectedly".into(),
+            true,
+            &app,
+        );
+        app.state::<EngineSupervisor>()
+            .recover_after_exit(&app, failure)
+            .await;
+    });
 }
 
 pub fn report_process_exit(app: AppHandle, generation: u32, exit_code: i32, signal: Option<i32>) {

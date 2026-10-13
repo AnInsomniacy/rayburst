@@ -237,7 +237,21 @@ fn monitor_engine(
                         .is_none_or(|supervisor| supervisor.is_process_exit_expected());
                     let shutdown_exit = is_system_shutdown_exit(exit_code);
                     let expected = supervisor_expected || shutdown_exit;
-                    if expected {
+                    let starting = app
+                        .try_state::<crate::engine::supervisor::EngineSupervisor>()
+                        .is_some_and(|supervisor| supervisor.is_starting());
+                    if expected && starting && !shutdown_exit {
+                        // The start in progress notices the exit and retries.
+                        log::warn!(
+                            target: "engine",
+                            event = "engine_exited_during_startup",
+                            pid = process_id,
+                            generation,
+                            exit_code,
+                            signal:? = payload.signal;
+                            "engine_exited_during_startup"
+                        );
+                    } else if expected {
                         log::info!(
                             target: "engine",
                             event = "engine_stopped",
