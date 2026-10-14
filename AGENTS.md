@@ -301,7 +301,7 @@ All code changes must be finalized before starting. Execute these three steps in
 
    Generate an English release title and release notes from the commits included in this release, following the Release Notes Conventions below.
 
-   Use the user-specified version and channel; otherwise increment the current channel's version without confirmation. Enforce the Tag Naming rules above. Before creating the GitHub Release, show the version, pre-release status, English title, and release notes, then publish with `gh release create` when authenticated. Mark beta, alpha, and RC releases as pre-releases. Publishing the GitHub Release starts the release workflow.
+   Use the user-specified version and channel; otherwise increment the current channel's version without confirmation. Enforce the Tag Naming rules above. Publish with `gh release create` when authenticated; releases need no user approval. Report the version, pre-release status, English title, and release notes afterwards. Mark beta, alpha, and RC releases as pre-releases. Publishing the GitHub Release starts the release workflow.
 
    If `gh` is unavailable, unauthenticated, or the user explicitly wants to publish manually, output the title and body in **two separate markdown code blocks** so the user can paste them into the GitHub Release page.
 
