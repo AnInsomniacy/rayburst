@@ -627,7 +627,7 @@ function selectBatchAction(key: string | number) {
 .toolbar-action-enter-from,
 .toolbar-action-leave-to {
   opacity: 0;
-  transform: translateY(3px);
+  transform: scale(0.8);
 }
 @media (prefers-reduced-motion: reduce) {
   .toolbar-action-move,

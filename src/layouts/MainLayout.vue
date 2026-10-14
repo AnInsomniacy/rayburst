@@ -761,7 +761,7 @@ onUnmounted(() => {
           <h1 :key="pageTitle" data-tauri-drag-region>{{ pageTitle }}</h1>
         </Transition>
       </div>
-      <Transition name="bottom-accessory">
+      <Transition name="page-accessory">
         <TaskActions
           v-if="isTaskPage"
           :scope="taskScope"
@@ -1016,38 +1016,38 @@ onUnmounted(() => {
   border-radius: var(--radius-lg);
   background: var(--m3-surface-container);
 }
+/* The title and the task toolbar swap in place with the page's `fade`. */
 .page-title-enter-active,
-.page-title-leave-active {
+.page-accessory-enter-active {
   transition:
-    opacity 150ms ease,
-    transform 150ms ease;
+    opacity 0.2s cubic-bezier(0.2, 0, 0, 1),
+    transform 0.2s cubic-bezier(0.2, 0, 0, 1);
 }
-.page-title-enter-from {
-  opacity: 0;
-  transform: translateY(3px);
-}
-.page-title-leave-to {
-  opacity: 0;
-  transform: translateY(-3px);
-}
-
-.bottom-accessory-enter-active {
-  transform-origin: left center;
-  transition:
-    opacity 0.18s cubic-bezier(0.2, 0, 0, 1),
-    transform 0.18s cubic-bezier(0.2, 0, 0, 1);
-}
-.bottom-accessory-leave-active {
-  transform-origin: left center;
+.page-title-leave-active,
+.page-accessory-leave-active {
   pointer-events: none;
   transition:
-    opacity 0.12s cubic-bezier(0.3, 0, 0.8, 0.15),
-    transform 0.12s cubic-bezier(0.3, 0, 0.8, 0.15);
+    opacity 0.15s cubic-bezier(0.3, 0, 0.8, 0.15),
+    transform 0.15s cubic-bezier(0.3, 0, 0.8, 0.15);
 }
-.bottom-accessory-enter-from,
-.bottom-accessory-leave-to {
+/* The title swaps out-in, so the toolbar waits for the old title to leave. */
+.page-accessory-enter-active {
+  transition-delay: 0.15s;
+}
+.page-title-enter-from,
+.page-title-leave-to,
+.page-accessory-enter-from,
+.page-accessory-leave-to {
   opacity: 0;
-  transform: scale(0.985);
+  transform: scale(0.98);
+}
+.page-title-enter-active,
+.page-title-leave-active {
+  transform-origin: left center;
+}
+.page-accessory-enter-active,
+.page-accessory-leave-active {
+  transform-origin: right center;
 }
 
 .exit-btn {
@@ -1104,11 +1104,14 @@ onUnmounted(() => {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .bottom-accessory-enter-active,
-  .bottom-accessory-leave-active,
+  .page-title-enter-active,
+  .page-title-leave-active,
+  .page-accessory-enter-active,
+  .page-accessory-leave-active,
   #container,
   .sidebar-heading h2 {
     transition-duration: 1ms;
+    transition-delay: 0s;
   }
 }
 
