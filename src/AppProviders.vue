@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /** @fileoverview Naive UI theme, locale, message and dialog providers shared by every window. */
-import { computed, provide, watchEffect } from 'vue'
+import { computed, provide, watch, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import {
   NConfigProvider,
   NMessageProvider,
@@ -54,6 +55,7 @@ import { useInterfaceScale } from './composables/useInterfaceScale'
 import { usePreferenceStore } from './stores/preference'
 import { setIecSizeUnits } from '@shared/utils/format'
 import { isSupportedLocale, type SupportedLocale } from '@shared/localeCatalog'
+import { logger } from '@shared/logger'
 
 import { APP_COLOR_TOKENS_KEY, useColorScheme } from './composables/useColorScheme'
 
@@ -67,6 +69,22 @@ const preferenceStore = usePreferenceStore()
 watchEffect(() => setIecSizeUnits(preferenceStore.config.iecSizeUnits))
 
 const theme = computed(() => (isDark.value ? darkTheme : null))
+
+// Native window and webview backgrounds show wherever the page has not
+// painted yet, as while a window resizes; keep them in the page's color
+// (`--main-bg` in tokens.css) so they never flash white.
+const windowBackground = computed(() =>
+  isDark.value ? colorTokens.value.surfaceContainerHigh : colorTokens.value.surfaceContainerLow,
+)
+watch(
+  windowBackground,
+  (color) => {
+    getCurrentWebviewWindow()
+      .setBackgroundColor(color)
+      .catch((error: unknown) => logger.debug('AppProviders.setBackgroundColor', error))
+  },
+  { immediate: true },
+)
 
 const naiveLocaleMap: Partial<Record<SupportedLocale, NLocale>> = {
   'zh-CN': zhCN,

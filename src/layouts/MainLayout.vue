@@ -433,8 +433,8 @@ onMounted(async () => {
   // Platform is initialised by usePlatform() singleton — no per-component call needed.
 
   // Show the main window now that the frontend has mounted and the
-  // webview has renderable content.  This prevents the transparent-frame
-  // flash on Windows where DWM renders a native shadow before WebView2
+  // webview has renderable content.  This prevents an empty-frame flash
+  // on Windows where DWM renders a native shadow before WebView2
   // finishes initializing.  Follows Tauri official recommendation:
   // visible:false in config → show() from frontend when content is ready.
   //

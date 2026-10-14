@@ -715,7 +715,6 @@ pub fn run() {
             commands::open_path_normalized,
             commands::delete_path,
             commands::get_engine_conf_path,
-            commands::set_window_alpha,
             commands::get_association_status,
             commands::set_default_protocol_client,
             commands::open_default_apps_settings,

@@ -174,37 +174,6 @@ pub fn set_dock_visible(app: AppHandle, visible: bool) -> Result<(), AppError> {
     Ok(())
 }
 
-/// Sets the main window's alpha (opacity) value.
-///
-/// Used during the exit animation to fade the entire native window —
-/// including OS-rendered elements like the macOS traffic lights — that
-/// CSS opacity transitions cannot reach.
-///
-/// `alpha` is clamped to `0.0..=1.0`.  No-op on non-macOS.
-#[tauri::command]
-pub fn set_window_alpha(app: AppHandle, alpha: f64) -> Result<(), AppError> {
-    #[cfg(target_os = "macos")]
-    {
-        use tauri::Manager;
-
-        let alpha = alpha.clamp(0.0, 1.0);
-        if let Some(window) = app.get_webview_window("main") {
-            if let Ok(ns_window) = window.ns_window() {
-                // SAFETY: ns_window() returns a valid NSWindow pointer.
-                // setAlphaValue: is a standard NSWindow method (not private API).
-                unsafe {
-                    let ns_win: &objc2::runtime::AnyObject =
-                        &*(ns_window as *const objc2::runtime::AnyObject);
-                    let _: () = objc2::msg_send![ns_win, setAlphaValue: alpha];
-                }
-            }
-        }
-    }
-    #[cfg(not(target_os = "macos"))]
-    let _ = (app, alpha);
-    Ok(())
-}
-
 /// Programmatically triggers the minimize-to-tray flow from the frontend.
 ///
 /// Delegates entirely to [`handle_minimize_to_tray()`](crate::handle_minimize_to_tray)

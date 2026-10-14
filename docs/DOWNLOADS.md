@@ -298,9 +298,11 @@ The native messaging launcher starts the paired executable outside the browser's
 Windows job with closed standard streams. macOS uses LaunchServices; Linux keeps a
 separate process group. Development builds do not register installed-app identities.
 
-Linux uses opaque window surfaces and a native StatusNotifierItem tray with direct
-activation, speed tooltips and watcher reconnection. NVIDIA Wayland sessions disable driver explicit
-sync for WebKit #324551 unless the environment already configures it. Other rendering
+Windows are opaque on every platform; the system draws their corners and shadows.
+Linux uses a native StatusNotifierItem tray with direct activation, speed tooltips
+and watcher reconnection. With the NVIDIA driver, Linux disables the WebKitGTK
+DMA-BUF renderer (tauri#13493), and NVIDIA Wayland sessions disable driver explicit
+sync for WebKit #324551, unless the environment already configures them. Other rendering
 settings retain WebKitGTK defaults. `softwareRendering` explicitly enables a diagnostic
 fallback; externally supplied rendering environment variables remain authoritative.
 Linux diagnostics report the runtime WebKitGTK version, the existing WebView's native

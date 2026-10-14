@@ -19,7 +19,7 @@ body,
   font-variant: tabular-nums;
   font-size: var(--font-size-base);
   color: var(--m3-on-surface);
-  background: transparent;
+  background: var(--main-bg);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -98,16 +98,6 @@ pre,
   overflow-wrap: normal;
   word-break: break-all;
   hyphens: none;
-}
-
-/* ── Page hidden: pause all infinite animations ────────────────────── */
-/* Prevents WebView2 from re-compositing layers each frame when the     */
-/* window is minimized or the user switches to another app.             */
-/* Toggled by the useVisibilityPause composable via Page Visibility API */
-.animations-paused *,
-.animations-paused *::before,
-.animations-paused *::after {
-  animation-play-state: paused !important;
 }
 
 /* WebView2 handles mouse, pen and touch through native non-client regions. */

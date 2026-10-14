@@ -24,9 +24,10 @@ Try these in order, restarting Rayburst after each:
 2. **X11 instead of Wayland.** Some Wayland compositors (Hyprland in
    particular) fail to map the window. Start with `GDK_BACKEND=x11`.
 
-3. **NVIDIA on Wayland.** Rayburst already sets
-   `__NV_DISABLE_EXPLICIT_SYNC=1` there, which avoids a known WebKitGTK
-   crash. If you start it with your own value, keep it at `1`.
+3. **NVIDIA.** Rayburst already sets `WEBKIT_DISABLE_DMABUF_RENDERER=1` with
+   the NVIDIA driver, which otherwise leaves the window blank, and on Wayland
+   also `__NV_DISABLE_EXPLICIT_SYNC=1`, which avoids a known WebKitGTK crash.
+   If you start it with your own values, keep them at `1`.
 
 4. **A distribution package.** The `.deb` and `.rpm` packages use the
    distribution's WebKitGTK and graphics stack. If the AppImage misbehaves on a

@@ -1,9 +1,9 @@
 //! Linux WebKitGTK GPU rendering guard.
 //!
 //! WebKitGTK hardware rendering can crash on some GPU, driver, and Wayland
-//! compositor combinations. Retain WebKitGTK defaults, with a scoped NVIDIA
-//! Wayland explicit-sync workaround and an opt-in software fallback. External environment overrides remain owned
-//! by the launching environment.
+//! compositor combinations. Retain WebKitGTK defaults, with scoped NVIDIA
+//! workarounds and an opt-in software fallback. External environment overrides
+//! remain owned by the launching environment.
 
 #[cfg(target_os = "linux")]
 use std::io::Write;
@@ -51,27 +51,46 @@ fn read_software_rendering_from_config(data_dir: &std::path::Path) -> bool {
     .unwrap_or(false)
 }
 
+/// Marker values naming why this process disabled WebKitGTK rendering paths.
+#[cfg(target_os = "linux")]
+const SOFTWARE_RENDERING: &str = "software";
+#[cfg(target_os = "linux")]
+const NVIDIA_DRIVER: &str = "nvidia";
+
+#[cfg(target_os = "linux")]
+fn nvidia_driver_loaded() -> bool {
+    std::path::Path::new("/sys/module/nvidia").exists()
+}
+
 #[cfg(target_os = "linux")]
 fn disable_webkit_hardware_rendering_with_marker() {
     unsafe {
         std::env::set_var(WEBKIT_DISABLE_DMABUF_RENDERER, "1");
         std::env::set_var(WEBKIT_DISABLE_COMPOSITING_MODE, "1");
-        std::env::set_var(SELF_SET_MARKER, "1");
+        std::env::set_var(SELF_SET_MARKER, SOFTWARE_RENDERING);
+    }
+}
+
+/// NVIDIA's GBM cannot allocate the buffers the DMA-BUF renderer asks for, and
+/// the window then stays blank (tauri#13493).
+#[cfg(target_os = "linux")]
+fn disable_dmabuf_renderer_with_marker() {
+    unsafe {
+        std::env::set_var(WEBKIT_DISABLE_DMABUF_RENDERER, "1");
+        std::env::set_var(SELF_SET_MARKER, NVIDIA_DRIVER);
     }
 }
 
 #[cfg(target_os = "linux")]
 pub fn pre_flight() {
     // NVIDIA's EGL Wayland path can enable explicit sync before GTK supplies
-    // an acquire point. Keep acceleration and disable only that driver feature.
+    // an acquire point. Disable only that driver feature.
     let wayland = std::env::var("GDK_BACKEND").map_or_else(
         |_| std::env::var("XDG_SESSION_TYPE").as_deref() == Ok("wayland"),
         |backend| backend == "wayland",
     );
-    if wayland
-        && std::path::Path::new("/sys/module/nvidia").exists()
-        && std::env::var_os("__NV_DISABLE_EXPLICIT_SYNC").is_none()
-    {
+    let nvidia = nvidia_driver_loaded();
+    if wayland && nvidia && std::env::var_os("__NV_DISABLE_EXPLICIT_SYNC").is_none() {
         // SAFETY: Called before Tauri and its worker threads are initialized.
         unsafe {
             std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
@@ -99,6 +118,9 @@ pub fn pre_flight() {
     if data_dir().is_some_and(|dir| read_software_rendering_from_config(&dir)) {
         disable_webkit_hardware_rendering_with_marker();
         guard_log("gpu_guard: explicit software rendering fallback");
+    } else if nvidia {
+        disable_dmabuf_renderer_with_marker();
+        guard_log("gpu_guard: disabled the DMA-BUF renderer for the NVIDIA driver (tauri#13493)");
     } else {
         guard_log("gpu_guard: using WebKitGTK rendering defaults");
     }
@@ -140,7 +162,10 @@ pub async fn diagnostic_snapshot(app: &tauri::AppHandle) -> serde_json::Value {
         |name| std::env::var_os(name).map(|value| value.to_string_lossy().into_owned());
     let dmabuf = environment(WEBKIT_DISABLE_DMABUF_RENDERER);
     let compositing = environment(WEBKIT_DISABLE_COMPOSITING_MODE);
-    let disable_override_source = if std::env::var_os(SELF_SET_MARKER).is_some() {
+    let marker = std::env::var(SELF_SET_MARKER).ok();
+    let disable_override_source = if marker.as_deref() == Some(NVIDIA_DRIVER) {
+        "nvidia_driver"
+    } else if marker.is_some() {
         "software_rendering_preference"
     } else if dmabuf.is_some() || compositing.is_some() {
         "environment"
