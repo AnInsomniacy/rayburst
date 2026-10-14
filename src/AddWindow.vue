@@ -220,7 +220,10 @@ async function measureScreen() {
   const monitor = await currentMonitor().catch(() => null)
   const logical = monitor ? monitor.workArea.size.height / monitor.scaleFactor : window.screen.availHeight
   const screenCap = Math.floor((logical * MAX_SCREEN_SHARE) / zoom.value)
-  capHeight.value = baseHeight ? Math.min(screenCap, Math.round(baseHeight * MAX_GROWTH)) : screenCap
+  // A measurement holding no more than the margin and title bar saw no
+  // content; capping by it would leave the window too small to use (#712).
+  const chrome = 2 * inset.value + (systemTitleBar.value ? 0 : TITLE_BAR_HEIGHT)
+  capHeight.value = baseHeight > chrome ? Math.min(screenCap, Math.round(baseHeight * MAX_GROWTH)) : screenCap
 }
 
 const resizeObserver = new ResizeObserver(onContentResize)

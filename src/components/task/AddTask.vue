@@ -902,8 +902,11 @@ const frame = computed(() =>
 const cardStyle = computed(() =>
   props.standalone
     ? {
-        // The standalone window takes the card's natural height, up to the screen.
-        maxHeight: 'var(--add-window-max-height, 100vh)',
+        // The standalone window takes the card's natural height, up to the cap
+        // the window sets once it knows the screen. Until then the card is not
+        // capped at all: the window measures it while hidden, when WebKitGTK
+        // reports a viewport of almost no height, so `100vh` would collapse it.
+        maxHeight: 'var(--add-window-max-height, none)',
         display: 'flex',
         flexDirection: 'column',
         borderRadius: '0',
