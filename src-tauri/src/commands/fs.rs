@@ -306,8 +306,16 @@ pub fn list_dir_files(path: String) -> Result<Vec<String>, AppError> {
 ///    do not support it.
 /// 3. **Trailing separators** — Ensures paths ending in `\\` or `/` do not
 ///    confuse shell APIs.
+/// 4. **Forward-slash UNC shares** — task paths use `/`, so a file on
+///    `\\server\share` arrives as `//server/share/file`. `Path` keeps a prefix
+///    exactly as written, and the shell cannot open `//server/share\file`, so
+///    on Windows every `/` becomes `\` first (#715).
 pub(crate) fn normalize_path(raw: &str) -> String {
     use std::path::PathBuf;
+    #[cfg(windows)]
+    let native = raw.replace('/', "\\");
+    #[cfg(windows)]
+    let raw = native.as_str();
     // Step 1: Decompose into components and reassemble with native separators.
     // On Windows, `Path::new("Z:/file")` understands `/` but `to_string_lossy()`
     // returns the ORIGINAL string unchanged. `.components().collect::<PathBuf>()`
@@ -609,6 +617,13 @@ mod tests {
     fn normalize_path_handles_windows_unc_path() {
         let result = normalize_path("\\\\server\\share\\file.txt");
         assert_eq!(result, "\\\\server\\share\\file.txt");
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn normalize_path_handles_forward_slash_unc_path() {
+        let result = normalize_path("//server/share/dir/file.txt");
+        assert_eq!(result, "\\\\server\\share\\dir\\file.txt");
     }
 
     #[test]
