@@ -65,6 +65,15 @@ import { writeAppClipboardText } from '@shared/utils'
 
 const appLogLevelOptions = APP_LOG_LEVELS.map((level) => ({ label: level, value: level }))
 const aria2LogLevelOptions = ARIA2_LOG_LEVELS.map((level) => ({ label: level, value: level }))
+const extensionDownloadBehaviorOptions = computed(() => [
+  { value: 'confirm', label: t('preferences.extension-behavior-confirm') },
+  { value: 'background', label: t('preferences.extension-behavior-background') },
+  { value: 'show', label: t('preferences.extension-behavior-show') },
+])
+const extensionTorrentActionOptions = computed(() => [
+  { value: 'open', label: t('preferences.extension-torrent-open') },
+  { value: 'save', label: t('preferences.extension-torrent-save') },
+])
 
 const aria2ConfPath = ref('')
 const engineStatePath = ref('')
@@ -313,6 +322,26 @@ onMounted(async () => {
     <div class="preference-form-scroll">
       <NForm label-placement="left" label-align="left" label-width="260px" size="small" class="form-preference">
         <NDivider title-placement="left">{{ t('preferences.extension-section') }}</NDivider>
+        <NFormItem :label="t('preferences.extension-download-behavior')">
+          <NSelect
+            v-model:value="form.extensionDownloadBehavior"
+            :options="extensionDownloadBehaviorOptions"
+            class="pref-control-auto"
+          />
+        </NFormItem>
+        <NFormItem>
+          <template #label>
+            <PreferenceHintLabel
+              :label="t('preferences.extension-torrent-action')"
+              :hint="t('preferences.extension-torrent-action-hint')"
+            />
+          </template>
+          <NSelect
+            v-model:value="form.extensionTorrentAction"
+            :options="extensionTorrentActionOptions"
+            class="pref-control-auto"
+          />
+        </NFormItem>
         <NFormItem
           :label="t('preferences.extension-api-port')"
           v-bind="configFieldProps('extensionApiPort', form.extensionApiPort)"

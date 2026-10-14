@@ -28,9 +28,7 @@ export interface GeneralForm {
   hideDockOnMinimize: boolean
   traySpeedometer: boolean
   lightweightMode: boolean
-  // How downloads arrive: the browser extension and the clipboard.
-  extensionDownloadBehavior: AppConfig['extensionDownloadBehavior']
-  extensionTorrentAction: AppConfig['extensionTorrentAction']
+  // Links picked up from the clipboard.
   clipboardEnable: boolean
   clipboardHttp: boolean
   clipboardSftp: boolean
@@ -77,8 +75,6 @@ export function buildGeneralForm(config: AppConfig): GeneralForm {
     hideDockOnMinimize: config.hideDockOnMinimize,
     traySpeedometer: config.traySpeedometer,
     lightweightMode: config.lightweightMode,
-    extensionDownloadBehavior: config.extensionDownloadBehavior,
-    extensionTorrentAction: config.extensionTorrentAction,
     clipboardEnable: config.clipboard.enable,
     clipboardHttp: config.clipboard.http,
     clipboardSftp: config.clipboard.sftp,

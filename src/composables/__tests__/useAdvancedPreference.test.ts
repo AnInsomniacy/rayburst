@@ -12,7 +12,7 @@ describe('Advanced preference ownership', () => {
       'rpc-secret': form.rpcSecret,
     })
     expect(form).not.toHaveProperty('clipboardEnable')
-    expect(form).not.toHaveProperty('extensionTorrentAction')
+    expect(form).toHaveProperty('extensionTorrentAction')
   })
 })
 
@@ -22,7 +22,7 @@ describe('General preference ownership', () => {
     const stored = transformGeneralForStore({ ...form, clipboardSftp: false })
     expect(stored.clipboard).toMatchObject({ sftp: false })
     expect(stored).not.toHaveProperty('clipboardSftp')
-    expect(stored.extensionDownloadBehavior).toBe(form.extensionDownloadBehavior)
+    expect(stored).not.toHaveProperty('extensionDownloadBehavior')
     expect(stored.taskNotification).toBe(form.taskNotification)
     expect(stored).not.toHaveProperty('proxy')
   })
