@@ -27,7 +27,6 @@
     "@formkit/auto-animate": "^0.9.0",
     "@material/material-color-utilities": "^0.4.0",
     "@tauri-apps/api": "^2.11.0",
-    "@tauri-apps/plugin-autostart": "^2.5.1",
     "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
     "@tauri-apps/plugin-deep-link": "^2.4.9",
     "@tauri-apps/plugin-dialog": "^2.7.1",

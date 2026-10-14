@@ -1,4 +1,5 @@
 pub mod aria2;
+pub mod autostart;
 pub mod bt_blocklist;
 pub mod config;
 pub mod database;
@@ -22,6 +23,7 @@ pub mod ui;
 pub mod updater;
 
 pub use aria2::*;
+pub use autostart::*;
 pub use bt_blocklist::*;
 pub use config::*;
 pub use database::*;

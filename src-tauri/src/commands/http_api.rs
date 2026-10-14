@@ -49,22 +49,10 @@ pub fn add_window_open(
     crate::services::add_window::forward(&app, batch)
 }
 
-/// Builds the add window ahead of its first use.
-#[tauri::command]
-pub fn add_window_prepare(app: tauri::AppHandle) {
-    crate::services::add_window::prepare(&app);
-}
-
 /// Shows the add window once its content is sized.
 #[tauri::command]
 pub fn add_window_present(app: tauri::AppHandle) -> Result<(), AppError> {
     crate::services::add_window::present(&app)
-}
-
-/// Puts the add window away and returns inputs that arrived while it closed.
-#[tauri::command]
-pub fn add_window_park(app: tauri::AppHandle) -> crate::services::add_window::AddWindowInputs {
-    crate::services::add_window::park(&app)
 }
 
 #[tauri::command]

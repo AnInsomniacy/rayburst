@@ -9,6 +9,7 @@ import { usePreferenceStore } from '@/stores/preference'
 import { useAppStore } from '@/stores/app'
 import { usePreferenceForm } from '@/composables/usePreferenceForm'
 import { useEngineStore } from '@/stores/engine'
+import { invoke } from '@tauri-apps/api/core'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { arch as osArch, version as osVersion } from '@tauri-apps/plugin-os'
 import { usePlatform } from '@/composables/usePlatform'
@@ -136,10 +137,7 @@ const { form, isDirty, handleSave, handleReset, patchSnapshot, resetSnapshot } =
     // Sync autostart state immediately on save
     if (f.openAtLogin !== !!prevConfig.openAtLogin) {
       try {
-        const { isEnabled, enable, disable } = await import('@tauri-apps/plugin-autostart')
-        const currentlyEnabled = await isEnabled()
-        if (f.openAtLogin && !currentlyEnabled) await enable()
-        else if (!f.openAtLogin && currentlyEnabled) await disable()
+        await invoke('set_autostart', { enabled: !!f.openAtLogin })
       } catch (e) {
         logger.error('General.autostart', e)
       }

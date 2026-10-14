@@ -2,11 +2,10 @@
 /**
  * @fileoverview Content of the standalone add-task window.
  *
- * The desktop builds this window ahead of time, hidden, and hands it every new
- * download: browser handoffs, links, torrent files and manual entry from the
- * main window. It shows itself once there is something to confirm, and puts
- * itself away after the user submits or cancels, or after handing
- * auto-submitted downloads to the engine.
+ * The desktop opens this window for every new download: browser handoffs,
+ * links, torrent files and manual entry from the main window. It shows itself
+ * once there is something to confirm, and closes after the user submits or
+ * cancels, or after handing auto-submitted downloads to the engine.
  *
  * It is a plain native window: the system draws its frame, corners and
  * shadow, and its height follows the content.
@@ -60,8 +59,6 @@ const capHeight = ref(0)
 let baseHeight = 0
 const unlisteners: UnlistenFn[] = []
 let closing = false
-// Put away after an earlier download; preferences may have changed since.
-let parked = false
 
 // Window managers that force server-side decorations draw their own title bar (#533).
 const systemTitleBar = computed(() => isLinux.value && preferenceStore.config.systemTitleBar)
@@ -91,10 +88,6 @@ function submissionsSettled(): Promise<void> {
 
 async function receive(batch: AddWindowInputs) {
   if (isEmpty(batch)) return
-  if (parked) {
-    parked = false
-    await preferenceStore.reloadPreferenceFromDisk()
-  }
   if (batch.manual && !appStore.addTaskVisible) appStore.showAddTaskDialog()
   if (batch.items.length > 0 && appStore.enqueueForwardedItems(batch.items) > 0) {
     message.warning(t('task.duplicate-task'))
@@ -123,15 +116,8 @@ async function close() {
   }
   // The main window keeps its own copy of the preferences this window may have saved.
   await emit('add-window:closed').catch(() => undefined)
-  try {
-    const late = await invoke<AddWindowInputs>('add_window_park')
-    parked = true
-    closing = false
-    await receive(late)
-  } catch (error) {
-    logger.warn('AddWindow.park', getErrorMessage(error))
-    await view.destroy()
-  }
+  // Inputs that arrive from here on open a new window once this one is gone.
+  await view.destroy()
 }
 
 // ── Size ────────────────────────────────────────────────────────────

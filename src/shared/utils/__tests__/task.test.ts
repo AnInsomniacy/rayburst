@@ -63,8 +63,9 @@ describe('calcProgress', () => {
     expect(calcProgress(1000, 250)).toBe(25)
   })
 
-  it('respects decimal parameter', () => {
-    expect(calcProgress(3, 1, 1)).toBeCloseTo(33.3, 1)
+  it('keeps one decimal and never reads 100 before the end', () => {
+    expect(calcProgress(3, 1)).toBe(33.3)
+    expect(calcProgress(10000, 9999)).toBe(99.9)
   })
 
   it('handles string inputs', () => {

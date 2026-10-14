@@ -22,7 +22,6 @@ tauri-build = { version = "2.6.2", features = [] }
 tauri = { version = "2.11.2", features = ["tray-icon", "image-png"] }
 tauri-plugin-opener = "2"
 tauri-plugin-store = "2"
-tauri-plugin-autostart = "2"
 tauri-plugin-updater = "2.10.1"
 tauri-plugin-deep-link = "2"
 tauri-plugin-shell = "2"

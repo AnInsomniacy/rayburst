@@ -54,7 +54,7 @@ describe('media presentation contracts', () => {
     expect(mediaOutputHint('https://example.org/archive.zip', 'archive.zip')).toBe('archive.zip')
   })
   it('uses presentation progress while output bytes are unknown', () => {
-    expect(mediaPercent(task())).toBe(33.33)
+    expect(mediaPercent(task())).toBe(33.3)
     expect(mediaDuration('90061000')).toBe('25:01:01')
   })
   it('does not invent percentages for live recording, finalization, or absent progress', () => {

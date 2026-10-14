@@ -60,6 +60,7 @@ src-tauri/
 │   ├── commands/
 │   │   ├── mod.rs              # Command module re-exports
 │   │   ├── aria2.rs            # aria2 JSON-RPC forwarding (tell_active, global_stat, etc.)
+│   │   ├── autostart.rs        # Start at login (quoted Run value, LaunchAgent, XDG entry)
 │   │   ├── config.rs           # Config CRUD, session, factory reset commands
 │   │   ├── engine.rs           # Engine start/stop/restart commands
 │   │   ├── fs.rs               # File system ops, diagnostics, platform code

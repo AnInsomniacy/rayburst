@@ -153,7 +153,7 @@ export function mediaPercent(task: Aria2Task): number | null {
   const media = task.media
   if (!media || media.live === 'true' || media.state === 'finalizing' || media.progress === undefined) return null
   const value = Number(media.progress)
-  return Number.isFinite(value) ? Math.round(Math.min(1, Math.max(0, value)) * 10000) / 100 : null
+  return Number.isFinite(value) ? Math.floor(Math.min(1, Math.max(0, value)) * 1000) / 10 : null
 }
 
 export function canFinishMedia(task: Aria2Task): boolean {

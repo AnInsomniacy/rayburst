@@ -5,13 +5,12 @@ import type { Aria2Task, Aria2File } from '@shared/types'
 import type { I18nKey } from '@shared/i18nTypes'
 import { resolveTaskFilePath } from '@/composables/useTaskPaths'
 
-/** Calculates download progress as a percentage. */
-export const calcProgress = (totalLength: string | number, completedLength: string | number, decimal = 2): number => {
+/** Download progress as a percentage with one decimal, rounded down so it never reads 100 early. */
+export const calcProgress = (totalLength: string | number, completedLength: string | number): number => {
   const total = parseInt(String(totalLength), 10)
   const completed = parseInt(String(completedLength), 10)
   if (total === 0 || completed === 0) return 0
-  const percentage = (completed / total) * 100
-  return parseFloat(percentage.toFixed(decimal))
+  return Math.floor((completed / total) * 1000) / 10
 }
 
 const parseLength = (value: string | number | undefined): number => {

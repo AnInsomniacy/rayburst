@@ -32,6 +32,10 @@
     DeleteRegValue SHCTX "Software\Classes\.torrent" ""
   ${EndIf}
   DeleteRegValue SHCTX "Software\Classes\.torrent" "${BUNDLEID}.torrent_backup"
+  ; Tauri removes the login Run value; its Task Manager switch goes with it.
+  ${If} $UpdateMode <> 1
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run" "${PRODUCTNAME}"
+  ${EndIf}
 !macroend
 
 ; Rayburst Native Messaging registration and icon refresh.

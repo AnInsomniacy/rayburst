@@ -4,10 +4,8 @@
 //! download managers confirm a browser click: links, torrent files, browser
 //! handoffs and manual entry alike. It opens over the main window while that is
 //! in view, and on the screen under the pointer otherwise. The main window only
-//! shows its own add dialog when this window cannot be created.
-//!
-//! While the main window exists, the add window is built ahead of time and only
-//! hidden between downloads, so it appears without loading a new webview.
+//! shows its own add dialog when this window cannot be created. It is built for
+//! each download and destroyed when it closes.
 
 use std::sync::Mutex;
 use std::time::Duration;
@@ -103,21 +101,6 @@ pub fn wanted(app: &AppHandle) -> bool {
             .is_some_and(|supervisor| supervisor.is_running())
 }
 
-/// Builds the window ahead of its first use, hidden, so it appears at once.
-pub fn prepare(app: &AppHandle) {
-    let Some(state) = app.try_state::<AddWindowState>() else {
-        return;
-    };
-    let mut inner = state.lock();
-    if inner.broken || inner.opening || app.get_webview_window(LABEL).is_some() {
-        return;
-    }
-    inner.opening = true;
-    inner.resident = false;
-    drop(inner);
-    open(app, "prepare");
-}
-
 /// Shows the window, placed for this download, once its content is sized.
 pub fn present(app: &AppHandle) -> Result<(), AppError> {
     let window = app
@@ -131,43 +114,6 @@ pub fn present(app: &AppHandle) -> Result<(), AppError> {
     let _ = window.unminimize();
     window.set_focus().map_err(failed)?;
     Ok(())
-}
-
-/// Puts the window away after a download was confirmed or dismissed. It stays
-/// built, hidden, while the main window exists, and returns inputs that arrived
-/// while it was closing; without the main window it is destroyed, so the
-/// process keeps no webview it does not show.
-pub fn park(app: &AppHandle) -> AddWindowInputs {
-    let Some(window) = app.get_webview_window(LABEL) else {
-        return AddWindowInputs::default();
-    };
-    let Some(state) = app.try_state::<AddWindowState>() else {
-        return AddWindowInputs::default();
-    };
-    if app.get_webview_window("main").is_some() && window.hide().is_ok() {
-        let mut inner = state.lock();
-        inner.ready = true;
-        inner.resident = false;
-        return std::mem::take(&mut inner.queue);
-    }
-    if let Err(error) = window.destroy() {
-        log::warn!("add_window:destroy-failed error={error}");
-    }
-    AddWindowInputs::default()
-}
-
-/// Releases a hidden window together with the main window, so it neither holds
-/// memory in the tray nor keeps the process alive as its last window.
-pub fn main_window_destroyed(app: &AppHandle) {
-    let Some(window) = app.get_webview_window(LABEL) else {
-        return;
-    };
-    if window.is_visible().unwrap_or(false) {
-        return;
-    }
-    if let Err(error) = window.destroy() {
-        log::warn!("add_window:destroy-failed error={error}");
-    }
 }
 
 /// Takes inputs the main window forwards; fails when the window cannot be

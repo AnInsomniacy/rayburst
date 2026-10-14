@@ -631,11 +631,7 @@ pub fn run() {
         .plugin(tauri_plugin_locale::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_autostart::init(
-            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            Some(vec!["--autostart"]),
-        ));
+        .plugin(tauri_plugin_updater::Builder::new().build());
 
     #[cfg(desktop)]
     {
@@ -733,8 +729,6 @@ pub fn run() {
             commands::add_window_attach,
             commands::add_window_detach,
             commands::add_window_open,
-            commands::add_window_park,
-            commands::add_window_prepare,
             commands::add_window_present,
             commands::take_pending_frontend_actions,
             commands::history_get_record,
@@ -802,6 +796,8 @@ pub fn run() {
             commands::aria2_force_pause_all,
             commands::aria2_resume_eligible,
             commands::system_shutdown,
+            commands::set_autostart,
+            commands::sync_autostart,
             commands::cancel_shutdown,
         ])
         // ── Window event interception ─────────────────────────────────
@@ -864,8 +860,6 @@ pub fn run() {
                 log::info!("window:destroyed label={}", window.label());
                 if window.label() == services::add_window::LABEL {
                     services::add_window::destroyed(window.app_handle());
-                } else if window.label() == "main" {
-                    services::add_window::main_window_destroyed(window.app_handle());
                 }
             }
             _ => {}

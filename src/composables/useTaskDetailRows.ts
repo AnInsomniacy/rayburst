@@ -54,7 +54,7 @@ export function buildFileDetailRows(files: Aria2File[]): FileDetailRow[] {
       extension: '.' + getFileExtension(name),
       length,
       completedLength,
-      percent: calcProgress(item.length, item.completedLength, 1),
+      percent: calcProgress(item.length, item.completedLength),
       selected: item.selected === 'true',
       priority: item.priority ?? (item.selected === 'true' ? 'normal' : 'off'),
     }

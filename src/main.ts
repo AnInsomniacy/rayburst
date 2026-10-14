@@ -302,31 +302,16 @@ if (isAddWindow) {
   }
 
   /**
-   * Sync autostart state with persisted preference.
-   *
-   * When `openAtLogin` is true we **always** call `enable()`, even if
-   * `isEnabled()` reports true.  This is a deliberate workaround for
-   * auto-launch crate v0.5.0 bug: on Windows the registry entry under
-   * `HKCU\...\Run` is sometimes removed after the first successful
-   * launch (tauri-apps/plugins-workspace#771).  Re-calling `enable()`
-   * is idempotent and guarantees the entry + `--autostart` args are
-   * present for the next boot.
+   * Brings the login registration in line with the preference: a missing or
+   * outdated one (moved install, unquoted path) is rewritten, while the
+   * system's own on/off switch for it is left as the user set it.
    */
   async function syncAutostart(config: typeof preferenceStore.config): Promise<void> {
     try {
-      const { isEnabled, enable, disable } = await import('@tauri-apps/plugin-autostart')
-      const currentlyEnabled = await isEnabled()
-
-      if (config.openAtLogin) {
-        // Always re-enable to self-heal the registry (#771 workaround).
-        await enable()
-        logger.info('main.autostart', `ensured enabled (was=${currentlyEnabled} openAtLogin=${config.openAtLogin})`)
-      } else if (currentlyEnabled) {
-        await disable()
-        logger.info('main.autostart', 'disabled (openAtLogin=false)')
-      }
+      const { invoke } = await import('@tauri-apps/api/core')
+      await invoke('sync_autostart', { enabled: !!config.openAtLogin })
     } catch (e) {
-      logger.debug('main.autostart', e)
+      logger.warn('main.autostart', e)
     }
   }
 
@@ -361,10 +346,6 @@ if (isAddWindow) {
         return false
       }
     })
-    // Build the add window now, hidden, so the first download does not wait for it.
-    void import('@tauri-apps/api/core').then(({ invoke }) =>
-      invoke('add_window_prepare').catch((error: unknown) => logger.debug('main.addWindowPrepare', error)),
-    )
     // The UI remains usable if database inspection fails.
     const database = useDatabaseStore()
     await database.init().catch(() => undefined)
