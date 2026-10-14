@@ -89,6 +89,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # The AppImage must use the host's Wayland libraries: a bundled copy
+          # from the build machine breaks EGL on newer Mesa and the window
+          # never opens (#714). linuxdeploy leaves out libwayland-client
+          # itself; this list (separated by ';') covers the rest.
+          LINUXDEPLOY_EXCLUDED_LIBRARIES: libwayland-*
         with:
           tagName: ${{ github.event.release.tag_name || '' }}
           releaseId: ${{ github.event_name == 'release' && github.event.release.id || '' }}
