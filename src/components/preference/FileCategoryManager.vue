@@ -801,7 +801,7 @@ onUnmounted(() => {
 }
 
 .category-manager-list-title {
-  overflow: hidden;
+  overflow: clip visible;
   font-size: var(--font-size-sm);
   font-weight: 500;
   text-overflow: ellipsis;

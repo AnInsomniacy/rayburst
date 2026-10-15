@@ -101,9 +101,11 @@ function glide(duration: number) {
   min-width: 0;
   flex-shrink: 1;
 }
+/* Clipped sideways only: the button's line height is 1, and CJK glyphs drawn in
+   a fallback font taller than the Latin one would lose their top row (#723). */
 .form-actions :deep(.n-button__content) {
   display: block;
-  overflow: hidden;
+  overflow: clip visible;
   text-overflow: ellipsis;
 }
 .dirty-actions-enter-active {

@@ -7,11 +7,20 @@
   overflow: hidden;
 }
 
+/* Settings fade out above the action bar, so a row cut by the window's edge
+   reads as more to scroll to rather than as clipped text (#723). The last form
+   ends with room for the fade, so nothing stays faded at the bottom. */
 .preference-form-scroll {
+  --scroll-fade: 24px;
   flex: 1;
   min-width: 0;
   min-height: 0;
   overflow: auto;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--scroll-fade)), transparent);
+}
+
+.preference-form-scroll > form.form-preference:last-of-type {
+  padding-bottom: calc(16px + var(--scroll-fade));
 }
 
 .form-preference {

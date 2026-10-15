@@ -1,7 +1,7 @@
 /** @fileoverview Application-wide constants: themes, intervals, suffixes, limits. */
 import { version as appVersion } from '../../package.json'
 import { DEFAULT_TASK_MANUAL_ORDER, DEFAULT_TASK_SORT } from '@/composables/useTaskSort'
-import type { AppLogLevel, Aria2LogLevel } from '@shared/types'
+import type { AppLogLevel, Aria2LogLevel, FloatWindowMode } from '@shared/types'
 import type { I18nKey } from '@shared/i18nTypes'
 export const EMPTY_STRING = ''
 
@@ -95,6 +95,15 @@ export const COMPLETED_RECORD_RETENTION_OPTIONS = [0, 1, 7, 180, 365] as const
 export const INCOMPLETE_SUFFIX = '.ray' as const
 
 export const UPDATE_CHANNELS = ['stable', 'beta'] as const
+
+export const FLOAT_WINDOW_MODES = ['always', 'downloading', 'off'] as const satisfies readonly FloatWindowMode[]
+
+/** Labels of the floating window's modes in the settings, its menu and the tray. */
+export const FLOAT_WINDOW_MODE_LABELS = {
+  always: 'preferences.float-window-always',
+  downloading: 'preferences.float-window-downloading',
+  off: 'preferences.float-window-off',
+} as const satisfies Record<FloatWindowMode, I18nKey>
 
 /**
  * Factory default values for every AppConfig field.
@@ -276,7 +285,7 @@ export const DEFAULT_APP_CONFIG = {
   taskNotification: true, // users expect download-complete notifications
   notifyOnStart: true,
   notifyOnComplete: true, // main value of OS notification: background completion alert
-  showFloatWindow: false,
+  floatWindow: 'off' as const,
   mediaSelectBeforeDownload: true,
   mediaDefaultFormat: 'mp4' as const,
   newTaskShowDownloading: true, // auto-navigate to downloads after adding task

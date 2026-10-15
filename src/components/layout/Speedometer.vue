@@ -440,7 +440,7 @@ async function handleScheduleToggle(enabled: boolean) {
   transform: rotate(0deg);
 }
 .value {
-  overflow: hidden;
+  overflow: clip visible;
   width: 100%;
   white-space: nowrap;
   text-overflow: ellipsis;

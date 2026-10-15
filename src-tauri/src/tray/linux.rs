@@ -10,6 +10,8 @@ use std::{
 };
 use tauri::AppHandle;
 
+use super::FloatMode;
+
 const ACTIONS: [(&str, &str); 5] = [
     ("show", "Show Rayburst"),
     ("tray-new-task", "New Task"),
@@ -25,6 +27,7 @@ struct Model {
     active: bool,
     hidden: bool,
     labels: HashMap<String, String>,
+    float_mode: FloatMode,
 }
 
 /// A panel restarting, after resume or unlock, brings the watcher back within
@@ -123,15 +126,18 @@ impl ksni::Tray for NativeTray {
             .model
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        ACTIONS
+        let label = |id: &str, fallback: &str| {
+            model
+                .labels
+                .get(id)
+                .cloned()
+                .unwrap_or_else(|| fallback.into())
+        };
+        let mut menu: Vec<ksni::MenuItem<Self>> = ACTIONS
             .iter()
             .map(|&(id, fallback)| {
                 ksni::menu::StandardItem {
-                    label: model
-                        .labels
-                        .get(id)
-                        .cloned()
-                        .unwrap_or_else(|| fallback.into()),
+                    label: label(id, fallback),
                     activate: Box::new(move |tray: &mut Self| {
                         super::dispatch_menu_action(&tray.app, id)
                     }),
@@ -139,7 +145,40 @@ impl ksni::Tray for NativeTray {
                 }
                 .into()
             })
-            .collect()
+            .collect();
+        let float_menu = ksni::menu::SubMenu {
+            label: label("tray-float", super::FLOAT_MENU_LABEL),
+            submenu: vec![ksni::menu::RadioGroup {
+                selected: FloatMode::ALL
+                    .iter()
+                    .position(|mode| *mode == model.float_mode)
+                    .unwrap_or_default(),
+                select: Box::new(|tray: &mut Self, index| {
+                    let Some(&mode) = FloatMode::ALL.get(index) else {
+                        return;
+                    };
+                    tray.model
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner)
+                        .float_mode = mode;
+                    if let Err(error) = crate::services::float_window::set_mode(&tray.app, mode) {
+                        log::warn!("tray:float-mode-failed error={error}");
+                    }
+                }),
+                options: FloatMode::ALL
+                    .iter()
+                    .map(|&mode| ksni::menu::RadioItem {
+                        label: label(mode.menu_id(), super::float_mode_label(mode)),
+                        ..Default::default()
+                    })
+                    .collect(),
+            }
+            .into()],
+            ..Default::default()
+        };
+        // Before Quit, as in the other platforms' menus.
+        menu.insert(menu.len() - 1, float_menu.into());
+        menu
     }
 }
 
@@ -186,6 +225,13 @@ impl TrayMenuState {
         }
         self.refresh();
     }
+    pub fn set_float_mode(&self, mode: FloatMode) {
+        self.model
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .float_mode = mode;
+        self.refresh();
+    }
     pub fn set_labels(&self, labels: &serde_json::Value) {
         if let Some(labels) = labels.as_object() {
             let mut model = self
@@ -206,6 +252,7 @@ pub fn setup_tray(app: &AppHandle) -> Result<TrayMenuState, Box<dyn std::error::
     let state = TrayMenuState {
         model: Arc::new(Mutex::new(Model {
             hidden: !crate::read_pref_bool(app, "showTrayIcon", true),
+            float_mode: crate::services::float_window::saved_mode(app),
             ..Model::default()
         })),
         handle: Arc::default(),

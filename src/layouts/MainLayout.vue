@@ -18,6 +18,7 @@ import { getTaskName, resolveOpenTarget, checkTaskIsSharing, getTaskSharingKind 
 import type { TaskSharingKind } from '@shared/utils/task'
 import type { Aria2Task, TaskSnapshot } from '@shared/types'
 import { ARIA2_ERROR_CODES } from '@shared/aria2ErrorCodes'
+import { FLOAT_WINDOW_MODE_LABELS } from '@shared/constants'
 import { useHistoryStore } from '@/stores/history'
 import { useDatabaseStore } from '@/stores/database'
 import { useDatabaseReset } from '@/composables/useDatabaseReset'
@@ -671,6 +672,10 @@ onMounted(async () => {
         'tray-resume-all': t('app.tray-resume-all'),
         'tray-pause-all': t('app.tray-pause-all'),
         'tray-quit': t('app.quit'),
+        'tray-float': t('preferences.float-window'),
+        'float-always': t(FLOAT_WINDOW_MODE_LABELS.always),
+        'float-downloading': t(FLOAT_WINDOW_MODE_LABELS.downloading),
+        'float-off': t(FLOAT_WINDOW_MODE_LABELS.off),
       },
     })
     await invoke('update_menu_labels', {
@@ -924,7 +929,7 @@ onUnmounted(() => {
 }
 .sidebar-heading h2 {
   transition: opacity var(--navigation-duration) var(--navigation-easing);
-  overflow: hidden;
+  overflow: clip visible;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -947,7 +952,7 @@ onUnmounted(() => {
 }
 .page-header h1 {
   min-width: 0;
-  overflow: hidden;
+  overflow: clip visible;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

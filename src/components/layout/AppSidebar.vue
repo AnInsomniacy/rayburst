@@ -139,7 +139,7 @@ const isSettings = computed(() => route.matched.some((record) => record.name ===
   flex: 1;
   min-width: 0;
   white-space: nowrap;
-  overflow: hidden;
+  overflow: clip visible;
   text-overflow: ellipsis;
   transition: opacity var(--navigation-duration) var(--navigation-easing);
 }

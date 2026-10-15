@@ -193,6 +193,8 @@ fn monitor_engine(
         while let Some(event) = receiver.recv().await {
             match event {
                 CommandEvent::Stdout(line) => {
+                    // Echoed to the terminal in debug builds only.
+                    #[cfg_attr(not(debug_assertions), allow(unused_variables))]
                     let text = strip_ansi(&String::from_utf8_lossy(&line));
                     #[cfg(debug_assertions)]
                     if !text.trim().is_empty() {

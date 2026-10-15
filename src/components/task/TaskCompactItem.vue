@@ -224,7 +224,7 @@ const compactStatus = computed<{ label: string; tone: string; icon: Component } 
 .compact-name {
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
+  overflow: clip visible;
   color: var(--m3-on-surface-variant);
   font-size: var(--font-size-base);
   line-height: 24px;
@@ -259,7 +259,7 @@ const compactStatus = computed<{ label: string; tone: string; icon: Component } 
 }
 .compact-name :deep(.task-text-transition-content) {
   display: block;
-  overflow: hidden;
+  overflow: clip visible;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

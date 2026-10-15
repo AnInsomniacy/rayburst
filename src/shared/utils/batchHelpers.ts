@@ -120,6 +120,13 @@ export function createBatchItem(kind: BatchItemKind, source: string, payload = '
   }
 }
 
+/** Base64 of file content, the payload of a torrent item. */
+export function encodeBase64(bytes: Uint8Array): string {
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return btoa(binary)
+}
+
 // ── URI normalization ───────────────────────────────────────────────
 
 /** If the line is a bare BitTorrent info hash, wrap it as a magnet URI. */

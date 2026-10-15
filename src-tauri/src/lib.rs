@@ -659,6 +659,8 @@ pub fn run() {
     builder = builder.plugin(
         tauri_plugin_window_state::Builder::new()
             .skip_initial_state("main")
+            // Built off the main thread; restored on it instead (#725).
+            .skip_initial_state(services::float_window::LABEL)
             .with_denylist(&[
                 services::add_window::LABEL,
                 services::float_window::PANEL_LABEL,
@@ -739,6 +741,7 @@ pub fn run() {
             commands::add_window_park,
             commands::add_window_prepare,
             commands::add_window_present,
+            commands::add_window_screen_height,
             commands::take_pending_frontend_actions,
             commands::history_get_record,
             commands::rename_completed_file,
@@ -812,6 +815,7 @@ pub fn run() {
             commands::cancel_shutdown,
             commands::float_window_open_main,
             commands::float_window_ready,
+            commands::float_window_set_mode,
             commands::float_panel_toggle,
             commands::float_panel_dismiss,
             commands::float_panel_present,

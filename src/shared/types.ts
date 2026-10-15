@@ -337,6 +337,9 @@ export interface SystemProxyInfo {
 }
 
 export type UpdateChannel = 'stable' | 'beta'
+
+/** When the floating window shows: always, only while files download, or never. */
+export type FloatWindowMode = 'always' | 'downloading' | 'off'
 export type ResolvedUpdateChannel = UpdateChannel
 
 /** Clipboard auto-detection filter: controls which protocol families
@@ -509,8 +512,8 @@ export interface AppConfig {
   notifyOnStart: boolean
   /** OS notification when a download completes or BT enters seeding (gated by taskNotification). */
   notifyOnComplete: boolean
-  /** The floating window with speed and progress stays on top (#669, #718). */
-  showFloatWindow: boolean
+  /** When the floating window with speed and progress stays on top (#669, #718, #726). */
+  floatWindow: FloatWindowMode
   showProgressBar: boolean
   showTrayIcon: boolean
   traySpeedometer: boolean

@@ -20,23 +20,7 @@ pub fn update_tray_title(app: AppHandle, title: String) -> Result<(), AppError> 
 /// Updates localized labels on tray menu items by their IDs.
 #[tauri::command]
 pub fn update_tray_menu_labels(app: AppHandle, labels: Value) -> Result<(), AppError> {
-    let state = app.state::<TrayMenuState>();
-    #[cfg(target_os = "linux")]
-    state.set_labels(&labels);
-    #[cfg(not(target_os = "linux"))]
-    {
-        let items = state
-            .items
-            .lock()
-            .map_err(|e| AppError::Store(e.to_string()))?;
-        if let Some(obj) = labels.as_object() {
-            for (id, text) in obj {
-                if let Some(item) = items.get(id.as_str()) {
-                    let _ = item.set_text(text.as_str().unwrap_or(id));
-                }
-            }
-        }
-    }
+    app.state::<TrayMenuState>().set_labels(&labels);
     Ok(())
 }
 
@@ -185,6 +169,15 @@ pub fn float_window_open_main(app: AppHandle) {
 #[tauri::command]
 pub fn float_window_ready(app: AppHandle) {
     crate::services::pump::wake(&app);
+}
+
+/// Switches the floating window's mode from its menu.
+#[tauri::command]
+pub fn float_window_set_mode(
+    app: AppHandle,
+    mode: crate::services::float_window::Mode,
+) -> Result<(), AppError> {
+    crate::services::float_window::set_mode(&app, mode)
 }
 
 /// Opens the floating panel beside the orb, or closes it.

@@ -252,7 +252,7 @@ function invertSelection() {
 }
 
 .bt-file-selector :deep(.bt-file-label) {
-  overflow: hidden;
+  overflow: clip visible;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

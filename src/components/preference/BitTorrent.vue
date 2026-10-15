@@ -892,7 +892,7 @@ onMounted(() => {
 }
 .tracker-source-option__owner,
 .tracker-source-option__repository {
-  overflow: hidden;
+  overflow: clip visible;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

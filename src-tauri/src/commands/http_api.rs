@@ -65,6 +65,13 @@ pub fn add_window_present(app: tauri::AppHandle) -> Result<(), AppError> {
     crate::services::add_window::present(&app)
 }
 
+/// Logical height of the screen the add window opens on. Synchronous, so it
+/// runs on the main thread (#725).
+#[tauri::command]
+pub fn add_window_screen_height(app: tauri::AppHandle) -> Option<f64> {
+    crate::services::add_window::screen_height(&app)
+}
+
 #[tauri::command]
 pub fn add_window_detach(
     state: tauri::State<'_, crate::services::add_window::AddWindowState>,

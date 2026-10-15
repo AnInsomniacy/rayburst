@@ -22,7 +22,7 @@ import { isSupportedLocale, LOCALE_CATALOG, SUPPORTED_LOCALES } from '@shared/lo
 import { logger } from '@shared/logger'
 import { writeAppClipboardText } from '@shared/utils'
 import { buildGeneralForm, transformGeneralForStore } from '@/composables/useGeneralPreference'
-import { COLOR_SCHEMES, CUSTOM_COLOR_SCHEME_ID } from '@shared/constants'
+import { COLOR_SCHEMES, CUSTOM_COLOR_SCHEME_ID, FLOAT_WINDOW_MODE_LABELS, FLOAT_WINDOW_MODES } from '@shared/constants'
 import { normalizeCustomColorScheme } from '@shared/utils/colorSchemeConfig'
 import { useAppMessage } from '@/composables/useAppMessage'
 import {
@@ -192,6 +192,10 @@ const notificationClickOptions = computed(() => [
   { value: 'reveal', label: t('preferences.notification-click-reveal') },
   { value: 'open', label: t('preferences.notification-click-open') },
 ])
+
+const floatWindowOptions = computed(() =>
+  FLOAT_WINDOW_MODES.map((value) => ({ value, label: t(FLOAT_WINDOW_MODE_LABELS[value]) })),
+)
 
 // Note: the legacy one-shot locale sync watcher has been removed.
 // With 'auto' as an explicit option, there is no async race condition
@@ -602,7 +606,7 @@ onMounted(async () => {
           <template #label>
             <PreferenceHintLabel :label="t('preferences.float-window')" :hint="t('preferences.float-window-hint')" />
           </template>
-          <NSwitch v-model:value="form.showFloatWindow" />
+          <NSelect v-model:value="form.floatWindow" :options="floatWindowOptions" class="pref-control-auto" />
         </NFormItem>
         <NFormItem>
           <template #label>

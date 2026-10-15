@@ -391,7 +391,7 @@ onBeforeUnmount(() => {
 .panel-row-name {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
+  overflow: clip visible;
   font-size: var(--font-size-xs);
   font-weight: 500;
   white-space: nowrap;
@@ -418,7 +418,7 @@ onBeforeUnmount(() => {
 }
 
 .panel-row-meta {
-  overflow: hidden;
+  overflow: clip visible;
   color: var(--m3-on-surface-variant);
   font-size: var(--font-size-2xs);
   font-variant-numeric: tabular-nums;

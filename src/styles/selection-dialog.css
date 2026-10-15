@@ -14,7 +14,7 @@
 }
 .selection-name {
   min-height: 22px;
-  overflow: hidden;
+  overflow: clip visible;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 500;
@@ -35,7 +35,7 @@
 .selection-subtitle {
   min-height: 18px;
   margin-top: 2px;
-  overflow: hidden;
+  overflow: clip visible;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--font-size-sm);

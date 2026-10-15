@@ -58,6 +58,7 @@ Pre-commit hooks (husky + lint-staged) auto-run `eslint --fix` and `prettier --w
 - Use `<script setup lang="ts">` with composition API.
 - Every file starts with a `/** @fileoverview ... */` doc comment.
 - Use `logger` from `@shared/logger` for all runtime logging — **no bare `console.*`**.
+- Truncate a single line with `overflow: clip visible` (not `hidden`) before `text-overflow: ellipsis`. Clipping only sideways keeps the tops of CJK glyphs that a fallback font draws above a tight line box (#723).
 
 ## 🛡 Error Handling
 

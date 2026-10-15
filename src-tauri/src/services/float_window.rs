@@ -1,9 +1,11 @@
-//! The floating window (#669, #718, #402).
+//! The floating window (#669, #718, #402, #726).
 //!
 //! A small orb that stays on top with the overall speed and progress, so
 //! downloads can be followed without the main window. A click opens a panel
-//! beside it to follow and control each download. While the preference is on,
-//! the pump keeps both open and feeds them each snapshot.
+//! beside it to follow and control each download, and links or torrents dropped
+//! on it open the add window. Its mode keeps it always, only while files
+//! download, or never; the pump opens and closes both windows accordingly and
+//! feeds them each snapshot.
 //!
 //! The orb never changes its size, and the panel is a window of its own, built
 //! hidden with the orb; neither has to move or resize the other to open, so
@@ -17,6 +19,7 @@ use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewWindow,
     WebviewWindowBuilder,
 };
+use tauri_plugin_store::StoreExt;
 
 use super::stat::StatUpdate;
 use crate::aria2::types::Aria2Task;
@@ -29,9 +32,11 @@ const UPDATE_EVENT: &str = "float:update";
 const LEAVE_EVENT: &str = "float:leave";
 const PANEL_OPEN_EVENT: &str = "float-panel:open";
 const PANEL_CLOSE_EVENT: &str = "float-panel:close";
-/// Size of the orb window in logical pixels: the 44 px orb and the margin
+/// Tells every window that the mode changed outside the settings.
+const MODE_EVENT: &str = "float-window:mode";
+/// Size of the orb window in logical pixels: the 52 px orb and the margin
 /// holding its shadow, `FloatWindow.vue`.
-const ORB_SIZE: f64 = 60.0;
+const ORB_SIZE: f64 = 68.0;
 const ORB_INSET: f64 = 8.0;
 /// Margin holding the panel's shadow, `FloatPanel.vue`.
 const PANEL_INSET: f64 = 12.0;
@@ -46,6 +51,38 @@ const LEAVE: Duration = Duration::from_millis(200);
 const REOPEN_GUARD: Duration = Duration::from_millis(300);
 /// Downloads the panel lists; the main window has the rest.
 const MAX_TASKS: usize = 20;
+/// How long the orb stays after the last download in `downloading` mode: long
+/// enough to show its check.
+const LINGER: Duration = Duration::from_millis(2400);
+
+/// When the orb shows, the `floatWindow` preference.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Mode {
+    Always,
+    /// While files download; paused and seeding tasks do not count.
+    Downloading,
+    #[default]
+    #[serde(other)]
+    Off,
+}
+
+impl Mode {
+    pub const ALL: [Mode; 3] = [Mode::Always, Mode::Downloading, Mode::Off];
+
+    /// Menu item ID, shared by the tray menus.
+    pub fn menu_id(self) -> &'static str {
+        match self {
+            Mode::Always => "float-always",
+            Mode::Downloading => "float-downloading",
+            Mode::Off => "float-off",
+        }
+    }
+
+    pub fn from_menu_id(id: &str) -> Option<Mode> {
+        Mode::ALL.into_iter().find(|mode| mode.menu_id() == id)
+    }
+}
 
 /// The window was put away while the main window rested in the tray, so the
 /// implicit exit that follows must not end the process.
@@ -87,11 +124,25 @@ struct Update<'a> {
 pub struct FloatWindow {
     opening: Arc<AtomicBool>,
     leaving: Arc<AtomicBool>,
+    /// The mode the tray menus show.
+    shown_mode: Mutex<Option<Mode>>,
+    /// When the last download stopped, in `downloading` mode.
+    quiet_since: Mutex<Option<Instant>>,
 }
 
 impl FloatWindow {
     /// `tasks` holds the queued tasks of the same snapshot as `stat`.
-    pub fn sync(&self, app: &AppHandle, wanted: bool, stat: &StatUpdate, tasks: &[Aria2Task]) {
+    pub fn sync(&self, app: &AppHandle, mode: Mode, stat: &StatUpdate, tasks: &[Aria2Task]) {
+        let mut shown = self
+            .shown_mode
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if *shown != Some(mode) {
+            crate::tray::set_float_mode(app, mode);
+            *shown = Some(mode);
+        }
+        drop(shown);
+        let wanted = self.wanted(app, mode, tasks);
         match (wanted, app.get_webview_window(LABEL)) {
             (true, Some(_)) if !self.leaving.load(Ordering::Acquire) => {
                 let active: Vec<_> = tasks
@@ -116,6 +167,15 @@ impl FloatWindow {
         }
     }
 
+    fn wanted(&self, app: &AppHandle, mode: Mode, tasks: &[Aria2Task]) -> bool {
+        let busy = tasks.iter().any(downloading) || panel().open;
+        let mut quiet = self
+            .quiet_since
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        wants_orb(mode, busy, exists(app), &mut quiet, Instant::now())
+    }
+
     fn open(&self, app: &AppHandle) {
         if self.opening.swap(true, Ordering::AcqRel) {
             return;
@@ -131,6 +191,9 @@ impl FloatWindow {
                 match built {
                     Ok(window) => {
                         super::add_window::without_system_transitions(&window);
+                        if label == LABEL {
+                            restore_orb_position(&app, window);
+                        }
                         log::info!("float_window:opened label={label}");
                     }
                     Err(error) => {
@@ -170,6 +233,74 @@ impl FloatWindow {
     }
 }
 
+fn downloading(task: &Aria2Task) -> bool {
+    task.status == "active" && task.seeder.as_deref() != Some("true")
+}
+
+/// In `downloading` mode the orb comes with the first download and leaves a
+/// moment after the last one; `busy` also holds it while its panel is open.
+/// `quiet` remembers when the orb ran out of downloads.
+fn wants_orb(
+    mode: Mode,
+    busy: bool,
+    shown: bool,
+    quiet: &mut Option<Instant>,
+    now: Instant,
+) -> bool {
+    if mode != Mode::Downloading || busy || !shown {
+        *quiet = None;
+        return match mode {
+            Mode::Always => true,
+            Mode::Downloading => busy,
+            Mode::Off => false,
+        };
+    }
+    now.duration_since(*quiet.get_or_insert(now)) < LINGER
+}
+
+/// Saves a mode picked in the orb's menu or the tray and applies it at once;
+/// the windows holding preferences reload them.
+pub fn set_mode(app: &AppHandle, mode: Mode) -> Result<(), AppError> {
+    let store = app
+        .store("config.json")
+        .map_err(|error| AppError::Store(error.to_string()))?;
+    let mut preferences = store
+        .get("preferences")
+        .unwrap_or_else(|| serde_json::json!({}));
+    let fields = preferences
+        .as_object_mut()
+        .ok_or_else(|| AppError::Store("preferences are not an object".into()))?;
+    fields.insert("floatWindow".into(), serde_json::json!(mode));
+    store.set("preferences", preferences.clone());
+    store
+        .save()
+        .map_err(|error| AppError::Store(error.to_string()))?;
+    log::info!("float_window:mode mode={mode:?}");
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        if let Some(state) = app.try_state::<super::config::RuntimeConfigState>() {
+            if let Err(error) = state.refresh_from_json(&preferences).await {
+                log::warn!("float_window:mode-refresh-failed error={error}");
+            }
+        }
+        super::pump::wake(&app);
+        if let Err(error) = app.emit(MODE_EVENT, mode) {
+            log::debug!("float_window:emit-failed event={MODE_EVENT} error={error}");
+        }
+    });
+    Ok(())
+}
+
+/// The mode saved in the preferences, for the tray menus built at startup.
+pub fn saved_mode(app: &AppHandle) -> Mode {
+    app.store("config.json")
+        .ok()
+        .and_then(|store| store.get("preferences"))
+        .and_then(|preferences| preferences.get("floatWindow").cloned())
+        .and_then(|mode| serde_json::from_value(mode).ok())
+        .unwrap_or_default()
+}
+
 /// Active downloads first, each with only what a row shows.
 fn queue(tasks: &[Aria2Task]) -> Vec<Aria2Task> {
     let rank = |task: &Aria2Task| match task.status.as_str() {
@@ -202,6 +333,10 @@ fn floating_config(
     let mut config = super::add_window::secondary_window_config(app, label)?;
     config.center = false;
     config.decorations = false;
+    // GTK keeps a window the user cannot resize at least 200x200, which would
+    // leave a transparent square around the orb catching clicks (tauri#6125).
+    // Without borders the user cannot resize it anyway.
+    config.resizable = cfg!(target_os = "linux");
     config.transparent = true;
     config.shadow = false;
     config.always_on_top = true;
@@ -222,26 +357,55 @@ fn orb_config(app: &AppHandle) -> tauri::Result<tauri::utils::config::WindowConf
     config.width = ORB_SIZE;
     config.height = ORB_SIZE;
     config.visible = true;
-    let monitor = app
-        .cursor_position()
-        .ok()
-        .and_then(|point| app.monitor_from_point(point.x, point.y).ok().flatten())
-        .or_else(|| app.primary_monitor().ok().flatten());
-    if let Some(monitor) = monitor {
-        let area = monitor.work_area();
-        let scale = monitor.scale_factor();
-        config.x = Some(
-            f64::from(area.position.x) / scale + f64::from(area.size.width) / scale
-                - ORB_SIZE
-                - MARGIN,
-        );
-        config.y = Some(
-            f64::from(area.position.y) / scale + f64::from(area.size.height) / scale
-                - ORB_SIZE
-                - MARGIN,
-        );
+    // The page takes drops itself: the native handler on Windows only passes
+    // files on and turns links away.
+    config.drag_drop_enabled = false;
+    if let Some((x, y)) = orb_corner(app) {
+        config.x = Some(x);
+        config.y = Some(y);
     }
     Ok(config)
+}
+
+/// Where the orb first appears, in logical pixels. The windows are built off
+/// the main thread, but the work area is read there: on X11 it comes from the
+/// X server, and Xlib calls from another thread crash the process (#725).
+fn orb_corner(app: &AppHandle) -> Option<(f64, f64)> {
+    let (sender, receiver) = std::sync::mpsc::channel();
+    let handle = app.clone();
+    app.run_on_main_thread(move || {
+        let corner = super::add_window::pointer_monitor(&handle).map(|monitor| {
+            let area = monitor.work_area();
+            let scale = monitor.scale_factor();
+            (
+                f64::from(area.position.x) / scale + f64::from(area.size.width) / scale
+                    - ORB_SIZE
+                    - MARGIN,
+                f64::from(area.position.y) / scale + f64::from(area.size.height) / scale
+                    - ORB_SIZE
+                    - MARGIN,
+            )
+        });
+        let _ = sender.send(corner);
+    })
+    .ok()?;
+    receiver.recv_timeout(Duration::from_secs(2)).ok().flatten()
+}
+
+/// Puts the orb back where the user left it. The window-state plugin would do
+/// this on the thread that built the window, reading every screen's work area
+/// there; on X11 that crashes the process (#725), so it is done on the main
+/// thread. The orb is still transparent and empty, so it never shows the move.
+fn restore_orb_position(app: &AppHandle, window: WebviewWindow) {
+    use tauri_plugin_window_state::{StateFlags, WindowExt};
+    let restored = app.run_on_main_thread(move || {
+        if let Err(error) = window.restore_state(StateFlags::POSITION) {
+            log::warn!("float_window:restore-failed error={error}");
+        }
+    });
+    if let Err(error) = restored {
+        log::warn!("float_window:restore-failed error={error}");
+    }
 }
 
 /// The panel is sized by its page and placed beside the orb as it opens.
@@ -346,7 +510,8 @@ pub fn close_panel(app: &AppHandle) {
 }
 
 /// Sizes the panel to its content, given in logical pixels, places it beside
-/// the orb and shows it.
+/// the orb and shows it. Main thread only: on X11 the work area it reads
+/// comes from the X server (#725).
 pub fn present_panel(app: &AppHandle, width: f64, height: f64) -> Result<PanelSide, AppError> {
     let missing = |label: &str| AppError::NotFound(format!("{label} window"));
     let failed = |error: tauri::Error| AppError::Io(format!("float panel: {error}"));
@@ -421,8 +586,39 @@ pub fn main_window_created() {
 
 #[cfg(test)]
 mod tests {
-    use super::{place_panel, queue, PanelSide, Rect};
+    use super::{place_panel, queue, wants_orb, Mode, PanelSide, Rect, LINGER};
     use crate::aria2::types::Aria2Task;
+    use std::time::{Duration, Instant};
+
+    #[test]
+    fn while_downloading_the_orb_leaves_a_moment_after_the_last_download() {
+        let start = Instant::now();
+        let mut quiet = None;
+        let downloading = Mode::Downloading;
+        assert!(!wants_orb(downloading, false, false, &mut quiet, start));
+        assert!(wants_orb(downloading, true, false, &mut quiet, start));
+        assert!(wants_orb(downloading, true, true, &mut quiet, start));
+        // The last download stopped: the orb stays to show its check.
+        assert!(wants_orb(downloading, false, true, &mut quiet, start));
+        let later = start + LINGER - Duration::from_millis(1);
+        assert!(wants_orb(downloading, false, true, &mut quiet, later));
+        let expired = start + LINGER;
+        assert!(!wants_orb(downloading, false, true, &mut quiet, expired));
+        // Gone; the next download brings it back and restarts the wait.
+        assert!(!wants_orb(downloading, false, false, &mut quiet, expired));
+        assert_eq!(quiet, None);
+        assert!(wants_orb(Mode::Always, false, false, &mut quiet, start));
+        assert!(!wants_orb(Mode::Off, true, true, &mut quiet, start));
+    }
+
+    #[test]
+    fn modes_read_their_preference_values_and_unknown_ones_turn_the_orb_off() {
+        let mode = |value: &str| serde_json::from_value::<Mode>(serde_json::json!(value)).unwrap();
+        assert_eq!(mode("always"), Mode::Always);
+        assert_eq!(mode("downloading"), Mode::Downloading);
+        assert_eq!(mode("sometimes"), Mode::Off);
+        assert_eq!(serde_json::json!(Mode::Downloading), "downloading");
+    }
 
     fn task(gid: &str, status: &str) -> Aria2Task {
         Aria2Task {
@@ -455,15 +651,15 @@ mod tests {
         Rect {
             x,
             y,
-            width: 60.0,
-            height: 60.0,
+            width: 68.0,
+            height: 68.0,
         }
     }
 
     #[test]
     fn the_panel_opens_towards_the_larger_part_of_the_screen() {
         // Bottom right corner: above the orb, drawn right edges lined up.
-        let corner = orb(1844.0, 964.0);
+        let corner = orb(1836.0, 956.0);
         let (x, y, side) = place_panel(corner, 344.0, 300.0, AREA, 1.0);
         assert_eq!(
             side,
@@ -472,7 +668,7 @@ mod tests {
                 end: true
             }
         );
-        assert_eq!(x + 344.0 - 12.0, corner.x + 60.0 - 8.0);
+        assert_eq!(x + 344.0 - 12.0, corner.x + 68.0 - 8.0);
         assert_eq!(y + 300.0 - 12.0 + 8.0, corner.y + 8.0);
 
         // Top left corner: below the orb, drawn left edges lined up.
@@ -486,7 +682,7 @@ mod tests {
             }
         );
         assert_eq!(x + 12.0, corner.x + 8.0);
-        assert_eq!(y + 12.0, corner.y + 60.0 - 8.0 + 8.0);
+        assert_eq!(y + 12.0, corner.y + 68.0 - 8.0 + 8.0);
     }
 
     #[test]

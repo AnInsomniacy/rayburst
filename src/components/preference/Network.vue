@@ -399,7 +399,7 @@ onMounted(() => {
   font-weight: 500;
 }
 .ua-manager-entry-text span {
-  overflow: hidden;
+  overflow: clip visible;
   color: var(--n-text-color-3);
   font-size: var(--font-size-xs);
   text-overflow: ellipsis;

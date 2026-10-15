@@ -1,18 +1,19 @@
 <script setup lang="ts">
 /**
- * @fileoverview The floating orb (#669, #718, #402).
+ * @fileoverview The floating orb (#669, #718, #402, #726).
  *
- * A 44 px orb that stays on top. At rest it shows the Rayburst mark; while
+ * A 52 px orb that stays on top. At rest it shows the Rayburst mark; while
  * downloading, the overall speed, ringed by the overall progress. It pulses
  * when a download starts, shows a check when the last one completes, a pause
  * sign when everything waits paused, and a dot after an error. A click opens
- * the panel beside it, dragging moves it, and its context menu reaches the main
- * window and hides it. The window never changes its size.
+ * the panel beside it, dragging moves it, links and torrents dropped on it open
+ * the add window, and its context menu reaches the main window and switches
+ * when it shows. The window never changes its size.
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { invoke } from '@tauri-apps/api/core'
-import { emit, listen, type UnlistenFn } from '@tauri-apps/api/event'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { Menu } from '@tauri-apps/api/menu'
 import { LogicalSize } from '@tauri-apps/api/window'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
@@ -21,10 +22,13 @@ import { Checkmark, Pause } from '@vicons/ionicons5'
 import aria2Api from '@/api/aria2'
 import { useFloatUpdates, type FloatUpdate } from '@/composables/useFloatUpdates'
 import { usePreferenceStore } from '@/stores/preference'
-import { TASK_STATUS } from '@shared/constants'
+import { FLOAT_WINDOW_MODE_LABELS, FLOAT_WINDOW_MODES, TASK_STATUS } from '@shared/constants'
 import { bytesToSize } from '@shared/utils'
+import { createBatchItem, detectKind, encodeBase64, normalizeUriLines } from '@shared/utils/batchHelpers'
+import { detectResource } from '@shared/utils/resource'
 import { getErrorMessage } from '@shared/utils/errorMessage'
 import { logger } from '@shared/logger'
+import type { FloatWindowMode } from '@shared/types'
 
 /** Pointer travel that turns a press into a drag, in CSS pixels. */
 const DRAG_THRESHOLD = 4
@@ -43,6 +47,8 @@ const pulsing = ref(false)
 const done = ref(false)
 const failed = ref(false)
 const leaving = ref(false)
+/** Something droppable is dragged over the orb. */
+const dropping = ref(false)
 const unlisteners: UnlistenFn[] = []
 let known: Set<string> | null = null
 let pulseTimer: ReturnType<typeof setTimeout> | undefined
@@ -96,14 +102,16 @@ const tooltip = computed(() => {
 
 function greetNewDownloads(next: FloatUpdate) {
   const started = next.tasks.filter((task) => task.status === TASK_STATUS.ACTIVE).map((task) => task.gid)
-  if (known && started.some((gid) => !known?.has(gid))) {
-    pulsing.value = false
-    requestAnimationFrame(() => (pulsing.value = true))
-    clearTimeout(pulseTimer)
-    pulseTimer = setTimeout(() => (pulsing.value = false), PULSE_MS)
-  }
+  if (known && started.some((gid) => !known?.has(gid))) pulse()
   if (started.length > 0) done.value = false
   known = new Set(started)
+}
+
+function pulse() {
+  pulsing.value = false
+  requestAnimationFrame(() => (pulsing.value = true))
+  clearTimeout(pulseTimer)
+  pulseTimer = setTimeout(() => (pulsing.value = false), PULSE_MS)
 }
 
 function celebrate() {
@@ -151,6 +159,59 @@ function togglePanel() {
   invoke('float_panel_toggle').catch((error: unknown) => logger.warn('FloatWindow.panel', getErrorMessage(error)))
 }
 
+// ── Drops ───────────────────────────────────────────────────────────
+
+/** Entered elements, so leaving one for another does not end the drag. */
+let dragDepth = 0
+
+function droppable(event: DragEvent): boolean {
+  const types = event.dataTransfer?.types ?? []
+  return types.includes('Files') || types.includes('text/uri-list') || types.includes('text/plain')
+}
+
+function onDragEnter(event: DragEvent) {
+  if (!droppable(event)) return
+  dragDepth += 1
+  dropping.value = true
+}
+
+function onDragOver(event: DragEvent) {
+  if (!droppable(event)) return
+  event.preventDefault()
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
+}
+
+function onDragLeave() {
+  dragDepth = Math.max(0, dragDepth - 1)
+  if (dragDepth === 0) dropping.value = false
+}
+
+/** Links come as text; files are read here, since the page gets no paths. */
+async function onDrop(event: DragEvent) {
+  event.preventDefault()
+  dragDepth = 0
+  dropping.value = false
+  const data = event.dataTransfer
+  if (!data) return
+  const files = Array.from(data.files)
+  const torrents = files.filter((file) => detectKind(file.name) === 'torrent')
+  // A file also comes as its path or `file:` link, which is not a download.
+  const text = files.length > 0 ? '' : data.getData('text/uri-list') || data.getData('text/plain')
+  const links = normalizeUriLines(text.replace(/^#.*$/gm, '')).filter((line) => detectResource(line))
+  try {
+    const items = await Promise.all(
+      torrents.map(async (file) =>
+        createBatchItem('torrent', file.name, encodeBase64(new Uint8Array(await file.arrayBuffer()))),
+      ),
+    )
+    if (items.length === 0 && links.length === 0) return
+    pulse()
+    await invoke('add_window_open', { batch: { links, items } })
+  } catch (error) {
+    logger.warn('FloatWindow.drop', getErrorMessage(error))
+  }
+}
+
 // ── Actions ─────────────────────────────────────────────────────────
 
 function openMain() {
@@ -162,16 +223,19 @@ function toggleAll() {
   action.catch((error: unknown) => logger.warn('FloatWindow.toggleAll', getErrorMessage(error)))
 }
 
-/** Turns the preference off; the desktop closes the window on its next tick. */
-async function hide() {
-  if (!(await preferenceStore.updateAndSave({ showFloatWindow: false }))) return
-  leaving.value = true
-  await emit('float-window:hidden').catch(() => undefined)
+/** The desktop saves the mode and opens or closes the orb on its next tick. */
+function setMode(mode: FloatWindowMode) {
+  invoke('float_window_set_mode', { mode }).catch((error: unknown) =>
+    logger.warn('FloatWindow.mode', getErrorMessage(error)),
+  )
 }
 
 async function showMenu(event: MouseEvent) {
   event.preventDefault()
   try {
+    // The mode may have changed in the settings or the tray since.
+    await preferenceStore.reloadPreferenceFromDisk()
+    const current = preferenceStore.config.floatWindow
     const menu = await Menu.new({
       items: [
         { id: 'show', text: t('app.show'), action: openMain },
@@ -181,7 +245,16 @@ async function showMenu(event: MouseEvent) {
           action: toggleAll,
         },
         { item: 'Separator' },
-        { id: 'hide', text: t('preferences.float-window-hide'), action: () => void hide() },
+        {
+          id: 'float-mode',
+          text: t('preferences.float-window'),
+          items: FLOAT_WINDOW_MODES.map((mode) => ({
+            id: `float-${mode}`,
+            text: t(FLOAT_WINDOW_MODE_LABELS[mode]),
+            checked: mode === current,
+            action: () => setMode(mode),
+          })),
+        },
       ],
     })
     await menu.popup()
@@ -211,12 +284,19 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="root" class="float-window">
+  <div
+    ref="root"
+    class="float-window"
+    @dragenter="onDragEnter"
+    @dragover="onDragOver"
+    @dragleave="onDragLeave"
+    @drop="onDrop"
+  >
     <Transition name="orb" appear>
       <div
         v-if="update && !leaving"
         class="orb"
-        :class="[`orb--${mode}`, { 'orb--pulse': pulsing, 'orb--spinning': indeterminate }]"
+        :class="[`orb--${mode}`, { 'orb--pulse': pulsing, 'orb--spinning': indeterminate, 'orb--drop': dropping }]"
         role="button"
         tabindex="0"
         :title="tooltip"
@@ -251,8 +331,8 @@ onBeforeUnmount(() => {
             <span class="orb-speed-value" :data-length="speed.value.length">{{ speed.value }}</span>
             <span class="orb-speed-unit">{{ speed.unit }}</span>
           </span>
-          <NIcon v-else-if="mode === 'paused'" key="paused" class="orb-face orb-symbol" :size="16"><Pause /></NIcon>
-          <NIcon v-else key="done" class="orb-face orb-symbol orb-symbol--done" :size="20"><Checkmark /></NIcon>
+          <NIcon v-else-if="mode === 'paused'" key="paused" class="orb-face orb-symbol" :size="19"><Pause /></NIcon>
+          <NIcon v-else key="done" class="orb-face orb-symbol orb-symbol--done" :size="23"><Checkmark /></NIcon>
         </Transition>
 
         <Transition name="orb-dot">
@@ -275,8 +355,8 @@ onBeforeUnmount(() => {
   position: relative;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background:
     radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--m3-primary) 7%, transparent), transparent 62%),
@@ -304,6 +384,15 @@ onBeforeUnmount(() => {
 .orb:active {
   transform: scale(0.96);
   transition-duration: 100ms;
+}
+
+/* Something droppable is over it: it rises and takes the accent. */
+.orb--drop,
+.orb--drop:hover {
+  transform: scale(1.1);
+  box-shadow:
+    0 0 0 2px var(--m3-primary),
+    0 6px 14px -2px var(--m3-shadow);
 }
 
 .orb:focus-visible {
@@ -389,8 +478,8 @@ onBeforeUnmount(() => {
 }
 
 .orb-logo {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
 }
 
 .orb-speed {
@@ -400,20 +489,20 @@ onBeforeUnmount(() => {
 }
 
 .orb-speed-value {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 
 .orb-speed-value[data-length='5'] {
-  font-size: 11.5px;
+  font-size: 13.5px;
 }
 
 .orb-speed-unit {
   margin-top: 2px;
   color: var(--m3-on-surface-variant);
-  font-size: 8.5px;
+  font-size: 10px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -481,8 +570,8 @@ onBeforeUnmount(() => {
   position: absolute;
   top: 1px;
   right: 1px;
-  width: 9px;
-  height: 9px;
+  width: 10px;
+  height: 10px;
   border: 2px solid var(--main-bg);
   border-radius: 50%;
   background: var(--m3-error);

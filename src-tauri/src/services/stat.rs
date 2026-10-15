@@ -373,6 +373,8 @@ pub struct StatEffects {
     tray_visible: Option<bool>,
     tray_active: Option<bool>,
     last_tray_tooltip: Option<String>,
+    /// The Windows tray icon is redrawn for a new display scale.
+    tray_icon_size: Option<u32>,
 }
 
 impl StatEffects {
@@ -404,14 +406,17 @@ impl StatEffects {
         }
         let downloading = stat.num_active > 0;
         let tooltip = tray_tooltip(stat.num_active, stat.download_speed, stat.upload_speed);
+        let icon_size = crate::tray::icon_size();
         if self.tray_active != Some(downloading)
             || self.last_tray_tooltip.as_deref() != Some(&tooltip)
+            || self.tray_icon_size != Some(icon_size)
         {
             if let Err(error) = crate::tray::set_activity(app, downloading, &tooltip) {
                 log::debug!("tray:activity-update-failed error={error}");
             }
             self.tray_active = Some(downloading);
             self.last_tray_tooltip = Some(tooltip);
+            self.tray_icon_size = Some(icon_size);
         }
 
         // NSDockTile is an app-level API (no window needed) and must be used

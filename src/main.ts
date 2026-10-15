@@ -349,10 +349,10 @@ if (isFloatWindow) {
     // MainLayout.onMounted explicitly shows it.
     app.mount('#app')
     // The add-task window saves directory history and remembered locations,
-    // and the floating window can turn itself off.
+    // and the floating window's mode changes from its menu or the tray.
     void import('@tauri-apps/api/event').then(({ listen }) => {
       void listen('add-window:closed', () => preferenceStore.reloadPreferenceFromDisk())
-      void listen('float-window:hidden', () => preferenceStore.reloadPreferenceFromDisk())
+      void listen('float-window:mode', () => preferenceStore.reloadPreferenceFromDisk())
     })
     // Every new download is confirmed in the standalone add window.
     appStore.setAddTaskForwarder((batch) => {

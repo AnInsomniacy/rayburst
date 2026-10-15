@@ -8,6 +8,7 @@ import {
   ARIA2_LOG_LEVELS,
   PROXY_SCOPE_OPTIONS,
   UPDATE_CHANNELS,
+  FLOAT_WINDOW_MODES,
 } from '@shared/constants'
 import {
   NUMERIC_CONFIG_CONSTRAINTS,
@@ -223,6 +224,7 @@ function normalizeScalarValues(config: Record<string, unknown>, repairs: string[
     repairs,
   )
   repairEnum(config, 'logLevel', APP_LOG_LEVELS, DEFAULT_APP_CONFIG.logLevel, repairs)
+  repairEnum(config, 'floatWindow', FLOAT_WINDOW_MODES, DEFAULT_APP_CONFIG.floatWindow, repairs)
   repairEnum(config, 'aria2LogLevel', ARIA2_LOG_LEVELS, DEFAULT_APP_CONFIG.aria2LogLevel, repairs)
   repairEnum(config, 'fileAllocation', FILE_ALLOCATION_OPTIONS, DEFAULT_APP_CONFIG.fileAllocation, repairs)
   repairEnum(config, 'incompleteSuffix', ['', INCOMPLETE_SUFFIX] as const, DEFAULT_APP_CONFIG.incompleteSuffix, repairs)

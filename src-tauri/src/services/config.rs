@@ -61,8 +61,9 @@ pub struct RuntimeConfig {
     pub notification_click_action: String,
     /// Finished downloads leave the list once announced; files stay (#722).
     pub remove_completed_records: bool,
-    /// The floating window with speed and progress stays on top (#669, #718).
-    pub show_float_window: bool,
+    /// When the floating window with speed and progress stays on top
+    /// (#669, #718, #726).
+    pub float_window: super::float_window::Mode,
 }
 
 impl Default for RuntimeConfig {
@@ -95,7 +96,7 @@ impl Default for RuntimeConfig {
             post_download_arguments: String::new(),
             notification_click_action: "reveal".into(),
             remove_completed_records: false,
-            show_float_window: false,
+            float_window: super::float_window::Mode::Off,
         }
     }
 }

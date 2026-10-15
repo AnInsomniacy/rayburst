@@ -665,7 +665,7 @@ onUnmounted(() => {
 
 .ua-manager-list-title,
 .ua-manager-list-meta {
-  overflow: hidden;
+  overflow: clip visible;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -821,7 +821,7 @@ onUnmounted(() => {
 }
 
 .ua-manager-rule-flow strong {
-  overflow: hidden;
+  overflow: clip visible;
   font-size: var(--font-size-sm);
   font-weight: 600;
   text-overflow: ellipsis;

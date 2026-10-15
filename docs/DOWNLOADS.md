@@ -215,13 +215,18 @@ handoffs while open and is put away after submission without raising the main
 window. Auto-submitted downloads use it invisibly and put it away when the engine
 accepted them. If it fails to open, its inputs wait for the next request.
 
-The floating window (`services/float_window.rs`, preference `showFloatWindow`)
-keeps the overall speed and progress on top of other windows. The pump opens and
-closes it with the preference and sends it each snapshot's queue. The orb shows
-the Rayburst mark at rest and the speed ringed by the progress while
+The floating window (`services/float_window.rs`, preference `floatWindow`)
+keeps the overall speed and progress on top of other windows. Its mode shows it
+always, only while files download (not while paused or seeding), or never; the
+settings, the orb's menu and the tray menu switch it. The pump opens and
+closes it with the mode and sends it each snapshot's queue; while downloading
+only, it lingers a moment after the last download to show its check. The orb
+shows the Rayburst mark at rest and the speed ringed by the progress while
 downloading; it can be dragged anywhere. A click opens a panel beside it, a
 window of its own built hidden with the orb, to pause or resume each download;
-dragging the panel's header takes the orb along.
+dragging the panel's header takes the orb along. Links and torrent files dropped
+on the orb open in the add window; the orb reads dropped files itself, since its
+page receives no paths.
 
 Turning BitTorrent off (`bittorrentEnabled`) makes `submit` refuse magnet URIs
 and torrents from every entry point. Independently, the engine runs with

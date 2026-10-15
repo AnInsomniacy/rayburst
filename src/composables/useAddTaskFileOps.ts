@@ -8,7 +8,7 @@ import { open as openDialog } from '@tauri-apps/plugin-dialog'
 import { invoke } from '@tauri-apps/api/core'
 import { logger } from '@shared/logger'
 import { inspectTorrent } from '@/api/aria2'
-import { createBatchItem, detectExternalInputKind, detectKind } from '@shared/utils/batchHelpers'
+import { createBatchItem, detectExternalInputKind, detectKind, encodeBase64 } from '@shared/utils/batchHelpers'
 import { sanitizeBrowserRequestHeaders, sanitizeHttpHeaderOptions } from '@shared/utils/headerSanitize'
 import type { BatchItem } from '@shared/types'
 
@@ -19,12 +19,6 @@ interface FileOpsDeps {
   selectedBatchIndex: { value: number }
   setPendingBatch: (items: BatchItem[]) => void
   showWarning: (msg: string) => void
-}
-
-function encodeBase64(bytes: Uint8Array): string {
-  let binary = ''
-  for (const byte of bytes) binary += String.fromCharCode(byte)
-  return btoa(binary)
 }
 
 function getTorrentInspectionErrorKind(error: unknown): string {
@@ -117,13 +111,15 @@ export function isRemoteTorrentSource(source: string): boolean {
  * Resolves all unresolved local file-based batch items by reading their files.
  */
 export async function resolveUnresolvedItems(batch: BatchItem[], t: (key: string) => string, downloadProxy?: string) {
-  const unresolved = batch.filter(
-    (item) => item.kind === 'torrent' && item.inspectionState === 'reading' && item.payload === item.source,
-  )
+  const unresolved = batch.filter((item) => item.kind === 'torrent' && item.inspectionState === 'reading')
   await Promise.all(
-    unresolved.map((item) =>
-      isRemoteTorrentSource(item.source) ? resolveRemoteFileItem(item, t, downloadProxy) : resolveFileItem(item, t),
-    ),
+    unresolved.map((item) => {
+      // Torrents dropped on the floating window arrive with their content.
+      if (item.payload !== item.source) return inspectResolvedTorrent(item, t)
+      return isRemoteTorrentSource(item.source)
+        ? resolveRemoteFileItem(item, t, downloadProxy)
+        : resolveFileItem(item, t)
+    }),
   )
 }
 

@@ -215,7 +215,7 @@ impl Pump {
             .filter(|task| matches!(task.status.as_str(), "active" | "waiting" | "paused"))
             .cloned()
             .collect();
-        float.sync(app, config.show_float_window, &stat, &queued);
+        float.sync(app, config.float_window, &stat, &queued);
         match monitor {
             Some(monitor) => monitor.observe(app, aria2, &queued).await,
             None => *monitor = Some(Monitor::new(&queued)),

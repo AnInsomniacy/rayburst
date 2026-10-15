@@ -18,7 +18,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { invoke } from '@tauri-apps/api/core'
 import { emit, type UnlistenFn } from '@tauri-apps/api/event'
-import { LogicalSize, currentMonitor } from '@tauri-apps/api/window'
+import { LogicalSize } from '@tauri-apps/api/window'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import AddTask from '@/components/task/AddTask.vue'
 import WindowControls from '@/components/layout/WindowControls.vue'
@@ -214,8 +214,10 @@ function onContentResize() {
  * options scrolls instead of stretching it, and below most of the screen.
  */
 async function measureScreen() {
-  const monitor = await currentMonitor().catch(() => null)
-  const logical = monitor ? monitor.workArea.size.height / monitor.scaleFactor : window.screen.availHeight
+  // Not `currentMonitor()`: it reads the work area off the main thread, which
+  // crashes the app on X11 (#725).
+  const height = await invoke<number | null>('add_window_screen_height').catch(() => null)
+  const logical = height ?? window.screen.availHeight
   const screenCap = Math.floor((logical * MAX_SCREEN_SHARE) / zoom.value)
   // A measurement holding no more than the margin and title bar saw no
   // content; capping by it would leave the window too small to use (#712).
@@ -365,7 +367,7 @@ onBeforeUnmount(() => {
   font-size: var(--font-size-sm);
   color: var(--m3-on-surface-variant);
   white-space: nowrap;
-  overflow: hidden;
+  overflow: clip visible;
   text-overflow: ellipsis;
 }
 </style>

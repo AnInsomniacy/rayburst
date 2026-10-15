@@ -116,6 +116,7 @@ pub fn prepare(app: &AppHandle) {
 }
 
 /// Shows the window, placed for this download, once its content is sized.
+/// Main thread only: placing it reads work areas, see [`screen_height`].
 pub fn present(app: &AppHandle) -> Result<(), AppError> {
     let window = app
         .get_webview_window(LABEL)
@@ -409,18 +410,10 @@ fn place(app: &AppHandle, window: &WebviewWindow) {
     let Ok(size) = window.outer_size() else {
         return;
     };
-    let main = app
-        .get_webview_window("main")
-        .filter(|main| main.is_visible().unwrap_or(false) && !main.is_minimized().unwrap_or(true));
-    let anchor = main
+    let anchor = main_in_view(app)
         .and_then(|main| Some((main.outer_position().ok()?, main.outer_size().ok()?)))
         .or_else(|| {
-            let monitor = app
-                .cursor_position()
-                .ok()
-                .and_then(|point| app.monitor_from_point(point.x, point.y).ok().flatten())
-                .or_else(|| app.primary_monitor().ok().flatten())?;
-            let area = monitor.work_area();
+            let area = *pointer_monitor(app)?.work_area();
             Some((area.position, area.size))
         });
     // Without an anchor (Wayland reports no positions) the window stays centered.
@@ -438,6 +431,30 @@ fn place(app: &AppHandle, window: &WebviewWindow) {
     if let Err(error) = window.set_position(position) {
         log::warn!("add_window:place-failed error={error}");
     }
+}
+
+/// Logical height of the work area of the screen the window opens on, which
+/// caps its height. Only for synchronous commands, which run on the main
+/// thread: on X11 a work area is read from the X server, and Xlib calls from
+/// another thread crash the process (#725).
+pub fn screen_height(app: &AppHandle) -> Option<f64> {
+    let monitor = main_in_view(app)
+        .and_then(|main| main.current_monitor().ok().flatten())
+        .or_else(|| pointer_monitor(app))?;
+    Some(f64::from(monitor.work_area().size.height) / monitor.scale_factor())
+}
+
+fn main_in_view(app: &AppHandle) -> Option<WebviewWindow> {
+    app.get_webview_window("main")
+        .filter(|main| main.is_visible().unwrap_or(false) && !main.is_minimized().unwrap_or(true))
+}
+
+/// The screen under the pointer, where the user just clicked the download.
+pub(crate) fn pointer_monitor(app: &AppHandle) -> Option<tauri::Monitor> {
+    app.cursor_position()
+        .ok()
+        .and_then(|point| app.monitor_from_point(point.x, point.y).ok().flatten())
+        .or_else(|| app.primary_monitor().ok().flatten())
 }
 
 fn centered(
