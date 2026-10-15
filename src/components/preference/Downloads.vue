@@ -14,7 +14,7 @@ import { getErrorMessage } from '@shared/utils/errorMessage'
 import { resolveUserVisibleDownloadDir } from '@shared/utils/userVisibleDirectory'
 import { toggleSpeedLimit } from '@/composables/useSpeedLimiter'
 import { changeGlobalOption, isEngineReady } from '@/api/aria2'
-import { FILE_ALLOCATION_OPTIONS, SCHEDULE_DAY } from '@shared/constants'
+import { FILE_ALLOCATION_OPTIONS, INCOMPLETE_SUFFIX, SCHEDULE_DAY } from '@shared/constants'
 import { useAppMessage } from '@/composables/useAppMessage'
 import { usePlatform } from '@/composables/usePlatform'
 import {
@@ -133,7 +133,10 @@ const fileAllocationOptions = computed(() =>
     value,
   })),
 )
+// Not an age: finished downloads leave the list at once (#722).
+const REMOVE_ON_COMPLETION = -2
 const completedRecordRetentionOptions = computed(() => [
+  { label: t('preferences.completed-record-retention-none'), value: REMOVE_ON_COMPLETION },
   { label: t('preferences.completed-record-retention-forever'), value: 0 },
   { label: t('preferences.completed-record-retention-1-day'), value: 1 },
   { label: t('preferences.completed-record-retention-1-week'), value: 7 },
@@ -143,8 +146,10 @@ const completedRecordRetentionOptions = computed(() => [
 ])
 const completedRecordRetentionMode = ref(0)
 const completedRecordRetentionSelectValue = computed<number>({
-  get: () => completedRecordRetentionMode.value,
+  get: () => (form.value.removeCompletedRecords ? REMOVE_ON_COMPLETION : completedRecordRetentionMode.value),
   set: (value) => {
+    form.value.removeCompletedRecords = value === REMOVE_ON_COMPLETION
+    if (value === REMOVE_ON_COMPLETION) return
     completedRecordRetentionMode.value = value
     form.value.completedRecordRetentionDays = resolveCompletedRecordRetentionDays(
       value,
@@ -308,6 +313,18 @@ onMounted(async () => {
         </NFormItem>
         <NFormItem :label="t('preferences.file-allocation')">
           <NSelect v-model:value="form.fileAllocation" :options="fileAllocationOptions" class="pref-control-auto" />
+        </NFormItem>
+        <NFormItem>
+          <template #label>
+            <PreferenceHintLabel
+              :label="t('preferences.incomplete-suffix')"
+              :hint="t('preferences.incomplete-suffix-hint', { suffix: INCOMPLETE_SUFFIX })"
+            />
+          </template>
+          <NSwitch
+            :value="form.incompleteSuffix === INCOMPLETE_SUFFIX"
+            @update:value="(on: boolean) => (form.incompleteSuffix = on ? INCOMPLETE_SUFFIX : '')"
+          />
         </NFormItem>
         <NFormItem>
           <template #label>

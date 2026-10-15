@@ -1,6 +1,7 @@
 /**
  * @fileoverview Application entry point: mounts Vue, initializes i18n, aria2 engine, and IPC listeners.
- * The add-task window loads the same entry and mounts only the add-task dialog.
+ * The add-task and floating windows load the same entry and mount only their
+ * own content.
  */
 import { createApp, h } from 'vue'
 import { createPinia } from 'pinia'
@@ -10,7 +11,7 @@ import { isSupportedLocale, SUPPORTED_LOCALES, type SupportedLocale } from '@sha
 import { setI18nLocale } from '@shared/utils/i18n'
 import { usePreferenceStore } from './stores/preference'
 import { useTaskStore } from './stores/task'
-import { useAppStore, type AddTaskForward } from './stores/app'
+import { useAppStore } from './stores/app'
 import { useHistoryStore } from './stores/history'
 import { useDatabaseStore } from './stores/database'
 import { useEngineStore } from './stores/engine'
@@ -27,6 +28,8 @@ import type { AppConfig, TauriUpdate } from '@shared/types'
 import App from './App.vue'
 import AppProviders from './AppProviders.vue'
 import AddWindow from './AddWindow.vue'
+import FloatWindow from './FloatWindow.vue'
+import FloatPanel from './FloatPanel.vue'
 import './styles/tokens.css'
 import './styles/base.css'
 import './styles/transitions.css'
@@ -38,11 +41,20 @@ import { getCurrentWindow } from '@tauri-apps/api/window'
 import { getLocale } from 'tauri-plugin-locale-api'
 import { resolveSystemLocale } from '@shared/utils/locale'
 
-const isAddWindow = getCurrentWindow().label === 'add'
-const app = isAddWindow ? createApp(() => h(AppProviders, null, () => h(AddWindow))) : createApp(App)
+const windowLabel = getCurrentWindow().label
+const isAddWindow = windowLabel === 'add'
+const isFloatWindow = windowLabel === 'float' || windowLabel === 'float-panel'
+const secondary = isAddWindow
+  ? AddWindow
+  : windowLabel === 'float'
+    ? FloatWindow
+    : windowLabel === 'float-panel'
+      ? FloatPanel
+      : null
+const app = secondary ? createApp(() => h(AppProviders, null, () => h(secondary))) : createApp(App)
 const pinia = createPinia()
 app.use(pinia)
-if (!isAddWindow) app.use(router)
+if (!secondary) app.use(router)
 app.use(i18n)
 
 // ── Global error boundary — catch all uncaught exceptions to log file ──
@@ -102,9 +114,9 @@ async function applyStartupLocale(): Promise<void> {
   setI18nLocale(i18n, resolvedLocale)
 }
 
-// ── Add-task window initialization ──────────────────────────────────
+// ── Add-task and floating window initialization ─────────────────────
 
-async function bootstrapAddWindow(): Promise<void> {
+async function bootstrapSecondaryWindow(): Promise<void> {
   await usePreferenceStore().loadPreference()
   await applyStartupLocale()
   useTaskStore().setApi(aria2Api)
@@ -113,8 +125,18 @@ async function bootstrapAddWindow(): Promise<void> {
 
 // ── Window initialization ───────────────────────────────────────────
 
-if (isAddWindow) {
-  void bootstrapAddWindow().catch(async (e) => {
+if (isFloatWindow) {
+  void bootstrapSecondaryWindow().catch(async (e) => {
+    logger.error('main.floatWindow', e)
+    await getCurrentWindow().destroy()
+  })
+} else if (isAddWindow) {
+  // The add window follows the engine's state, so a failed submission names
+  // its cause instead of reading as an engine still starting.
+  void useEngineStore()
+    .initialize()
+    .catch((e) => logger.warn('main.addWindowEngine', e))
+  void bootstrapSecondaryWindow().catch(async (e) => {
     logger.error('main.addWindow', e)
     const { invoke } = await import('@tauri-apps/api/core')
     // Drop the inputs so the desktop does not reopen a window that cannot start.
@@ -326,25 +348,19 @@ if (isAddWindow) {
     // on their first run. The native window is still hidden until
     // MainLayout.onMounted explicitly shows it.
     app.mount('#app')
-    // The add-task window saves directory history and remembered locations.
+    // The add-task window saves directory history and remembered locations,
+    // and the floating window can turn itself off.
     void import('@tauri-apps/api/event').then(({ listen }) => {
       void listen('add-window:closed', () => preferenceStore.reloadPreferenceFromDisk())
-      // The add window could not take these after all; confirm them here.
-      void listen<AddTaskForward>('add-window:fallback', ({ payload }) => {
-        if (payload.manual) appStore.showLocalAddTaskDialog()
-        if (payload.items?.length) appStore.enqueueForwardedItems(payload.items)
-      })
+      void listen('float-window:hidden', () => preferenceStore.reloadPreferenceFromDisk())
     })
     // Every new download is confirmed in the standalone add window.
-    appStore.setAddTaskForwarder(async (batch) => {
-      const { invoke } = await import('@tauri-apps/api/core')
-      try {
-        await invoke('add_window_open', { batch: { items: batch.items ?? [], manual: batch.manual ?? false } })
-        return true
-      } catch (error) {
-        logger.warn('main.addWindow', getErrorMessage(error))
-        return false
-      }
+    appStore.setAddTaskForwarder((batch) => {
+      void import('@tauri-apps/api/core')
+        .then(({ invoke }) =>
+          invoke('add_window_open', { batch: { items: batch.items ?? [], manual: batch.manual ?? false } }),
+        )
+        .catch((error: unknown) => logger.warn('main.addWindow', getErrorMessage(error)))
     })
     // The UI remains usable if database inspection fails.
     const database = useDatabaseStore()
@@ -469,7 +485,6 @@ if (isAddWindow) {
     let lastClipboardText = ''
     getCurrentWindow().onFocusChanged(async ({ payload: focused }) => {
       if (!focused) return
-      if (appStore.addTaskVisible) return
       const clipboardConfig = preferenceStore.config.clipboard
       if (!clipboardConfig?.enable) return
       try {

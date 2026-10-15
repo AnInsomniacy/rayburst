@@ -68,6 +68,7 @@ import TaskDetailPeers from './detail/TaskDetailPeers.vue'
 import TaskDetailSources from './detail/TaskDetailSources.vue'
 import TaskDetailTrackers from './detail/TaskDetailTrackers.vue'
 import RenameCompletedFile from './detail/RenameCompletedFile.vue'
+import MoveDownload from './detail/MoveDownload.vue'
 import { forceBtRecheck } from '@/api/aria2'
 import { getErrorMessage } from '@shared/utils/errorMessage'
 import { formatSharingDuration, getBtLifecycleState } from '@/composables/useBtLifecycle'
@@ -449,6 +450,7 @@ async function onFileRenamed() {
                 </NDescriptionsItem>
                 <NDescriptionsItem v-if="task.dir" :label="t('task.task-dir') || 'Directory'">
                   <CopyableValue :value="task.dir" :label="copyLabel(t('task.task-dir'), 'Directory')" />
+                  <MoveDownload :task="task" @moved="taskStore.fetchList()" />
                 </NDescriptionsItem>
                 <NDescriptionsItem :label="t('task.task-status') || 'Status'">
                   <div class="detail-status-value">

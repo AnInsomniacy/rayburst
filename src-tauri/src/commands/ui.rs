@@ -174,6 +174,41 @@ pub fn set_dock_visible(app: AppHandle, visible: bool) -> Result<(), AppError> {
     Ok(())
 }
 
+/// Shows the main window, from the floating window.
+#[tauri::command]
+pub fn float_window_open_main(app: AppHandle) {
+    crate::tray::request_main_window(&app, "float-window", true);
+}
+
+/// The floating window listens now; it gets a snapshot without waiting for the
+/// next tick.
+#[tauri::command]
+pub fn float_window_ready(app: AppHandle) {
+    crate::services::pump::wake(&app);
+}
+
+/// Opens the floating panel beside the orb, or closes it.
+#[tauri::command]
+pub fn float_panel_toggle(app: AppHandle) {
+    crate::services::float_window::toggle_panel(&app);
+}
+
+/// Closes the floating panel, which lost the focus or whose orb is dragged.
+#[tauri::command]
+pub fn float_panel_dismiss(app: AppHandle) {
+    crate::services::float_window::close_panel(&app);
+}
+
+/// Places the floating panel, sized to its content, beside the orb and shows it.
+#[tauri::command]
+pub fn float_panel_present(
+    app: AppHandle,
+    width: f64,
+    height: f64,
+) -> Result<crate::services::float_window::PanelSide, AppError> {
+    crate::services::float_window::present_panel(&app, width, height)
+}
+
 /// Programmatically triggers the minimize-to-tray flow from the frontend.
 ///
 /// Delegates entirely to [`handle_minimize_to_tray()`](crate::handle_minimize_to_tray)

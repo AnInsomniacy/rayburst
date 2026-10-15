@@ -24,9 +24,9 @@ describe('shared preference footer', () => {
     buttons[1].click()
     expect(wrapper.emitted('save')).toHaveLength(1)
     expect(wrapper.emitted('discard')).toHaveLength(1)
+    // Without changes only the engine restart remains.
     await wrapper.setProps({ isDirty: false })
-    expect(buttons[0].disabled).toBe(true)
-    expect(buttons[1].disabled).toBe(true)
+    expect(wrapper.findAll('button').map((button) => button.text())).toEqual(['preferences.engine-restart-btn', ''])
     wrapper.unmount()
   })
 

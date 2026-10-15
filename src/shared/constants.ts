@@ -91,6 +91,8 @@ export const ONE_HOUR = ONE_MINUTE * 60
 export const ONE_DAY = ONE_HOUR * 24
 export const COMPLETED_RECORD_RETENTION_FOREVER = 0
 export const COMPLETED_RECORD_RETENTION_OPTIONS = [0, 1, 7, 180, 365] as const
+/** Unfinished downloads carry this suffix while the preference is on (#721). */
+export const INCOMPLETE_SUFFIX = '.ray' as const
 
 export const UPDATE_CHANNELS = ['stable', 'beta'] as const
 
@@ -274,6 +276,7 @@ export const DEFAULT_APP_CONFIG = {
   taskNotification: true, // users expect download-complete notifications
   notifyOnStart: true,
   notifyOnComplete: true, // main value of OS notification: background completion alert
+  showFloatWindow: false,
   mediaSelectBeforeDownload: true,
   mediaDefaultFormat: 'mp4' as const,
   newTaskShowDownloading: true, // auto-navigate to downloads after adding task
@@ -373,6 +376,7 @@ export const DEFAULT_APP_CONFIG = {
   autoDeleteStaleRecords: false,
   clearCompletedOnExit: false,
   completedRecordRetentionDays: COMPLETED_RECORD_RETENTION_FOREVER,
+  removeCompletedRecords: false,
 
   // ── Power Management ────────────────────────────────────────────
   shutdownWhenComplete: false,
@@ -384,6 +388,7 @@ export const DEFAULT_APP_CONFIG = {
   connectTimeout: 10, // seconds to establish connection
   timeout: 10, // seconds for data transfer after connection
   fileAllocation: 'trunc' as const, // 'none' | 'trunc' | 'prealloc' | 'falloc'
+  incompleteSuffix: '' as const,
   // ── Task Sorting ─────────────────────────────────────────────
   taskSort: DEFAULT_TASK_SORT,
   taskManualOrder: DEFAULT_TASK_MANUAL_ORDER,

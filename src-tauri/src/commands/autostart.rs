@@ -73,10 +73,11 @@ fn remove_if_present(path: &Path) -> std::io::Result<()> {
 }
 
 /// The Run value: the executable quoted, as Windows splits an unquoted command
-/// line at the first space that leaves a file name it can open.
+/// line at the first space that leaves a file name it can open, and without
+/// the `\\?\` prefix of a canonical path, which Explorer cannot start (#716).
 #[cfg_attr(not(windows), allow(dead_code))]
 fn windows_command(executable: &Path) -> String {
-    format!("\"{}\" {ARGUMENT}", executable.display())
+    format!("\"{}\" {ARGUMENT}", dunce::simplified(executable).display())
 }
 
 /// One `Exec` argument of a desktop entry: quoted when it holds a reserved
@@ -249,6 +250,15 @@ mod tests {
     fn windows_command_quotes_the_executable() {
         assert_eq!(
             windows_command(Path::new(r"D:\Program Files\Rayburst\rayburst.exe")),
+            r#""D:\Program Files\Rayburst\rayburst.exe" --autostart"#
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_command_drops_the_verbatim_prefix() {
+        assert_eq!(
+            windows_command(Path::new(r"\\?\D:\Program Files\Rayburst\rayburst.exe")),
             r#""D:\Program Files\Rayburst\rayburst.exe" --autostart"#
         );
     }

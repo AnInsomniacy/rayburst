@@ -270,6 +270,9 @@ pub struct Aria2Probe {
     #[serde(default)]
     pub content_type: String,
     pub total_length: Option<String>,
+    /// The name Content-Disposition gives, when it gives one.
+    #[serde(default)]
+    pub filename: Option<String>,
     pub resumable: String,
     pub error: Option<String>,
 }

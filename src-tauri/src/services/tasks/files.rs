@@ -37,6 +37,25 @@ pub fn content_paths(files: &[Aria2File], selected_only: bool) -> Vec<PathBuf> {
         .collect()
 }
 
+/// The engine's `incomplete-suffix` while the matching preference is on: an
+/// unfinished download keeps its bytes in `<name>.ray` (#721).
+pub const INCOMPLETE_SUFFIX: &str = ".ray";
+
+/// Task content plus the unfinished copies it may have on disk; deletion
+/// skips whichever does not exist.
+pub fn with_unfinished_copies(mut paths: Vec<PathBuf>) -> Vec<PathBuf> {
+    let unfinished: Vec<PathBuf> = paths
+        .iter()
+        .map(|path| {
+            let mut name = path.as_os_str().to_owned();
+            name.push(INCOMPLETE_SUFFIX);
+            PathBuf::from(name)
+        })
+        .collect();
+    paths.extend(unfinished);
+    paths
+}
+
 pub fn history_task(record: &HistoryRecord) -> Aria2Task {
     let meta: serde_json::Value =
         serde_json::from_str(record.meta.as_deref().unwrap_or("{}")).unwrap_or_default();

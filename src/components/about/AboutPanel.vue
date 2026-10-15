@@ -270,9 +270,8 @@ function openUrl(url: string) {
   text-align: center;
   border-radius: var(--radius-xl);
   border: 1px solid var(--m3-outline-variant);
-  background: color-mix(in srgb, var(--m3-surface-container-high) 96%, transparent);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  /* Solid: a backdrop blur makes WebKitGTK flicker on some GPUs (#705). */
+  background: var(--m3-surface-container-high);
   box-shadow:
     0 8px 32px var(--m3-shadow),
     0 0 0 1px color-mix(in srgb, var(--m3-on-surface) 8%, transparent);

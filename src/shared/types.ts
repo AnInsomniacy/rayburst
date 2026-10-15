@@ -509,6 +509,8 @@ export interface AppConfig {
   notifyOnStart: boolean
   /** OS notification when a download completes or BT enters seeding (gated by taskNotification). */
   notifyOnComplete: boolean
+  /** The floating window with speed and progress stays on top (#669, #718). */
+  showFloatWindow: boolean
   showProgressBar: boolean
   showTrayIcon: boolean
   traySpeedometer: boolean
@@ -590,6 +592,8 @@ export interface AppConfig {
   clearCompletedOnExit: boolean
   /** Completed history retention in days. 0 means keep forever. */
   completedRecordRetentionDays: number
+  /** Finished downloads leave the list at once; their files stay. */
+  removeCompletedRecords: boolean
   /** When true, the system shuts down after all downloads complete. */
   shutdownWhenComplete: boolean
   /** When true, prevents system idle sleep while downloads are active.
@@ -607,6 +611,8 @@ export interface AppConfig {
   /** Disk space pre-allocation method. Maps to aria2 --file-allocation.
    *  Values: 'none' | 'trunc' | 'prealloc' | 'falloc' */
   fileAllocation: string
+  /** Suffix on unfinished files (`incomplete-suffix`), empty when off. */
+  incompleteSuffix: '' | '.ray'
   /** Per-tab sort configuration (field + direction), persisted independently per tab. */
   taskSort: import('@/composables/useTaskSort').TaskSortConfig
   /** Per-tab manual task order. Unknown tasks are inserted above stored tasks. */

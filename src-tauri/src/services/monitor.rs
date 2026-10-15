@@ -481,6 +481,7 @@ pub async fn process_lifecycle_task(
     }
 
     if !notify {
+        forget_if_unkept(app, event_name, &payload.gid).await;
         return Ok(());
     }
 
@@ -517,7 +518,39 @@ pub async fn process_lifecycle_task(
     ) {
         super::post_download::run(&runtime_config, &payload);
     }
+    forget_if_unkept(app, event_name, &payload.gid).await;
     Ok(())
+}
+
+/// With "keep completed records" off, a finished download leaves the list
+/// once it has been recorded and announced; its files stay (#722). A task
+/// still sharing finishes later and leaves then.
+async fn forget_if_unkept(app: &tauri::AppHandle, event_name: &str, gid: &str) {
+    if event_name != events::TASK_COMPLETE {
+        return;
+    }
+    let keep = match app.try_state::<super::config::RuntimeConfigState>() {
+        Some(state) => !state.snapshot().await.remove_completed_records,
+        None => true,
+    };
+    if keep {
+        return;
+    }
+    if let Err(error) = app
+        .state::<DatabaseState>()
+        .0
+        .remove_task_records(gid)
+        .await
+    {
+        log::warn!("task_lifecycle:forget-failed gid={gid} error={error}");
+        return;
+    }
+    if let Some(engine) = app.try_state::<super::tasks::TaskServiceState>() {
+        if let Err(error) = engine.0.remove_download_result(gid).await {
+            log::debug!("task_lifecycle:forget-result-failed gid={gid} error={error}");
+        }
+    }
+    log::info!("task_lifecycle:forgotten gid={gid}");
 }
 
 pub async fn reconcile_stopped_tasks(

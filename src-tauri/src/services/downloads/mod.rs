@@ -7,7 +7,7 @@ pub(crate) mod preferences;
 
 use crate::aria2::types::Aria2Probe;
 use crate::{error::AppError, services::tasks::TaskServiceState};
-use contracts::{AddRequest, AddResponse, FallbackReason};
+use contracts::{Ack, AddRequest, AddResponse, FallbackReason};
 pub use handoff::Handoffs;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
@@ -15,6 +15,10 @@ use tauri::{AppHandle, Emitter, Manager};
 /// How long a confirmation dialog may hold a browser download. After that
 /// the browser keeps the download and the dialog drops it.
 const CONFIRMATION_TIMEOUT: Duration = Duration::from_secs(120);
+/// The browser keeps its download while the engine checks it, and Chromium
+/// names a download after 15 s whatever the extension says: an answer must
+/// come well before.
+const VERIFY_TIMEOUT: Duration = Duration::from_secs(8);
 
 /// The desktop filename field never grants permission to select a directory.
 pub fn validate_filename(name: &str) -> Result<(), AppError> {
@@ -72,7 +76,13 @@ pub async fn dispatch(app: &AppHandle, request: AddRequest) -> Result<AddRespons
             .is_some_and(|url| matches!(url.scheme(), "http" | "https"))
     {
         let engine = app.state::<TaskServiceState>().0.clone();
-        let probe = engine.probe(url, options.clone()).await?;
+        let Ok(probe) =
+            tokio::time::timeout(VERIFY_TIMEOUT, engine.probe(url, options.clone())).await
+        else {
+            log::info!("downloads: browser keeps the download (the engine check took too long)");
+            return Ok(AddResponse::fallback(FallbackReason::Unreachable));
+        };
+        let probe = probe?;
         if let Some(reason) = refusal(&probe, &request) {
             log::info!(
                 "downloads: browser keeps the download ({reason:?}): status={} type={:?} size={:?} error={:?}",
@@ -117,6 +127,77 @@ pub async fn dispatch(app: &AppHandle, request: AddRequest) -> Result<AddRespons
     Ok(AddResponse::added(gid))
 }
 
+fn page(mime: &str) -> bool {
+    let essence = mime.split(';').next().unwrap_or_default().trim();
+    essence.eq_ignore_ascii_case("text/html")
+        || essence.eq_ignore_ascii_case("application/xhtml+xml")
+}
+
+/// What a download from a URL would receive, as the add dialog shows it.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Preview {
+    /// Bytes the download would write; unknown for pages and stream playlists,
+    /// which the engine does not save as they come.
+    pub size: Option<u64>,
+    /// The name the engine would give the file.
+    pub filename: String,
+}
+
+/// The size a successful probe promises, if the download would be that body.
+fn previewed_size(probe: &Aria2Probe) -> Option<u64> {
+    let essence = probe
+        .content_type
+        .split(';')
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .to_ascii_lowercase();
+    if page(&essence) || essence.ends_with("mpegurl") || essence == "application/dash+xml" {
+        return None;
+    }
+    probe.total_length.as_deref()?.parse().ok()
+}
+
+/// Requests the first byte of `url` the way a task with `options` would,
+/// after the site rules and saved credentials that task would get.
+pub async fn preview(
+    app: &AppHandle,
+    url: &str,
+    mut options: serde_json::Value,
+) -> Result<Preview, AppError> {
+    let prefs = preferences::load(app)?;
+    let uris = [url.to_owned()];
+    preferences::apply_site_rules(&prefs, &uris, &mut options);
+    native::apply_saved_credentials(
+        &app.state::<crate::database::DatabaseState>().0,
+        &uris,
+        &mut options,
+    )
+    .await?;
+    let engine = app.state::<TaskServiceState>().0.clone();
+    let probe = engine.probe(url, options).await?;
+    if !probe.status.starts_with('2') || probe.error.is_some() {
+        return Err(AppError::Io(match (probe.status.as_str(), &probe.error) {
+            ("0", Some(error)) => format!("No response: {error}"),
+            ("0", None) => "No response".into(),
+            (status, _) => format!("The server answered HTTP {status}"),
+        }));
+    }
+    let disposition = probe
+        .filename
+        .as_deref()
+        .map(|name| format!("attachment; filename*=UTF-8''{}", urlencoding::encode(name)))
+        .unwrap_or_default();
+    let filename = engine
+        .resolve_filename(&probe.final_url, disposition.into_bytes())
+        .await?;
+    Ok(Preview {
+        size: previewed_size(&probe),
+        filename,
+    })
+}
+
 /// Why the engine must not take over what the browser is downloading.
 fn refusal(probe: &Aria2Probe, request: &AddRequest) -> Option<FallbackReason> {
     if probe.status == "0" {
@@ -125,11 +206,6 @@ fn refusal(probe: &Aria2Probe, request: &AddRequest) -> Option<FallbackReason> {
     if probe.error.is_some() || !probe.status.starts_with('2') {
         return Some(FallbackReason::Rejected);
     }
-    let page = |mime: &str| {
-        let essence = mime.split(';').next().unwrap_or_default().trim();
-        essence.eq_ignore_ascii_case("text/html")
-            || essence.eq_ignore_ascii_case("application/xhtml+xml")
-    };
     if page(&probe.content_type) && !request.mime.as_deref().is_some_and(page) {
         return Some(FallbackReason::WebPage);
     }
@@ -143,18 +219,23 @@ fn refusal(probe: &Aria2Probe, request: &AddRequest) -> Option<FallbackReason> {
     }
 }
 
-/// Holds the browser download while the user decides in the add dialog.
+/// Holds the browser download while the user decides in the add dialog, or,
+/// with an early acknowledgement, hands it to the dialog at once.
 async fn confirm(
     app: &AppHandle,
     request: &AddRequest,
     size: Option<u64>,
 ) -> Result<AddResponse, AppError> {
+    if request.ack == Ack::Early {
+        show_confirmation(app, request, None, size);
+        return Ok(AddResponse::accepted());
+    }
     let handoffs = app.state::<Handoffs>();
     let emitter = app.clone();
     let pending = handoffs.open(Box::new(move |id| {
         let _ = emitter.emit(handoff::EXPIRED_EVENT, serde_json::json!({ "id": id }));
     }));
-    show_confirmation(app, request, pending.id(), size);
+    show_confirmation(app, request, Some(pending.id()), size);
     Ok(match pending.wait(CONFIRMATION_TIMEOUT).await {
         Some(handoff::Outcome::Added(gid)) => AddResponse::added(gid),
         Some(handoff::Outcome::Cancelled) => AddResponse::cancelled(),
@@ -265,9 +346,11 @@ pub async fn submit(
     result
 }
 
-fn show_confirmation(app: &AppHandle, request: &AddRequest, id: &str, size: Option<u64>) {
+/// Shows the download in the add dialog; `id` holds it for the browser
+/// until the dialog decides.
+fn show_confirmation(app: &AppHandle, request: &AddRequest, id: Option<&str>, size: Option<u64>) {
     let input = crate::services::external_input::ExternalDownloadInput {
-        request_id: Some(id.to_owned()),
+        request_id: id.map(str::to_owned),
         filename_source: Some(request.filename_source),
         url: request.url.clone(),
         final_url: request.final_url.clone(),

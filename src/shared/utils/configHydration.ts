@@ -3,6 +3,7 @@ import {
   DEFAULT_APP_CONFIG,
   buildDefaultCategories,
   FILE_ALLOCATION_OPTIONS,
+  INCOMPLETE_SUFFIX,
   APP_LOG_LEVELS,
   ARIA2_LOG_LEVELS,
   PROXY_SCOPE_OPTIONS,
@@ -224,6 +225,7 @@ function normalizeScalarValues(config: Record<string, unknown>, repairs: string[
   repairEnum(config, 'logLevel', APP_LOG_LEVELS, DEFAULT_APP_CONFIG.logLevel, repairs)
   repairEnum(config, 'aria2LogLevel', ARIA2_LOG_LEVELS, DEFAULT_APP_CONFIG.aria2LogLevel, repairs)
   repairEnum(config, 'fileAllocation', FILE_ALLOCATION_OPTIONS, DEFAULT_APP_CONFIG.fileAllocation, repairs)
+  repairEnum(config, 'incompleteSuffix', ['', INCOMPLETE_SUFFIX] as const, DEFAULT_APP_CONFIG.incompleteSuffix, repairs)
   repairEnum(config, 'fileDeletionMode', ['trash', 'permanent'] as const, DEFAULT_APP_CONFIG.fileDeletionMode, repairs)
   repairEnum(
     config,

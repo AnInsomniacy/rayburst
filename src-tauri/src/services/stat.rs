@@ -70,19 +70,16 @@ fn tray_title_needs_update(last_title: &Option<String>, next_title: &str) -> boo
     last_title.as_deref() != Some(next_title)
 }
 
-#[cfg(any(target_os = "macos", target_os = "windows", test))]
 fn parse_length(value: Option<&str>) -> u64 {
     value.and_then(|v| v.parse::<u64>().ok()).unwrap_or(0)
 }
 
-#[cfg(any(target_os = "macos", target_os = "windows", test))]
 fn completed_length(task: &crate::aria2::types::Aria2Task) -> u64 {
     parse_length(Some(&task.completed_length))
 }
 
 /// Use task fractions for mixed media/file work; their raw units cannot be summed.
-#[cfg(any(target_os = "macos", target_os = "windows", test))]
-fn task_progress(tasks: &[crate::aria2::types::Aria2Task]) -> Option<u64> {
+pub(crate) fn task_progress(tasks: &[crate::aria2::types::Aria2Task]) -> Option<u64> {
     let tasks: Vec<_> = tasks
         .iter()
         .filter(|task| task.seeder.as_deref() != Some("true"))

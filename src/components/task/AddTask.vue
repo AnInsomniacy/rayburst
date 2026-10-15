@@ -2,7 +2,7 @@
 import { invoke } from '@tauri-apps/api/core'
 /**
  * @fileoverview Add task dialog: dual-tab layout (URI / Torrent) with AutoAnimate list transitions.
- * Standalone, it fills the add-task window instead of opening as a modal.
+ * It fills the standalone add-task window.
  */
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
@@ -13,9 +13,10 @@ import { usePreferenceStore } from '@/stores/preference'
 import { usePreferenceNumericValidation } from '@/composables/usePreferenceNumericValidation'
 import { useHttpAuthStore } from '@/stores/httpAuth'
 import { useFilenamePreview } from '@/composables/useFilenamePreview'
+import { useDownloadPreview } from '@/composables/useDownloadPreview'
 import { knownBatchSize, useFreeSpace } from '@/composables/useFreeSpace'
 import { ADD_TASK_TYPE } from '@shared/constants'
-import { detectResource } from '@shared/utils'
+import { bytesToSize, detectResource } from '@shared/utils'
 import {
   mergeRawUriLines,
   normalizeUriLines,
@@ -27,6 +28,7 @@ import { buildOuts } from '@shared/utils/rename'
 import {
   buildEngineOptions,
   classifySubmitError,
+  downloadPreviewRequests,
   submitBatchItems,
   submitManualUris,
   getDownloadProxy,
@@ -55,7 +57,6 @@ import {
   chooseTorrentFile as chooseTorrentFileImpl,
 } from '@/composables/useAddTaskFileOps'
 import {
-  NModal,
   NCard,
   NTabs,
   NTabPane,
@@ -69,6 +70,8 @@ import {
   NInputGroup,
   NTag,
   NEllipsis,
+  NSpin,
+  NText,
   useDialog,
 } from 'naive-ui'
 import { useAppMessage } from '@/composables/useAppMessage'
@@ -80,8 +83,8 @@ import AdvancedOptions from './addtask/AdvancedOptions.vue'
 import DirectoryPopover from '@/components/common/DirectoryPopover.vue'
 import BtFileSelector from '@/components/task/BtFileSelector.vue'
 
-const props = defineProps<{ show: boolean; standalone?: boolean }>()
-const emit = defineEmits<{ close: []; afterLeave: []; submitted: [] }>()
+const props = defineProps<{ show: boolean }>()
+const emit = defineEmits<{ close: []; submitted: [] }>()
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -180,12 +183,64 @@ const firstRegularUri = computed(
       .map((uri) => uri.trim())
       .find((uri) => uri && !isMagnetUri(uri)) ?? '',
 )
-const { filename, missingExtension, outputName, resolvingFilename, canResolveFilename, resolveFilename } =
-  useFilenamePreview(
-    form,
-    () => props.show,
-    (text) => message.warning(text),
-  )
+/** The form with the preference defaults a submission fills in. */
+function requestForm(): AddTaskForm {
+  return {
+    ...form.value,
+    dir: form.value.dir.trim() || rememberedDirectory.value || preferenceStore.config.dir,
+    appProxy: preferenceStore.config.proxy,
+    defaultUserAgent: preferenceStore.config.userAgent,
+    userAgentProfiles: preferenceStore.config.userAgentProfiles,
+    userAgentRules: preferenceStore.config.userAgentRules,
+  }
+}
+// Each download's size, and the name of a single one, are read ahead the way
+// the download will request them; the browser's own figures need no request.
+const downloadRequests = computed(() => downloadPreviewRequests(requestForm()))
+const previews = useDownloadPreview(
+  () => downloadRequests.value,
+  () => props.show,
+  (uri) => form.value.uriRequestContexts?.[uri]?.size !== undefined,
+)
+const sizeOf = (uri: string) => form.value.uriRequestContexts?.[uri]?.size ?? previews.previewOf(uri)?.size ?? null
+const knownUriSize = computed(() => downloadRequests.value.reduce((sum, { uri }) => sum + (sizeOf(uri) ?? 0), 0))
+const { singleUrl, filename, outputName, resolvingFilename, canResolveFilename, resolveFilename } = useFilenamePreview(
+  form,
+  () => props.show,
+  previews,
+  (text) => message.warning(text),
+)
+const singleSize = computed(() => (singleUrl.value ? sizeOf(singleUrl.value) : null))
+const sizingSingle = computed(() => !!singleUrl.value && previews.isPreviewing(singleUrl.value))
+// Site rules cap connections when the download is created; the field shows
+// the number the download will really use (#719).
+interface SiteConnectionCap {
+  maxConnectionPerServer: number
+  hostPattern: string
+}
+const siteCap = ref<SiteConnectionCap | null>(null)
+let siteCapQuery = 0
+let uncappedConnections: number | null = null
+watch(
+  firstRegularUri,
+  async (uri) => {
+    const query = ++siteCapQuery
+    const cap = uri
+      ? await invoke<SiteConnectionCap | null>('preview_site_rules', { uris: [uri] }).catch(() => null)
+      : null
+    if (query === siteCapQuery) siteCap.value = cap
+  },
+  { immediate: true },
+)
+watch(siteCap, (cap) => {
+  if (cap && form.value.streamMaxConnections > cap.maxConnectionPerServer) {
+    uncappedConnections ??= form.value.streamMaxConnections
+    form.value.streamMaxConnections = cap.maxConnectionPerServer
+  } else if (!cap && uncappedConnections !== null) {
+    form.value.streamMaxConnections = uncappedConnections
+    uncappedConnections = null
+  }
+})
 const matchedUserAgentRule = computed(() =>
   findMatchingUserAgentRule({
     url: firstRegularUri.value,
@@ -412,7 +467,7 @@ const displayedDir = computed(() => {
 
 const space = useFreeSpace(
   displayedDir,
-  computed(() => knownBatchSize(batch.value)),
+  computed(() => knownBatchSize(batch.value) + knownUriSize.value),
 )
 
 const categoryPreviewText = computed(() => {
@@ -782,14 +837,9 @@ async function handleSubmit() {
     // When dir field is empty (user left it blank for auto-classification),
     // fall back to the global default dir so aria2 always has a valid path.
     const effectiveForm = {
-      ...form.value,
+      ...requestForm(),
       out: outputName(),
       checksum: checksumAvailable.value ? form.value.checksum : '',
-      dir: form.value.dir.trim() || rememberedDirectory.value || preferenceStore.config.dir,
-      appProxy: preferenceStore.config.proxy,
-      defaultUserAgent: preferenceStore.config.userAgent,
-      userAgentProfiles: preferenceStore.config.userAgentProfiles,
-      userAgentRules: preferenceStore.config.userAgentRules,
     }
     const options = buildEngineOptions(effectiveForm)
     const fileCategory = {
@@ -881,62 +931,29 @@ async function handleSubmit() {
   }
 }
 
-const frame = computed(() =>
-  props.standalone
-    ? { is: 'div', attrs: { class: 'add-task-window' } }
-    : {
-        is: NModal,
-        attrs: {
-          show: props.show,
-          maskClosable: false,
-          closeOnEsc: !submitting.value,
-          autoFocus: false,
-          transformOrigin: 'center',
-          onAfterLeave: () => emit('afterLeave'),
-          'onUpdate:show': (visible: boolean) => {
-            if (!visible) handleClose()
-          },
-        },
-      },
-)
-const cardStyle = computed(() =>
-  props.standalone
-    ? {
-        // The standalone window takes the card's natural height, up to the cap
-        // the window sets once it knows the screen. Until then the card is not
-        // capped at all: the window measures it while hidden, when WebKitGTK
-        // reports a viewport of almost no height, so `100vh` would collapse it.
-        maxHeight: 'var(--add-window-max-height, none)',
-        display: 'flex',
-        flexDirection: 'column',
-        borderRadius: '0',
-        border: 'none',
-        background: 'transparent',
-      }
-    : {
-        maxWidth: '680px',
-        minWidth: 'min(380px, calc(100vw - 24px))',
-        width: '70vw',
-        margin: 'auto',
-        height: '82vh',
-        display: 'flex',
-        flexDirection: 'column',
-      },
-)
+// The card takes its natural height, up to the cap the add window sets once it
+// knows the screen. Until then it is not capped at all: the window measures it
+// while hidden, when WebKitGTK reports a viewport of almost no height, so
+// `100vh` would collapse it.
+const cardStyle = {
+  maxHeight: 'var(--add-window-max-height, none)',
+  display: 'flex',
+  flexDirection: 'column',
+  borderRadius: '0',
+  border: 'none',
+  background: 'transparent',
+}
 
 defineExpose({ dismiss: () => handleClose() })
 </script>
 
 <template>
-  <component :is="frame.is" v-bind="frame.attrs">
+  <div class="add-task-window">
     <NCard
-      :title="standalone ? undefined : t('task.new-task')"
-      :closable="!standalone"
       class="add-task-card"
       :style="cardStyle"
       :content-style="{ flex: '1', minHeight: '0', overflowY: 'auto', overflowX: 'hidden' }"
       :segmented="{ footer: true }"
-      @close="() => handleClose()"
     >
       <NForm label-placement="left" label-width="110px">
         <NTabs ref="tabsRef" :value="activeTab" type="line" animated @update:value="activateTab">
@@ -1030,12 +1047,17 @@ defineExpose({ dismiss: () => handleClose() })
           <NFormItem :label="t('task.task-out') + ':'">
             <NInputGroup>
               <NInput v-model:value="filename" :placeholder="t('task.task-out-tips')" :autofocus="false">
-                <template v-if="missingExtension" #suffix>
-                  <span class="filename-extension">{{ missingExtension }}</span>
+                <template v-if="singleSize !== null || sizingSingle" #suffix>
+                  <Transition name="content-fade" mode="out-in">
+                    <NSpin v-if="sizingSingle" key="sizing" :size="12" class="filename-size" />
+                    <span v-else-if="singleSize !== null" key="size" class="filename-size">{{
+                      bytesToSize(singleSize)
+                    }}</span>
+                  </Transition>
                 </template>
               </NInput>
               <NButton :disabled="!canResolveFilename" :loading="resolvingFilename" @click="resolveFilename">{{
-                t('task.resolve-filename')
+                t('task.refresh-download')
               }}</NButton>
             </NInputGroup>
           </NFormItem>
@@ -1046,9 +1068,12 @@ defineExpose({ dismiss: () => handleClose() })
             <NInputNumber
               v-model:value="form.streamMaxConnections"
               :min="constraint('streamMaxConnections').min"
-              :max="constraint('streamMaxConnections').max"
+              :max="siteCap?.maxConnectionPerServer ?? constraint('streamMaxConnections').max"
               style="width: 120px"
             />
+            <NText v-if="siteCap" depth="3" class="site-rule-note">
+              {{ t('task.ua-source-rule', { host: siteCap.hostPattern }) }}
+            </NText>
           </NFormItem>
           <NFormItem :label="dirLabel + ':'">
             <div style="width: 100%">
@@ -1127,12 +1152,21 @@ defineExpose({ dismiss: () => handleClose() })
         </NSpace>
       </template>
     </NCard>
-  </component>
+  </div>
 </template>
 
 <style scoped>
-.filename-extension {
+.filename-size {
+  margin-left: 10px;
   color: var(--m3-on-surface-variant);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.site-rule-note {
+  margin-left: 12px;
+  font-size: 12px;
 }
 
 /* Fixed-height tab panes prevent jitter when switching tabs.

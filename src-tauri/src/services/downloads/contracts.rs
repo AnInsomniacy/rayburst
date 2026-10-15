@@ -5,6 +5,11 @@
 //! when the user declined it, and `fallback` when the browser should keep it.
 //! A lost answer therefore never loses a download: the extension lets the
 //! browser continue.
+//!
+//! Chromium waits at most 15 s for an extension to name a download, so a
+//! request with `ack: "early"` is answered `accepted` as soon as the add
+//! dialog shows it: from then on the dialog owns the download, as in other
+//! download managers, and the browser drops its copy.
 use crate::services::external_input::ExternalRequestHeader;
 use serde::{Deserialize, Serialize};
 
@@ -28,6 +33,19 @@ pub struct AddRequest {
     /// MIME type and size the browser received, when known.
     pub mime: Option<String>,
     pub size: Option<i64>,
+    /// When the extension wants the answer; older extensions omit it.
+    #[serde(default)]
+    pub ack: Ack,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Ack {
+    /// Once the user decided in the add dialog.
+    #[default]
+    Final,
+    /// As soon as the add dialog shows the download.
+    Early,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize)]
@@ -42,6 +60,8 @@ pub enum FilenameSource {
 #[serde(rename_all = "lowercase")]
 pub enum Action {
     Added,
+    /// The add dialog took the download over; the browser drops its copy.
+    Accepted,
     Cancelled,
     Fallback,
 }
@@ -77,6 +97,13 @@ impl AddResponse {
         Self {
             action: Action::Added,
             gid: Some(gid),
+            reason: None,
+        }
+    }
+    pub fn accepted() -> Self {
+        Self {
+            action: Action::Accepted,
+            gid: None,
             reason: None,
         }
     }

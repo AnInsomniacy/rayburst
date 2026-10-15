@@ -59,6 +59,10 @@ pub struct RuntimeConfig {
     /// What clicking a completion notification does: `reveal` shows the file
     /// in its folder, `open` opens it with its default application.
     pub notification_click_action: String,
+    /// Finished downloads leave the list once announced; files stay (#722).
+    pub remove_completed_records: bool,
+    /// The floating window with speed and progress stays on top (#669, #718).
+    pub show_float_window: bool,
 }
 
 impl Default for RuntimeConfig {
@@ -90,6 +94,8 @@ impl Default for RuntimeConfig {
             post_download_program: String::new(),
             post_download_arguments: String::new(),
             notification_click_action: "reveal".into(),
+            remove_completed_records: false,
+            show_float_window: false,
         }
     }
 }

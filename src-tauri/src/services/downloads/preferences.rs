@@ -136,21 +136,7 @@ pub(super) fn apply_site_rules(prefs: &Preferences, uris: &[String], options: &m
     if !options.is_object() {
         return;
     }
-    let hosts: Vec<String> = uris
-        .iter()
-        .filter_map(|uri| url::Url::parse(uri).ok())
-        .filter_map(|url| url.host_str().map(str::to_owned))
-        .collect();
-    let matching: Vec<&SiteRule> = prefs
-        .site_rules
-        .iter()
-        .filter(|rule| rule.enabled)
-        .filter(|rule| {
-            hosts
-                .iter()
-                .any(|host| host_matches(&rule.host_pattern, host))
-        })
-        .collect();
+    let matching = matching_site_rules(prefs, uris);
     if let Some(proxy) = matching
         .iter()
         .map(|rule| rule.proxy)
@@ -158,12 +144,7 @@ pub(super) fn apply_site_rules(prefs: &Preferences, uris: &[String], options: &m
     {
         apply_site_proxy(&prefs.proxy, proxy, options);
     }
-    let Some(limit) = matching
-        .iter()
-        .map(|rule| rule.max_connection_per_server)
-        .filter(|limit| *limit > 0)
-        .min()
-    else {
+    let Some((limit, _)) = connection_cap(&matching) else {
         return;
     };
     let current = options
@@ -175,6 +156,40 @@ pub(super) fn apply_site_rules(prefs: &Preferences, uris: &[String], options: &m
         .filter(|value| *value > 0);
     let limit = current.map_or(limit, |current| current.min(limit));
     options["max-connection-per-server"] = limit.to_string().into();
+}
+
+fn matching_site_rules<'a>(prefs: &'a Preferences, uris: &[String]) -> Vec<&'a SiteRule> {
+    let hosts: Vec<String> = uris
+        .iter()
+        .filter_map(|uri| url::Url::parse(uri).ok())
+        .filter_map(|url| url.host_str().map(str::to_owned))
+        .collect();
+    prefs
+        .site_rules
+        .iter()
+        .filter(|rule| rule.enabled)
+        .filter(|rule| {
+            hosts
+                .iter()
+                .any(|host| host_matches(&rule.host_pattern, host))
+        })
+        .collect()
+}
+
+/// The strictest connection cap of the rules, with the host pattern setting it.
+fn connection_cap<'a>(rules: &[&'a SiteRule]) -> Option<(u32, &'a str)> {
+    rules
+        .iter()
+        .filter(|rule| rule.max_connection_per_server > 0)
+        .min_by_key(|rule| rule.max_connection_per_server)
+        .map(|rule| (rule.max_connection_per_server, rule.host_pattern.as_str()))
+}
+
+/// The connection cap the site rules will apply to a download of `uris`, so
+/// the add dialog shows the number the download really uses (#719).
+pub(crate) fn site_connection_cap(prefs: &Preferences, uris: &[String]) -> Option<(u32, String)> {
+    connection_cap(&matching_site_rules(prefs, uris))
+        .map(|(limit, pattern)| (limit, pattern.to_owned()))
 }
 
 fn apply_site_proxy(settings: &ProxySettings, proxy: SiteProxy, options: &mut Value) {

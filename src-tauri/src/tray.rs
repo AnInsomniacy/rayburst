@@ -153,6 +153,7 @@ fn get_or_create_main_window(app: &AppHandle) -> Option<(tauri::WebviewWindow, b
     crate::services::external_input::mark_frontend_unready(app);
     crate::services::frontend_action::mark_frontend_actions_unready(app);
     crate::services::add_window::main_window_created(app);
+    crate::services::float_window::main_window_created();
 
     let Some(config) = app
         .config()

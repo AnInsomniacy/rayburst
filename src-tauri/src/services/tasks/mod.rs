@@ -347,6 +347,19 @@ impl TaskService {
         self.call("getBtTrackers", vec![gid.into()]).await
     }
 
+    /// Moves an unfinished download's files to `dir`; the engine pauses a
+    /// running one meanwhile and answers once the files are there, which
+    /// across disks can take long.
+    pub async fn move_download(&self, gid: &str, dir: &str) -> Result<String, AppError> {
+        self.rpc
+            .call_within(
+                "aria2.moveDownload",
+                vec![gid.into(), dir.into()],
+                std::time::Duration::from_secs(6 * 60 * 60),
+            )
+            .await
+    }
+
     pub async fn force_bt_recheck(&self, gid: &str) -> Result<String, AppError> {
         self.call("forceBtRecheck", vec![gid.into()]).await
     }

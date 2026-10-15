@@ -208,6 +208,7 @@ pub(crate) fn handle_minimize_to_tray(app: &tauri::AppHandle, window: &tauri::We
     if lightweight {
         log::info!("tray:lightweight-destroy label={}", window.label());
         save_window_state_before_lightweight_destroy(app);
+        services::add_window::main_window_releasing(app);
         services::deep_link::mark_frontend_unready(app);
         services::external_input::mark_frontend_unready(app);
         services::frontend_action::mark_frontend_actions_unready(app);
@@ -291,7 +292,7 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(commands::bt_blocklist::BtPeerBlocklistUpdateState::new());
     app.manage(services::http_api::HttpApiState::new());
     app.manage(services::downloads::Handoffs::default());
-    app.manage(commands::FilenameProbeState::default());
+    app.manage(commands::DownloadPreviewState::default());
     #[cfg(target_os = "linux")]
     app.manage(services::notification::LinuxNotificationRegistry::new());
     app.manage(services::deep_link::PendingDeepLinkState::new());
@@ -523,9 +524,12 @@ fn handle_run_event(app: &tauri::AppHandle, event: tauri::RunEvent) {
         tauri::RunEvent::ExitRequested { ref api, code, .. } => {
             log::info!("app:exit-requested code={:?}", code);
 
-            if code.is_none() && services::add_window::keeps_process(app) {
+            if code.is_none()
+                && (services::add_window::keeps_process(app)
+                    || services::float_window::keeps_process(app))
+            {
                 api.prevent_exit();
-                log::info!("app:exit-prevented reason=add-window-closed");
+                log::info!("app:exit-prevented reason=secondary-window-closed");
             } else if code.is_none() {
                 let should_hide = read_pref_bool(app, "minimizeToTrayOnClose", false);
 
@@ -655,7 +659,10 @@ pub fn run() {
     builder = builder.plugin(
         tauri_plugin_window_state::Builder::new()
             .skip_initial_state("main")
-            .with_denylist(&[services::add_window::LABEL])
+            .with_denylist(&[
+                services::add_window::LABEL,
+                services::float_window::PANEL_LABEL,
+            ])
             .with_state_flags(window_state_flags())
             .build(),
     );
@@ -715,8 +722,8 @@ pub fn run() {
             commands::set_default_protocol_client,
             commands::open_default_apps_settings,
             commands::fetch_remote_bytes,
-            commands::resolve_remote_filename,
-            commands::cancel_filename_probe,
+            commands::preview_download,
+            commands::cancel_download_preview,
             commands::get_system_proxy,
             commands::normalize_proxy_bypass,
             commands::lookup_peer_ips,
@@ -729,6 +736,8 @@ pub fn run() {
             commands::add_window_attach,
             commands::add_window_detach,
             commands::add_window_open,
+            commands::add_window_park,
+            commands::add_window_prepare,
             commands::add_window_present,
             commands::take_pending_frontend_actions,
             commands::history_get_record,
@@ -753,6 +762,7 @@ pub fn run() {
             commands::aria2_fetch_task_item,
             commands::aria2_fetch_task_item_with_peers,
             commands::aria2_get_bt_trackers,
+            commands::aria2_move_download,
             commands::aria2_force_bt_recheck,
             commands::aria2_replace_bt_trackers,
             commands::aria2_replace_bt_web_seeds,
@@ -776,6 +786,7 @@ pub fn run() {
             commands::resolve_file_category,
             commands::validate_file_categories,
             commands::cancel_download_request,
+            commands::preview_site_rules,
             commands::aria2_add_torrent,
             commands::aria2_inspect_torrent,
             commands::aria2_ed2k_search,
@@ -799,6 +810,11 @@ pub fn run() {
             commands::set_autostart,
             commands::sync_autostart,
             commands::cancel_shutdown,
+            commands::float_window_open_main,
+            commands::float_window_ready,
+            commands::float_panel_toggle,
+            commands::float_panel_dismiss,
+            commands::float_panel_present,
         ])
         // ── Window event interception ─────────────────────────────────
         //
@@ -856,10 +872,17 @@ pub fn run() {
                     let _ = app.emit("show-exit-dialog", ());
                 }
             }
+            tauri::WindowEvent::Moved(position)
+                if window.label() == services::float_window::PANEL_LABEL =>
+            {
+                services::float_window::panel_moved(window.app_handle(), *position);
+            }
             tauri::WindowEvent::Destroyed => {
                 log::info!("window:destroyed label={}", window.label());
                 if window.label() == services::add_window::LABEL {
                     services::add_window::destroyed(window.app_handle());
+                } else if window.label() == "main" {
+                    services::add_window::main_window_destroyed(window.app_handle());
                 }
             }
             _ => {}

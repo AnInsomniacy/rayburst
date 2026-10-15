@@ -10,7 +10,7 @@
 import { mediaEngineOptions, type MediaOptions } from '@shared/utils/media'
 import type { useTaskStore } from '@/stores/task'
 import { isEngineReady } from '@/api/aria2'
-import { parseAria2Input, extractDecodedFilename } from '@shared/utils/batchHelpers'
+import { parseAria2Input, extractDecodedFilename, type Aria2InputEntry } from '@shared/utils/batchHelpers'
 import { buildOuts } from '@shared/utils/rename'
 import { logger } from '@shared/logger'
 import type {
@@ -202,6 +202,48 @@ function mergeAria2InputOptions(base: Aria2EngineOptions, taskOptions: Aria2Engi
   return merged
 }
 
+/** The options a manual entry is created with: its browser context's, then those written beside it. */
+function manualEntryOptions(
+  form: AddTaskForm,
+  entry: Aria2InputEntry,
+  base: Aria2EngineOptions = buildEngineOptions(form),
+): Aria2EngineOptions {
+  const context = entry.uris.length === 1 ? form.uriRequestContexts?.[entry.uris[0]] : undefined
+  return mergeAria2InputOptions(context ? buildEngineOptions(form, context) : base, entry.options)
+}
+
+/** Options that decide what a download writes, not the request it makes. */
+const WRITE_OPTIONS = new Set([
+  'dir',
+  'out',
+  'split',
+  'max-connection-per-server',
+  'max-download-limit',
+  'checksum',
+  'filename-hint',
+  'filename-hint-source',
+])
+
+export interface DownloadPreviewRequest {
+  uri: string
+  options: Aria2EngineOptions
+}
+
+/** The first HTTP request of each regular download in the form, with the options that shape it; the engine unwraps Thunder links. */
+export function downloadPreviewRequests(form: AddTaskForm): DownloadPreviewRequest[] {
+  const requestForm = { ...form, out: '', checksum: '', media: undefined }
+  const base = buildEngineOptions(requestForm)
+  return parseAria2Input(form.uris).entries.flatMap((entry) => {
+    const uri = entry.uris.find((value) => /^(?:https?|thunder):\/\//i.test(value))
+    if (!uri) return []
+    const options = manualEntryOptions(requestForm, entry, base)
+    for (const key of Object.keys(options)) {
+      if (WRITE_OPTIONS.has(key) || key.startsWith('media')) delete options[key]
+    }
+    return [{ uri, options }]
+  })
+}
+
 function getScalarOption(options: Aria2EngineOptions, key: string): string {
   const value = options[key]
   return typeof value === 'string' ? value : ''
@@ -309,14 +351,9 @@ export async function submitManualUris(
       globalOuts = regularUris.map((_, index) => `${base}_${index + 1}${ext}`)
     }
 
-    const contextEntries = form.uriRequestContexts ?? {}
     let globalOutIndex = 0
     for (const entry of regularEntries) {
-      const uriContext = entry.uris.length === 1 ? contextEntries[entry.uris[0]] : undefined
-      const entryOptions = mergeAria2InputOptions(
-        uriContext ? buildEngineOptions(form, uriContext) : baseOptions,
-        entry.inputOptions,
-      )
+      const entryOptions = manualEntryOptions(form, { uris: entry.uris, options: entry.inputOptions }, baseOptions)
       if (globalOuts.length > 0) delete entryOptions.out
 
       if (entry.uris.length > 1) {

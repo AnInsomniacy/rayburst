@@ -39,13 +39,17 @@ export interface NetworkForm {
   checkCertificate: boolean
 }
 
-/** Public DNS-over-HTTPS resolvers offered as presets. */
+/**
+ * Public DNS-over-HTTPS resolvers offered as presets, reached by the address
+ * their certificates name, so finding the resolver needs no plain DNS lookup
+ * that could be tampered with.
+ */
 export const DNS_OVER_HTTPS_PRESETS = [
-  { label: 'Cloudflare', value: 'https://cloudflare-dns.com/dns-query' },
-  { label: 'Google', value: 'https://dns.google/dns-query' },
-  { label: 'Quad9', value: 'https://dns.quad9.net/dns-query' },
-  { label: 'AliDNS', value: 'https://dns.alidns.com/dns-query' },
-  { label: 'DNSPod', value: 'https://doh.pub/dns-query' },
+  { label: 'Cloudflare', value: 'https://1.1.1.1/dns-query' },
+  { label: 'Google', value: 'https://8.8.8.8/dns-query' },
+  { label: 'Quad9', value: 'https://9.9.9.9/dns-query' },
+  { label: 'AliDNS', value: 'https://223.5.5.5/dns-query' },
+  { label: 'DNSPod', value: 'https://1.12.12.12/dns-query' },
 ] as const
 
 export function isValidDnsOverHttpsUrl(value: string): boolean {

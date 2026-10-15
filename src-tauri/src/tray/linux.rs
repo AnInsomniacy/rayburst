@@ -2,7 +2,11 @@
 use ksni::TrayMethods;
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc, Mutex,
+    },
+    time::Duration,
 };
 use tauri::AppHandle;
 
@@ -23,9 +27,15 @@ struct Model {
     labels: HashMap<String, String>,
 }
 
+/// A panel restarting, after resume or unlock, brings the watcher back within
+/// moments; only a tray that stays gone leaves the window as the way back in.
+const WATCHER_GRACE: Duration = Duration::from_secs(10);
+
 struct NativeTray {
     app: AppHandle,
     model: Arc<Mutex<Model>>,
+    /// Counts watcher changes, so a return cancels a pending window.
+    watcher: Arc<AtomicU64>,
 }
 
 impl ksni::Tray for NativeTray {
@@ -72,9 +82,20 @@ impl ksni::Tray for NativeTray {
     fn activate(&mut self, _: i32, _: i32) {
         super::request_main_window(&self.app, "tray-activate", true);
     }
+    fn watcher_online(&self) {
+        self.watcher.fetch_add(1, Ordering::SeqCst);
+        log::info!("tray:watcher-online");
+    }
     fn watcher_offline(&self, reason: ksni::OfflineReason) -> bool {
         log::warn!("tray:watcher-offline reason={reason:?}");
-        super::request_main_window(&self.app, "tray-watcher-offline", true);
+        let change = self.watcher.fetch_add(1, Ordering::SeqCst) + 1;
+        let (app, watcher) = (self.app.clone(), self.watcher.clone());
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(WATCHER_GRACE).await;
+            if watcher.load(Ordering::SeqCst) == change {
+                super::request_main_window(&app, "tray-watcher-offline", true);
+            }
+        });
         true
     }
     fn icon_pixmap(&self) -> Vec<ksni::Icon> {
@@ -192,6 +213,7 @@ pub fn setup_tray(app: &AppHandle) -> Result<TrayMenuState, Box<dyn std::error::
     let tray = NativeTray {
         app: app.clone(),
         model: state.model.clone(),
+        watcher: Arc::default(),
     };
     let destination = state.handle.clone();
     let app = app.clone();

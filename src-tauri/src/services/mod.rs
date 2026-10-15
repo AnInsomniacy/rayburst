@@ -20,6 +20,7 @@ pub mod bt_blocklist;
 pub mod config;
 pub mod deep_link;
 pub mod external_input;
+pub mod float_window;
 pub mod frontend_action;
 pub mod http_api;
 pub mod media;

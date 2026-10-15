@@ -130,6 +130,14 @@
   --task-motion-progress: 300ms;
   --task-motion-state: 400ms;
   --task-motion-ease: cubic-bezier(0.2, 0, 0, 1);
+  /* Surfaces of the app's own windows rise in and settle over a long, soft
+   * tail; their fade finishes first, so the content reads while it settles.
+   * They leave quicker, accelerating away. */
+  --dialog-enter: 340ms;
+  --dialog-fade: 220ms;
+  --dialog-leave: 170ms;
+  --dialog-ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --dialog-ease-leave: cubic-bezier(0.4, 0, 1, 1);
 }
 
 /* ── Dark Theme ────────────────────────────────────────────────────── */

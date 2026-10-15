@@ -27,6 +27,7 @@ export interface DownloadsForm {
   retryWait: number
   remoteTime: boolean
   fileAllocation: string
+  incompleteSuffix: AppConfig['incompleteSuffix']
   maxOverallDownloadLimit: string
   maxOverallUploadLimit: string
   speedScheduleEnabled: boolean
@@ -47,6 +48,7 @@ export interface DownloadsForm {
   autoDeleteStaleRecords: boolean
   clearCompletedOnExit: boolean
   completedRecordRetentionDays: number
+  removeCompletedRecords: boolean
 }
 
 // ── Pure Functions ──────────────────────────────────────────────────
@@ -74,6 +76,7 @@ export function buildDownloadsForm(config: AppConfig, defaultDir: string = ''): 
     retryWait: config.retryWait ?? D.retryWait,
     remoteTime: config.remoteTime ?? D.remoteTime,
     fileAllocation: config.fileAllocation ?? D.fileAllocation,
+    incompleteSuffix: config.incompleteSuffix ?? D.incompleteSuffix,
     maxOverallDownloadLimit: String(config.maxOverallDownloadLimit ?? D.maxOverallDownloadLimit),
     maxOverallUploadLimit: String(config.maxOverallUploadLimit ?? D.maxOverallUploadLimit),
     speedScheduleEnabled: config.speedScheduleEnabled ?? D.speedScheduleEnabled,
@@ -94,6 +97,7 @@ export function buildDownloadsForm(config: AppConfig, defaultDir: string = ''): 
     autoDeleteStaleRecords: config.autoDeleteStaleRecords ?? false,
     clearCompletedOnExit: config.clearCompletedOnExit ?? false,
     completedRecordRetentionDays: config.completedRecordRetentionDays ?? D.completedRecordRetentionDays,
+    removeCompletedRecords: config.removeCompletedRecords ?? D.removeCompletedRecords,
   }
 }
 
@@ -114,6 +118,7 @@ export function buildDownloadsSystemConfig(f: DownloadsForm): Record<string, str
     continue: String(f.continue !== false),
     'remote-time': String(!!f.remoteTime),
     'file-allocation': f.fileAllocation || D.fileAllocation,
+    'incomplete-suffix': f.incompleteSuffix,
     'max-tries': String(f.maxTries),
     'retry-wait': String(f.retryWait),
     'seed-ratio': keepSharing ? '0' : String(f.shareRatio),

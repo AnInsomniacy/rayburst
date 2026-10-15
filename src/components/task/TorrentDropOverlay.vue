@@ -36,8 +36,7 @@ const { t } = useI18n()
   display: flex;
   padding: 12px;
   pointer-events: none;
-  background: color-mix(in srgb, var(--main-bg) 82%, transparent);
-  backdrop-filter: blur(2px);
+  background: color-mix(in srgb, var(--main-bg) 88%, transparent);
 }
 
 .torrent-drop-zone {

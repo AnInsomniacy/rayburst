@@ -59,6 +59,7 @@
     "https-proxy",
     "https-proxy-passwd",
     "https-proxy-user",
+    "incomplete-suffix",
     "index-out",
     "listen-port",
     "lowest-speed-limit",

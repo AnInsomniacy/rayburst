@@ -2,11 +2,13 @@
 //!
 //! Each tick reads the global statistics and every task queue with one
 //! multicall and feeds the native surfaces (tray, Dock, taskbar, keep-awake),
-//! the lifecycle monitor and, while a window exists, the frontend. Engine
+//! the floating window, the lifecycle monitor and, while a window exists, the
+//! frontend. Engine
 //! notifications and task actions request an immediate tick, so the interval
 //! only bounds how stale speeds and progress may get.
 
 use super::config::RuntimeConfigState;
+use super::float_window::FloatWindow;
 use super::monitor::Monitor;
 use super::stat::{StatEffects, StatUpdate};
 use crate::aria2::types::{Aria2GlobalStat, Aria2Task};
@@ -17,7 +19,7 @@ use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::{watch, Notify};
 
-/// Tick interval while the window shows live speeds and progress.
+/// Tick interval while a window shows live speeds and progress.
 const VISIBLE_INTERVAL: Duration = Duration::from_millis(500);
 /// Tick interval otherwise: the tray and taskbar need no more, and engine
 /// notifications still wake the pump at once.
@@ -145,14 +147,23 @@ impl Pump {
         mut stopped: watch::Receiver<bool>,
     ) {
         let mut effects = StatEffects::default();
+        let float = FloatWindow::default();
         let mut monitor: Option<Monitor> = None;
         loop {
             let window = app.get_webview_window("main");
             let visible = window
                 .as_ref()
-                .is_some_and(|window| window.is_visible().unwrap_or(false));
+                .is_some_and(|window| window.is_visible().unwrap_or(false))
+                || super::float_window::exists(&app);
             let interval = match self
-                .tick(&app, &aria2, window.is_some(), &mut effects, &mut monitor)
+                .tick(
+                    &app,
+                    &aria2,
+                    window.is_some(),
+                    &mut effects,
+                    &float,
+                    &mut monitor,
+                )
                 .await
             {
                 Ok(()) if visible => VISIBLE_INTERVAL,
@@ -181,6 +192,7 @@ impl Pump {
         aria2: &TaskService,
         window: bool,
         effects: &mut StatEffects,
+        float: &FloatWindow,
         monitor: &mut Option<Monitor>,
     ) -> Result<(), AppError> {
         // Stopped tasks matter only to the task list.
@@ -203,6 +215,7 @@ impl Pump {
             .filter(|task| matches!(task.status.as_str(), "active" | "waiting" | "paused"))
             .cloned()
             .collect();
+        float.sync(app, config.show_float_window, &stat, &queued);
         match monitor {
             Some(monitor) => monitor.observe(app, aria2, &queued).await,
             None => *monitor = Some(Monitor::new(&queued)),

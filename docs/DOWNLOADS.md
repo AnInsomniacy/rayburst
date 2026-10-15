@@ -25,8 +25,13 @@ browser HTTP submissions run in Rust without requiring a mounted WebView.
 The editable name is one basename: native submission rejects paths, separators,
 reserved names and control characters. The save directory remains a separate input.
 The dialog displays browser metadata or the URL name without making it an explicit
-override. Its lookup button requests HTTP response headers with cancellation and a
-10-second timeout, then calls the engine's `aria2.resolveFilename`; it creates no task.
+override. For HTTP downloads whose size the browser did not report, the dialog asks
+the engine's `aria2.probe` for the first byte, as the download would request it with
+its site rules and saved credentials, and shows the size and the name the engine
+would give; it waits for typing to settle, reads four at a time, at most the first
+50, and cancels reads the user moved past. Pages and stream playlists show no size.
+The lookup button reads the single download again and takes its name over the
+browser's; no read creates a task.
 
 Completed, inactive single files can be renamed from task details. Native exclusive
 rename preserves existing destination files. A SQLite intent records filesystem work
@@ -91,13 +96,15 @@ fallback protocol.
 Optional fields are `finalUrl`, `referer`, `cookie`, `userAgent`, `filename`,
 `filenameSource` (`browser` or `suggested`, default `suggested`), `requestHeaders`
 (`{name,value}` pairs) and, for downloads the browser holds, `verify` with the MIME
-type and size the browser received. Supported inputs are HTTP(S), SFTP, magnet, ED2K
-and Thunder.
+type and size the browser received, and `ack` (`final`, the default, or `early`).
+Supported inputs are HTTP(S), SFTP, magnet, ED2K and Thunder.
 
 The browser keeps holding its download until the answer, and only the answer
 decides who downloads it:
 
 - `{ "action": "added", "gid": … }`: the engine owns the download.
+- `{ "action": "accepted" }` (only with `ack: "early"`): the add dialog shows the
+  download and owns it from now on; the browser drops its copy.
 - `{ "action": "cancelled" }`: the user declined it in the add dialog.
 - `{ "action": "fallback", "reason": … }`: the browser continues. Reasons are
   `unreachable` (no response), `rejected` (HTTP error), `web-page` (the engine got
@@ -105,10 +112,15 @@ decides who downloads it:
   and `unconfirmed` (the dialog was not answered within 120 s).
 
 With `verify`, the engine requests the first byte of the URL with the browser's
-request context (`aria2.probe`) before anything is created. With the confirm
-behavior, or for `.torrent` links, the request stays open while the add dialog shows
-the download; closing the dialog answers `cancelled`, and a request that times out
-or whose extension disconnects is withdrawn from the dialog. The dialog shows the
+request context (`aria2.probe`) before anything is created; a check that takes
+longer than 8 s answers `unreachable`. Chromium names a held download after 15 s
+whatever the extension does, so the answer has to come before. With the confirm
+behavior, or for `.torrent` links, `ack: "early"` is answered `accepted` once the
+add dialog shows the download: the dialog has no time limit, several downloads can
+gather in it, and closing it discards them, as in other download managers. With
+`ack: "final"` the request stays open while the dialog shows the download; closing
+the dialog answers `cancelled`, and a request that times out or whose extension
+disconnects is withdrawn from the dialog. The dialog shows the
 size the engine's check (or else the browser) reported, with the free space of the
 chosen folder, and warns when it does not fit. Nothing is persisted:
 an error or a lost answer leaves the download to the browser, so no download is
@@ -193,11 +205,23 @@ An unfinished task's source can be replaced from task details. The desktop swaps
 the URIs of single-file HTTP, FTP or SFTP tasks through `changeUri`, keeping the
 downloaded data. A failed task is resubmitted with the new source instead.
 
-Downloads handed over while the main window is hidden or minimized open the
-standalone add-task window (`services/add_window.rs`) once the engine runs. It
-holds the same dialog, receives later handoffs while open, and closes after
-submission without raising the main window. Auto-submitted downloads use it
-invisibly and close it when the engine accepted them.
+Every new download is confirmed in the standalone add-task window
+(`services/add_window.rs`); the main window has no add dialog and, while the engine
+starts, forwards what it receives once the engine runs. The add window is
+built hidden as soon as the main window is up and lives until the app exits,
+also in the lightweight tray; closing it only hides it, so it appears without
+loading a webview. It receives later
+handoffs while open and is put away after submission without raising the main
+window. Auto-submitted downloads use it invisibly and put it away when the engine
+accepted them. If it fails to open, its inputs wait for the next request.
+
+The floating window (`services/float_window.rs`, preference `showFloatWindow`)
+keeps the overall speed and progress on top of other windows. The pump opens and
+closes it with the preference and sends it each snapshot's queue. The orb shows
+the Rayburst mark at rest and the speed ringed by the progress while
+downloading; it can be dragged anywhere. A click opens a panel beside it, a
+window of its own built hidden with the orb, to pause or resume each download;
+dragging the panel's header takes the orb along.
 
 Turning BitTorrent off (`bittorrentEnabled`) makes `submit` refuse magnet URIs
 and torrents from every entry point. Independently, the engine runs with
@@ -298,11 +322,12 @@ The native messaging launcher starts the paired executable outside the browser's
 Windows job with closed standard streams. macOS uses LaunchServices; Linux keeps a
 separate process group. Development builds do not register installed-app identities.
 
-Windows are opaque on every platform; the system draws their corners and shadows.
-Linux uses a native StatusNotifierItem tray with direct activation, speed tooltips
-and watcher reconnection. With the NVIDIA driver, Linux disables the WebKitGTK
-DMA-BUF renderer (tauri#13493), and NVIDIA Wayland sessions disable driver explicit
-sync for WebKit #324551, unless the environment already configures them. Other rendering
+Windows are transparent and the page draws what it shows; Windows 11 and macOS add
+the main window's corners and shadow. Linux uses a native StatusNotifierItem tray with
+direct activation, speed tooltips and watcher reconnection. With the NVIDIA driver,
+Linux disables the WebKitGTK DMA-BUF renderer (tauri#13493), and NVIDIA Wayland
+sessions disable driver explicit sync for WebKit #324551, unless the environment
+already configures them. Other rendering
 settings retain WebKitGTK defaults. `softwareRendering` explicitly enables a diagnostic
 fallback; externally supplied rendering environment variables remain authoritative.
 Linux diagnostics report the runtime WebKitGTK version, the existing WebView's native

@@ -3,9 +3,10 @@
 //! Every new download is confirmed in one small, movable window, the way
 //! download managers confirm a browser click: links, torrent files, browser
 //! handoffs and manual entry alike. It opens over the main window while that is
-//! in view, and on the screen under the pointer otherwise. The main window only
-//! shows its own add dialog when this window cannot be created. It is built for
-//! each download and destroyed when it closes.
+//! in view, and on the screen under the pointer otherwise.
+//!
+//! It is built, hidden, once the app has started and lives until the app exits:
+//! closing it only hides it, so a download never waits for a webview to load.
 
 use std::sync::Mutex;
 use std::time::Duration;
@@ -20,10 +21,11 @@ use crate::error::AppError;
 
 pub const LABEL: &str = "add";
 const INPUT_EVENT: &str = "add-window:inputs";
-const FALLBACK_EVENT: &str = "add-window:fallback";
-/// How long a new window may take to load before its inputs go to the main
-/// window instead.
+/// How long a new window may take to load before it is given up.
 const READY_TIMEOUT: Duration = Duration::from_secs(10);
+/// Transparent margin around the panel the window draws, which holds the
+/// panel's shadow. Matches `PANEL_INSET` in `AddWindow.vue`.
+const PANEL_INSET: f64 = 16.0;
 
 /// Inputs for the add window: structured browser handoffs, plain links and
 /// torrent paths, batch items prepared by the main window, and a request for
@@ -63,14 +65,17 @@ struct Inner {
     opening: bool,
     /// The frontend listens for inputs.
     ready: bool,
-    /// The window opened while the main window was destroyed, so the process
-    /// lives on in the tray once it closes.
+    /// The process lives in the tray without the main window, so losing the
+    /// add window as the last window must not end it.
     resident: bool,
+    /// The main window is being released into the tray (lightweight mode)
+    /// rather than lost.
+    releasing_main: bool,
     /// Counts openings, so a readiness check only judges its own window.
     generation: u64,
-    /// The window could not be created or never loaded; the main window shows
-    /// its own dialog for the rest of the session.
-    broken: bool,
+    /// The last window could not be created or never loaded; its inputs wait
+    /// for the next request instead of reopening it at once.
+    stalled: bool,
 }
 
 #[derive(Default)]
@@ -88,17 +93,26 @@ impl AddWindowState {
 /// During startup, before the engine it would submit to is running, the main
 /// window receives them and forwards them once it is ready.
 pub fn wanted(app: &AppHandle) -> bool {
-    let Some(state) = app.try_state::<AddWindowState>() else {
-        return false;
-    };
-    if state.lock().broken {
-        return false;
-    }
     app.get_webview_window(LABEL)
         .is_some_and(|window| window.is_visible().unwrap_or(false))
         || app
             .try_state::<crate::engine::supervisor::EngineSupervisor>()
             .is_some_and(|supervisor| supervisor.is_running())
+}
+
+/// Builds the window ahead of its first use, hidden, so it appears at once.
+pub fn prepare(app: &AppHandle) {
+    let Some(state) = app.try_state::<AddWindowState>() else {
+        return;
+    };
+    let mut inner = state.lock();
+    if inner.stalled || inner.opening || app.get_webview_window(LABEL).is_some() {
+        return;
+    }
+    inner.opening = true;
+    inner.resident |= app.get_webview_window("main").is_none();
+    drop(inner);
+    open(app, "prepare");
 }
 
 /// Shows the window, placed for this download, once its content is sized.
@@ -113,19 +127,6 @@ pub fn present(app: &AppHandle) -> Result<(), AppError> {
     window.show().map_err(failed)?;
     let _ = window.unminimize();
     window.set_focus().map_err(failed)?;
-    Ok(())
-}
-
-/// Takes inputs the main window forwards; fails when the window cannot be
-/// shown, so the main window keeps them.
-pub fn forward(app: &AppHandle, batch: AddWindowInputs) -> Result<(), AppError> {
-    let broken = app
-        .try_state::<AddWindowState>()
-        .is_none_or(|state| state.lock().broken);
-    if broken {
-        return Err(AppError::Conflict("The add window is unavailable".into()));
-    }
-    route(app, batch, "main-window");
     Ok(())
 }
 
@@ -159,6 +160,7 @@ pub fn route(app: &AppHandle, batch: AddWindowInputs, source: &'static str) {
         }
     }
     inner.queue.append(batch);
+    inner.stalled = false;
     if !inner.opening && app.get_webview_window(LABEL).is_none() {
         inner.opening = true;
         inner.resident = app.get_webview_window("main").is_none();
@@ -198,8 +200,69 @@ pub fn detach(state: &AddWindowState) -> AddWindowInputs {
     queue
 }
 
+/// Hides the window after a download was confirmed or dismissed, and returns
+/// inputs that arrived while it was closing. It is destroyed instead when it
+/// cannot hide, or when the main window was lost while it was open, so it never
+/// outlives an app that would otherwise end.
+pub fn park(app: &AppHandle) -> AddWindowInputs {
+    let (Some(window), Some(state)) = (
+        app.get_webview_window(LABEL),
+        app.try_state::<AddWindowState>(),
+    ) else {
+        return AddWindowInputs::default();
+    };
+    let orphaned = !state.lock().resident && app.get_webview_window("main").is_none();
+    if !orphaned {
+        match window.hide() {
+            Ok(()) => {
+                let mut inner = state.lock();
+                inner.ready = true;
+                return std::mem::take(&mut inner.queue);
+            }
+            Err(error) => log::warn!("add_window:hide-failed error={error}"),
+        }
+    }
+    if let Err(error) = window.destroy() {
+        log::warn!("add_window:destroy-failed error={error}");
+    }
+    AddWindowInputs::default()
+}
+
+/// Marks the coming destruction of the main window as a release into the tray.
+pub fn main_window_releasing(app: &AppHandle) {
+    if let Some(state) = app.try_state::<AddWindowState>() {
+        state.lock().releasing_main = true;
+    }
+}
+
+/// Released into the tray, the process lives on and keeps the add window ready.
+/// Lost otherwise (a compositor closing it outright), the hidden add window goes
+/// too, so the app ends or stays exactly as it would without it.
+pub fn main_window_destroyed(app: &AppHandle) {
+    let Some(state) = app.try_state::<AddWindowState>() else {
+        return;
+    };
+    let mut inner = state.lock();
+    if std::mem::take(&mut inner.releasing_main) {
+        inner.resident = true;
+        drop(inner);
+        prepare(app);
+        return;
+    }
+    drop(inner);
+    let Some(window) = app.get_webview_window(LABEL) else {
+        return;
+    };
+    if window.is_visible().unwrap_or(false) {
+        return;
+    }
+    if let Err(error) = window.destroy() {
+        log::warn!("add_window:destroy-failed error={error}");
+    }
+}
+
 /// Clears the window's state once it is gone, and reopens it for inputs that
-/// arrived while it was closing.
+/// arrived while it was closing; not for those of a window that failed.
 pub fn destroyed(app: &AppHandle) {
     let Some(state) = app.try_state::<AddWindowState>() else {
         return;
@@ -208,7 +271,7 @@ pub fn destroyed(app: &AppHandle) {
     inner.ready = false;
     inner.opening = false;
     inner.resident = inner.resident && app.get_webview_window("main").is_none();
-    if !inner.queue.is_empty() {
+    if !inner.queue.is_empty() && !inner.stalled {
         inner.opening = true;
         drop(inner);
         open(app, "reopen");
@@ -244,32 +307,50 @@ fn open(app: &AppHandle, source: &'static str) {
             .and_then(|config| WebviewWindowBuilder::from_config(&app, &config))
             .and_then(WebviewWindowBuilder::build);
         match built {
-            Ok(_) => {
+            Ok(window) => {
+                without_system_transitions(&window);
                 log::info!("add_window:opened source={source}");
                 tauri::async_runtime::spawn(expect_ready(app, generation, source));
             }
             Err(error) => {
                 log::error!("add_window:open-failed source={source} error={error}");
-                if let Some(queue) = app.try_state::<AddWindowState>().map(|state| {
+                if let Some(state) = app.try_state::<AddWindowState>() {
                     let mut inner = state.lock();
                     inner.opening = false;
-                    inner.broken = true;
-                    std::mem::take(&mut inner.queue)
-                }) {
-                    // Fall back to the main window rather than drop the downloads.
-                    hand_to_main_window(&app, queue);
+                    inner.stalled = true;
                 }
             }
         }
     });
 }
 
-/// The add window starts from the main window's configuration. WebView2 refuses
-/// a second webview whose environment (browser arguments, proxy, extensions)
-/// differs from the first one in the same data directory, so both windows must
-/// share those settings. It keeps the main window's title bar style, corners
-/// and shadow too, which the system draws.
+/// The window is transparent and its page draws the panel, with rounded
+/// corners and a shadow, so the panel can animate in and out and grow and
+/// shrink smoothly inside a window that is resized only once per change. The
+/// native shadow would outline the whole transparent window instead.
 fn window_config(app: &AppHandle) -> tauri::Result<tauri::utils::config::WindowConfig> {
+    let mut config = secondary_window_config(app, LABEL)?;
+    config.width = 600.0 + 2.0 * PANEL_INSET;
+    config.height = 560.0;
+    config.center = true;
+    config.transparent = true;
+    config.shadow = false;
+    // macOS: the traffic lights sit in the panel's title bar, not the margin.
+    config.traffic_light_position = Some(tauri::utils::config::LogicalPosition {
+        x: PANEL_INSET + 14.0,
+        y: PANEL_INSET + 10.0,
+    });
+    Ok(config)
+}
+
+/// Secondary windows start from the main window's configuration. WebView2
+/// refuses a second webview whose environment (browser arguments, proxy,
+/// extensions) differs from the first one in the same data directory, so all
+/// windows must share those settings.
+pub(crate) fn secondary_window_config(
+    app: &AppHandle,
+    label: &str,
+) -> tauri::Result<tauri::utils::config::WindowConfig> {
     let mut config = app
         .config()
         .app
@@ -278,20 +359,47 @@ fn window_config(app: &AppHandle) -> tauri::Result<tauri::utils::config::WindowC
         .find(|config| config.label == "main")
         .cloned()
         .ok_or(tauri::Error::WindowNotFound)?;
-    config.label = LABEL.to_owned();
+    config.label = label.to_owned();
     config.url = WebviewUrl::default();
     config.title = "Rayburst".to_owned();
-    config.width = 600.0;
-    config.height = 560.0;
     config.min_width = None;
     config.min_height = None;
     config.x = None;
     config.y = None;
-    config.center = true;
     config.visible = false;
     config.resizable = false;
     config.maximizable = false;
     Ok(config)
+}
+
+/// Windows fades a window in and out as it is shown and hidden. The page
+/// animates its own content instead, which that fade would cover up.
+pub(crate) fn without_system_transitions(window: &WebviewWindow) {
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::Graphics::Dwm::{
+            DwmSetWindowAttribute, DWMWA_TRANSITIONS_FORCEDISABLED,
+        };
+        let Ok(hwnd) = window.hwnd() else {
+            return;
+        };
+        let disabled: i32 = 1;
+        // SAFETY: the handle belongs to a live window, and the attribute
+        // reads a BOOL from a pointer valid for the length passed.
+        let result = unsafe {
+            DwmSetWindowAttribute(
+                hwnd.0 as _,
+                DWMWA_TRANSITIONS_FORCEDISABLED as _,
+                std::ptr::from_ref(&disabled).cast(),
+                std::mem::size_of::<i32>() as u32,
+            )
+        };
+        if result != 0 {
+            log::debug!("window:transitions-not-disabled hresult={result:#x}");
+        }
+    }
+    #[cfg(not(windows))]
+    let _ = window;
 }
 
 /// Centers the window over the main window while that is in view, and on the
@@ -361,22 +469,16 @@ fn clamped(
 }
 
 /// A built window may still fail to load its webview without reporting an
-/// error. Its inputs then go to the main window instead of waiting there.
+/// error. It is then destroyed, and its inputs wait for the next request.
 async fn expect_ready(app: AppHandle, generation: u64, source: &'static str) {
     tokio::time::sleep(READY_TIMEOUT).await;
-    let Some(queue) = app
+    let abandoned = app
         .try_state::<AddWindowState>()
-        .and_then(|state| abandon(&state, generation))
-    else {
+        .is_some_and(|state| abandon(&state, generation));
+    if !abandoned {
         return;
-    };
-    log::error!(
-        "add_window:not-ready source={source} inputs={} links={} items={}",
-        queue.inputs.len(),
-        queue.links.len(),
-        queue.items.len()
-    );
-    hand_to_main_window(&app, queue);
+    }
+    log::error!("add_window:not-ready source={source}");
     if let Some(window) = app.get_webview_window(LABEL) {
         if let Err(error) = window.destroy() {
             log::warn!("add_window:destroy-failed error={error}");
@@ -384,41 +486,15 @@ async fn expect_ready(app: AppHandle, generation: u64, source: &'static str) {
     }
 }
 
-/// Gives up on the window of this opening if its frontend never attached, and
-/// returns the inputs it was holding.
-fn abandon(state: &AddWindowState, generation: u64) -> Option<AddWindowInputs> {
+/// Gives up on the window of this opening if its frontend never attached.
+fn abandon(state: &AddWindowState, generation: u64) -> bool {
     let mut inner = state.lock();
     if inner.generation != generation || !inner.opening || inner.ready {
-        return None;
+        return false;
     }
     inner.opening = false;
-    inner.broken = true;
-    Some(std::mem::take(&mut inner.queue))
-}
-
-fn hand_to_main_window(app: &AppHandle, queue: AddWindowInputs) {
-    if !queue.inputs.is_empty() {
-        super::external_input::route_to_main_window(
-            app,
-            queue.inputs,
-            "add-window-fallback",
-            false,
-        );
-    }
-    if !queue.links.is_empty() {
-        super::deep_link::route_to_main_window(app, queue.links, "add-window-fallback", false);
-    }
-    if !queue.items.is_empty() || queue.manual {
-        let rest = AddWindowInputs {
-            items: queue.items,
-            manual: queue.manual,
-            ..AddWindowInputs::default()
-        };
-        crate::tray::request_main_window(app, "add-window-fallback", true);
-        if let Err(error) = app.emit_to("main", FALLBACK_EVENT, &rest) {
-            log::error!("add_window:fallback-failed error={error}");
-        }
-    }
+    inner.stalled = true;
+    true
 }
 
 #[cfg(test)]
@@ -459,7 +535,7 @@ mod tests {
     }
 
     #[test]
-    fn a_window_that_never_loads_gives_up_its_own_inputs_only() {
+    fn a_window_that_never_loads_keeps_its_inputs_for_the_next_request() {
         let state = AddWindowState::default();
         {
             let mut inner = state.lock();
@@ -467,14 +543,14 @@ mod tests {
             inner.opening = true;
             inner.queue.append(links(&["magnet:?xt=d"]));
         }
-        assert!(abandon(&state, 1).is_none());
-        assert_eq!(abandon(&state, 2), Some(links(&["magnet:?xt=d"])));
+        assert!(!abandon(&state, 1));
+        assert!(abandon(&state, 2));
         assert!(!state.lock().opening);
-        assert!(state.lock().broken);
+        assert!(state.lock().stalled);
+        assert_eq!(attach(&state), links(&["magnet:?xt=d"]));
 
         state.lock().opening = true;
-        attach(&state);
-        assert!(abandon(&state, 2).is_none());
+        assert!(!abandon(&state, 2));
     }
 
     #[test]

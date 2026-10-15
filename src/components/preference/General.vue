@@ -600,6 +600,12 @@ onMounted(async () => {
         </NFormItem>
         <NFormItem>
           <template #label>
+            <PreferenceHintLabel :label="t('preferences.float-window')" :hint="t('preferences.float-window-hint')" />
+          </template>
+          <NSwitch v-model:value="form.showFloatWindow" />
+        </NFormItem>
+        <NFormItem>
+          <template #label>
             <PreferenceHintLabel
               :label="t('preferences.lightweight-mode')"
               :hint="t('preferences.lightweight-mode-hint')"

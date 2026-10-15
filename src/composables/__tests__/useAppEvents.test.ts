@@ -81,7 +81,6 @@ function createDeps() {
     handleExternalInputs: vi.fn(),
     setExternalInputErrorHandler: vi.fn(),
     setExternalInputStartHandler: vi.fn(),
-    addTaskVisible: false,
     pendingBatch: [] as unknown[],
     pendingMagnetGids: [] as string[],
     externalInputSubmitting: false,

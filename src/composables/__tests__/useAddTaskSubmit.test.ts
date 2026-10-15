@@ -24,11 +24,56 @@ vi.mock('@/api/aria2', () => ({
 import {
   buildEngineOptions,
   classifySubmitError,
+  downloadPreviewRequests,
   submitBatchItems,
   submitManualUris,
   type AddTaskForm,
 } from '../useAddTaskSubmit'
 import type { BatchItem, Aria2EngineOptions } from '@shared/types'
+
+// ── downloadPreviewRequests ─────────────────────────────────────────
+
+describe('downloadPreviewRequests', () => {
+  const form: AddTaskForm = {
+    uris: '',
+    out: 'renamed.zip',
+    dir: '/downloads',
+    streamMaxConnections: 16,
+    userAgent: 'Manual UA',
+    authorization: '',
+    referer: '',
+    cookie: '',
+    httpAuthUsername: '',
+    httpAuthPassword: '',
+    saveHttpAuth: true,
+    proxyMode: 'direct',
+    customProxy: '',
+    requestHeaders: [],
+    speedLimit: '1M',
+    checksum: 'sha-256=' + 'a'.repeat(64),
+  }
+
+  it('asks each HTTP download the way it will be requested, without what only shapes the file', () => {
+    const requests = downloadPreviewRequests({
+      ...form,
+      uris: [
+        'https://example.test/a.zip',
+        '  header=X-Token: 1',
+        'magnet:?xt=urn:btih:' + 'b'.repeat(40),
+        'ftp://example.test/c.zip',
+        'https://example.test/b.zip',
+      ].join('\n'),
+      uriRequestContexts: { 'https://example.test/b.zip': { cookie: 'session=1', filename: 'b.zip' } },
+    })
+    expect(requests.map(({ uri }) => uri)).toEqual(['https://example.test/a.zip', 'https://example.test/b.zip'])
+    expect(requests[0].options).toMatchObject({ 'user-agent': 'Manual UA', header: ['X-Token: 1'], 'all-proxy': '' })
+    expect(requests[1].options.header).toEqual(['Cookie: session=1'])
+    for (const { options } of requests) {
+      for (const key of ['dir', 'out', 'split', 'max-download-limit', 'checksum', 'filename-hint', 'media'])
+        expect(options).not.toHaveProperty(key)
+    }
+  })
+})
 
 // ── buildEngineOptions ──────────────────────────────────────────────
 

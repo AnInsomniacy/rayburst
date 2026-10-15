@@ -200,6 +200,19 @@ pub async fn aria2_get_bt_trackers(
     serde_json::to_value(trackers).map_err(|e| AppError::Aria2(format!("serialize trackers: {e}")))
 }
 
+/// Moves an unfinished download to another directory (#696).
+#[tauri::command]
+pub async fn aria2_move_download(
+    state: State<'_, TaskServiceState>,
+    gid: String,
+    dir: String,
+) -> Result<String, AppError> {
+    if !std::path::Path::new(&dir).is_absolute() {
+        return Err(AppError::InvalidInput("Choose a folder to move to".into()));
+    }
+    state.0.move_download(&gid, &dir).await
+}
+
 #[tauri::command]
 pub async fn aria2_force_bt_recheck(
     state: State<'_, TaskServiceState>,
@@ -620,7 +633,7 @@ async fn delete_task(
     protected_roots: &HashSet<PathBuf>,
 ) -> Result<(), AppError> {
     use crate::services::tasks::files::{
-        content_paths, delete_content, history_task, path_identity,
+        content_paths, delete_content, history_task, path_identity, with_unfinished_copies,
     };
     let _mutation = client.mutation.lock().await;
     log::info!("aria2:delete gid={gid}");
@@ -638,7 +651,7 @@ async fn delete_task(
         });
     let paths = task
         .as_ref()
-        .map(|task| content_paths(&task.files, false))
+        .map(|task| with_unfinished_copies(content_paths(&task.files, false)))
         .unwrap_or_default();
     let root = task
         .as_ref()
@@ -1132,6 +1145,30 @@ pub async fn aria2_batch_finish_media(
 #[tauri::command]
 pub fn cancel_download_request(app: AppHandle, id: String) {
     crate::services::downloads::cancel(&app, &id);
+}
+
+/// The connection cap a site rule sets for these URIs, with its host pattern.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SiteConnectionCap {
+    max_connection_per_server: u32,
+    host_pattern: String,
+}
+
+#[tauri::command]
+pub fn preview_site_rules(
+    app: AppHandle,
+    uris: Vec<String>,
+) -> Result<Option<SiteConnectionCap>, AppError> {
+    let prefs = crate::services::downloads::preferences::load(&app)?;
+    Ok(
+        crate::services::downloads::preferences::site_connection_cap(&prefs, &uris).map(
+            |(max_connection_per_server, host_pattern)| SiteConnectionCap {
+                max_connection_per_server,
+                host_pattern,
+            },
+        ),
+    )
 }
 
 #[tauri::command]

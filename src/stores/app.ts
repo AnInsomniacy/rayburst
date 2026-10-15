@@ -75,8 +75,8 @@ export const useAppStore = defineStore('app', () => {
   let externalInputSubmitCount = 0
   let externalInputErrorHandler: ((error: unknown) => void) | null = null
   let externalInputStartHandler: ((taskNames: string[]) => void) | null = null
-  /** Set in the main window: new downloads open the add window instead of the in-app dialog. */
-  let addTaskForwarder: ((batch: AddTaskForward) => Promise<boolean>) | null = null
+  /** Set in the main window, which has no add dialog: new downloads go to the add window. */
+  let addTaskForwarder: ((batch: AddTaskForward) => void) | null = null
 
   function clearPendingExternalMetadata() {
     pendingReferer.value = ''
@@ -106,18 +106,8 @@ export const useAppStore = defineStore('app', () => {
     externalInputStartHandler = handler
   }
 
-  function setAddTaskForwarder(forwarder: ((batch: AddTaskForward) => Promise<boolean>) | null) {
+  function setAddTaskForwarder(forwarder: ((batch: AddTaskForward) => void) | null) {
     addTaskForwarder = forwarder
-  }
-
-  /** Hands a batch to the add window; the in-app dialog takes it when that window is unavailable. */
-  function forwardOrShow(batch: AddTaskForward, local: () => void): boolean {
-    const forwarder = addTaskForwarder
-    if (!forwarder) return false
-    void forwarder(batch).then((forwarded) => {
-      if (!forwarded) local()
-    })
-    return true
   }
 
   /**
@@ -128,7 +118,10 @@ export const useAppStore = defineStore('app', () => {
    */
   function enqueueBatch(items: BatchItem[]): number {
     if (items.length === 0) return 0
-    if (forwardOrShow({ items }, () => enqueueLocal(items))) return 0
+    if (addTaskForwarder) {
+      addTaskForwarder({ items })
+      return 0
+    }
     return enqueueLocal(items)
   }
 
@@ -152,11 +145,10 @@ export const useAppStore = defineStore('app', () => {
 
   /** Opens an empty add-task dialog for manual URI entry. */
   function showAddTaskDialog() {
-    if (forwardOrShow({ manual: true }, showLocalAddTaskDialog)) return
-    showLocalAddTaskDialog()
-  }
-
-  function showLocalAddTaskDialog() {
+    if (addTaskForwarder) {
+      addTaskForwarder({ manual: true })
+      return
+    }
     clearPendingExternalMetadata()
     addTaskVisible.value = true
   }
@@ -437,7 +429,6 @@ export const useAppStore = defineStore('app', () => {
     enqueueBatch,
     enqueueForwardedItems,
     showAddTaskDialog,
-    showLocalAddTaskDialog,
     setAddTaskForwarder,
     hideAddTaskDialog,
     updateAddTaskOptions,

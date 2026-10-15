@@ -35,7 +35,6 @@ import WindowControls from '@/components/layout/WindowControls.vue'
 import EngineRecoveryDialog from '@/components/layout/EngineRecoveryDialog.vue'
 import AboutPanel from '@/components/about/AboutPanel.vue'
 import ExtensionPanel from '@/components/extension/ExtensionPanel.vue'
-import AddTask from '@/components/task/AddTask.vue'
 import TorrentDropOverlay from '@/components/task/TorrentDropOverlay.vue'
 import UpdateDialog from '@/components/preference/UpdateDialog.vue'
 import TaskSelectionHost from '@/components/task/TaskSelectionHost.vue'
@@ -217,14 +216,6 @@ async function showInFolderFromNotification(task: Aria2Task) {
     requestFileRecheck()
   }
 }
-
-const addTaskClosing = ref(false)
-watch(
-  () => appStore.addTaskVisible,
-  (visible, previous) => {
-    if (!visible && previous) addTaskClosing.value = true
-  },
-)
 
 const { setupListeners } = useAppEvents({
   t,
@@ -433,8 +424,8 @@ onMounted(async () => {
   // Platform is initialised by usePlatform() singleton — no per-component call needed.
 
   // Show the main window now that the frontend has mounted and the
-  // webview has renderable content.  This prevents an empty-frame flash
-  // on Windows where DWM renders a native shadow before WebView2
+  // webview has renderable content.  This prevents the transparent-frame
+  // flash on Windows where DWM renders a native shadow before WebView2
   // finishes initializing.  Follows Tauri official recommendation:
   // visible:false in config → show() from frontend when content is ready.
   //
@@ -491,6 +482,8 @@ onMounted(async () => {
         await appWindow.hide()
       }
     }
+    // Build the add window, hidden, now that this window is up, so no download waits for it.
+    invoke('add_window_prepare').catch((error: unknown) => logger.debug('MainLayout.addWindowPrepare', error))
   }
 
   await startSnapshotListener()
@@ -813,18 +806,10 @@ onUnmounted(() => {
     </footer>
     <AboutPanel :show="showAbout" @close="showAbout = false" />
     <ExtensionPanel :show="showExtensions" @close="showExtensions = false" />
-    <AddTask
-      :show="appStore.addTaskVisible"
-      @close="appStore.hideAddTaskDialog()"
-      @after-leave="addTaskClosing = false"
-      @submitted="showDownloadsAfterSubmit"
-    />
     <UpdateDialog ref="updateDialogRef" />
     <EngineRecoveryDialog />
     <TaskSelectionHost
       :blocked="
-        appStore.addTaskVisible ||
-        addTaskClosing ||
         taskStore.taskDetailVisible ||
         taskStore.taskDetailClosing ||
         showAbout ||

@@ -42,11 +42,21 @@ pub fn add_window_attach(
 
 /// The main window hands every new download to the add window.
 #[tauri::command]
-pub fn add_window_open(
-    app: tauri::AppHandle,
-    batch: crate::services::add_window::AddWindowInputs,
-) -> Result<(), AppError> {
-    crate::services::add_window::forward(&app, batch)
+pub fn add_window_open(app: tauri::AppHandle, batch: crate::services::add_window::AddWindowInputs) {
+    crate::services::add_window::route(&app, batch, "main-window");
+}
+
+/// Builds the add window, hidden, once the main window is up.
+#[tauri::command]
+pub fn add_window_prepare(app: tauri::AppHandle) {
+    crate::services::add_window::prepare(&app);
+}
+
+/// Hides the add window between downloads; returns inputs that arrived while
+/// it was closing.
+#[tauri::command]
+pub fn add_window_park(app: tauri::AppHandle) -> crate::services::add_window::AddWindowInputs {
+    crate::services::add_window::park(&app)
 }
 
 /// Shows the add window once its content is sized.

@@ -18,6 +18,7 @@ export interface GeneralForm {
   autoCheckUpdateInterval: number
   updateChannel: AppConfig['updateChannel']
   showProgressBar: boolean
+  showFloatWindow: boolean
   dockBadgeSpeed: boolean
   openAtLogin: boolean
   autoHideWindow: boolean
@@ -65,6 +66,7 @@ export function buildGeneralForm(config: AppConfig): GeneralForm {
     autoCheckUpdateInterval: config.autoCheckUpdateInterval,
     updateChannel: config.updateChannel,
     showProgressBar: config.showProgressBar,
+    showFloatWindow: config.showFloatWindow,
     dockBadgeSpeed: config.dockBadgeSpeed,
     openAtLogin: config.openAtLogin,
     autoHideWindow: config.autoHideWindow,

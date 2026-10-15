@@ -79,6 +79,43 @@ fn the_browser_keeps_downloads_the_engine_would_not_receive_identically() {
     );
 }
 
+#[test]
+fn a_preview_shows_only_the_size_the_download_would_write() {
+    assert_eq!(
+        previewed_size(&probe("206", "application/zip", Some("1000"))),
+        Some(1000)
+    );
+    assert_eq!(previewed_size(&probe("200", "", Some("0"))), Some(0));
+    assert_eq!(previewed_size(&probe("200", "", None)), None);
+    // Pages and stream playlists are not what the engine saves.
+    for kind in [
+        "text/html; charset=utf-8",
+        "application/vnd.apple.mpegurl",
+        "audio/x-mpegURL",
+        "application/dash+xml",
+    ] {
+        assert_eq!(
+            previewed_size(&probe("200", kind, Some("1000"))),
+            None,
+            "{kind}"
+        );
+    }
+}
+
+#[test]
+fn extensions_choose_when_the_dialog_answers() {
+    // Older extensions send no `ack` and wait for the user's decision.
+    assert_eq!(request(None, None).ack, Ack::Final);
+    let early: AddRequest =
+        serde_json::from_value(json!({"url":"https://example.test/file.zip","ack":"early"}))
+            .unwrap();
+    assert_eq!(early.ack, Ack::Early);
+    assert_eq!(
+        serde_json::to_value(AddResponse::accepted()).unwrap(),
+        json!({"action":"accepted"})
+    );
+}
+
 fn recorder() -> (Arc<std::sync::Mutex<Vec<String>>>, handoff::OnWithdraw) {
     let withdrawn = Arc::new(std::sync::Mutex::new(Vec::new()));
     let sink = withdrawn.clone();

@@ -19,7 +19,7 @@ body,
   font-variant: tabular-nums;
   font-size: var(--font-size-base);
   color: var(--m3-on-surface);
-  background: var(--main-bg);
+  background: transparent;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -100,6 +100,16 @@ pre,
   hyphens: none;
 }
 
+/* ── Page hidden: pause all infinite animations ────────────────────── */
+/* Prevents WebView2 from re-compositing layers each frame when the     */
+/* window is minimized or the user switches to another app.             */
+/* Toggled by the useVisibilityPause composable via Page Visibility API */
+.animations-paused *,
+.animations-paused *::before,
+.animations-paused *::after {
+  animation-play-state: paused !important;
+}
+
 /* WebView2 handles mouse, pen and touch through native non-client regions. */
 [data-tauri-drag-region] {
   app-region: drag;
@@ -107,4 +117,16 @@ pre,
 [data-tauri-drag-region='false'],
 [data-tauri-drag-region] :is(button, a, input, select, textarea, [role='button'], [tabindex]) {
   app-region: no-drag;
+}
+
+/* The floating orb and its panel: transparent around what they draw, sized
+ * to it, and never scrolled. */
+html.float-window-document,
+html.float-window-document body {
+  background: transparent;
+  overflow: clip;
+}
+html.float-window-document #app {
+  width: max-content;
+  height: auto;
 }

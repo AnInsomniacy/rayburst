@@ -57,7 +57,6 @@ interface AppEventsDeps {
     handleExternalInputs: (inputs: ExternalDownloadInput[]) => Promise<DeepLinkHandlingResult | void>
     setExternalInputErrorHandler?: (handler: ((error: unknown) => void) | null) => void
     setExternalInputStartHandler?: (handler: ((taskNames: string[]) => void) | null) => void
-    addTaskVisible: boolean
     pendingBatch: unknown[]
     externalInputSubmitting: boolean
   }
@@ -401,7 +400,6 @@ export function useAppEvents(deps: AppEventsDeps): AppEventsReturn {
       void (async () => {
         if (!preferenceStore.config.lightweightMode) return
         if (appStore.externalInputSubmitting) return
-        if (appStore.addTaskVisible) return
         if (appStore.pendingBatch.length > 0) return
         if (useTaskSelectionStore().pending.length > 0) return
         const mainWindow = getCurrentWindow()
