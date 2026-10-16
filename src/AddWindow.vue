@@ -290,6 +290,10 @@ onBeforeUnmount(() => {
     class="add-window"
     :class="[`add-window--${phase}`, { 'add-window--framed': !systemTitleBar }]"
     :style="{
+      // WebKitGTK lays out a hidden window at zero width, which wraps every
+      // line and measured the content far too tall (#731); a fixed width keeps
+      // measurements taken before the first showing true.
+      width: `${PANEL_WIDTH + 2 * inset}px`,
       padding: `${inset}px`,
       ...(cardMaxHeight ? { '--add-window-max-height': `${cardMaxHeight}px` } : {}),
     }"
