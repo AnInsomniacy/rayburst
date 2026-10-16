@@ -103,9 +103,12 @@
   --content-gutter: 24px;
 
   /* ── Typography ────────────────────────────────────────────────── */
+  /* Linux takes the desktop's font through system-ui. Fontconfig answers
+   * Helvetica with URW Nimbus Sans, whose ascent ends at the cap height, so
+   * text sat high in every button. Keep in sync with useColorScheme.ts. */
   --font-family:
     'Monospaced Number', 'Chinese Quote', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
   --font-family-mono: ui-monospace, 'SF Mono', 'Cascadia Code', SFMono-Regular, Menlo, Consolas, monospace;
   --font-size-2xs: 11px;
   --font-size-xs: 12px;

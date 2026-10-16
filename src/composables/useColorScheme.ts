@@ -116,7 +116,7 @@ export function buildNaiveTheme(tokens: AppColorTokens): GlobalThemeOverrides {
       dividerColor: tokens.outlineVariant,
       borderRadius: '6px',
       fontFamily:
-        '"Monospaced Number", "Chinese Quote", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif',
+        '"Monospaced Number", "Chinese Quote", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif',
     },
     Tooltip: {
       color: tokens.inverseSurface,
