@@ -336,6 +336,9 @@ fn window_config(app: &AppHandle) -> tauri::Result<tauri::utils::config::WindowC
     config.center = true;
     config.transparent = true;
     config.shadow = false;
+    // GTK ignores programmatic resizes of a window the user cannot resize
+    // (tao#545, tauri#6125), and this window follows its content (#731).
+    config.resizable = cfg!(target_os = "linux");
     // macOS: the traffic lights sit in the panel's title bar, not the margin.
     config.traffic_light_position = Some(tauri::utils::config::LogicalPosition {
         x: PANEL_INSET + 14.0,

@@ -89,7 +89,7 @@ function buildForm() {
   return buildGeneralForm(preferenceStore.config)
 }
 
-const { form, isDirty, handleSave, handleReset, patchSnapshot, resetSnapshot } = usePreferenceForm({
+const { form, isDirty, handleSave, handleReset, patchSnapshot, resetSnapshot, commitInstant } = usePreferenceForm({
   buildForm,
   transformForStore: transformGeneralForStore,
   afterSave: async (f, prevConfig) => {
@@ -444,12 +444,8 @@ onMounted(async () => {
             v-model:value="form.updateChannel"
             size="small"
             @update:value="
-              async (v: string) => {
-                const ok = await preferenceStore.updateAndSave({ updateChannel: v as UpdateChannel })
-                if (ok) {
-                  patchSnapshot({ updateChannel: v } as Partial<typeof form.value>)
-                }
-              }
+              (v: UpdateChannel) =>
+                commitInstant({ updateChannel: v }, () => preferenceStore.updateAndSave({ updateChannel: v }))
             "
           >
             <NRadioButton value="stable">{{ t('preferences.update-channel-stable') }}</NRadioButton>

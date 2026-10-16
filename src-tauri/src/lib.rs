@@ -637,6 +637,15 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_updater::Builder::new().build());
 
+    #[cfg(target_os = "linux")]
+    {
+        builder = builder.plugin(
+            tauri::plugin::Builder::new("rendering")
+                .on_webview_ready(|webview| gpu_guard::configure_webview(&webview))
+                .build(),
+        );
+    }
+
     #[cfg(desktop)]
     {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
@@ -782,6 +791,7 @@ pub fn run() {
             commands::aria2_select_bt_files,
             commands::aria2_defer_bt_selection,
             commands::aria2_get_files,
+            commands::aria2_get_redirect_target,
             commands::aria2_add_uri,
             commands::aria2_replace_uri,
             commands::tasks_find_duplicates,

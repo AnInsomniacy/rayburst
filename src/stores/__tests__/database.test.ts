@@ -25,4 +25,11 @@ describe('database UI state', () => {
     await db.reset()
     expect(db.phase).toBe('resetting')
   })
+  it('tells history from a newer release apart from a broken one', async () => {
+    vi.mocked(invoke).mockRejectedValueOnce({ NewerDatabase: 8 })
+    const db = useDatabaseStore()
+    await expect(db.init()).rejects.toEqual({ NewerDatabase: 8 })
+    expect(db.phase).toBe('failed')
+    expect(db.newer).toBe(true)
+  })
 })

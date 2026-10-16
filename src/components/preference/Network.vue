@@ -82,7 +82,7 @@ function buildForm() {
   return buildNetworkForm(preferenceStore.config)
 }
 
-const { form, isDirty, handleSave, handleReset, resetSnapshot, patchSnapshot } = usePreferenceForm({
+const { form, isDirty, handleSave, handleReset, resetSnapshot, commitInstant } = usePreferenceForm({
   buildForm,
   buildSystemConfig: buildNetworkSystemConfig,
   transformForStore: transformNetworkForStore,
@@ -127,23 +127,13 @@ async function handleUserAgentManagerSave(payload: {
   rules: typeof form.value.userAgentRules
   recentProfileIds: typeof form.value.recentUserAgentProfileIds
 }) {
-  form.value.userAgentProfiles = payload.profiles
-  form.value.userAgentRules = payload.rules
-  form.value.recentUserAgentProfileIds = payload.recentProfileIds
-  const saved = await preferenceStore.updateAndSave({
+  const patch = {
     userAgentProfiles: payload.profiles,
     userAgentRules: payload.rules,
     recentUserAgentProfileIds: payload.recentProfileIds,
-  })
-  if (!saved) {
-    message.error(t('preferences.save-fail-message'))
-    return
   }
-  patchSnapshot({
-    userAgentProfiles: payload.profiles,
-    userAgentRules: payload.rules,
-    recentUserAgentProfileIds: payload.recentProfileIds,
-  } as Partial<typeof form.value>)
+  const saved = await commitInstant(patch, () => preferenceStore.updateAndSave(patch))
+  if (!saved) message.error(t('preferences.save-fail-message'))
 }
 
 function handleProxySwitch(value: boolean) {

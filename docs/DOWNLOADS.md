@@ -144,7 +144,9 @@ History snapshots are unordered; the task store owns presentation sorting and re
 the snapshot during periodic live refreshes. Only explicit invalidation reloads history.
 Database browsing uses indexed default ordering with an ID tie-breaker for stable pages.
 The current database layout is retained when opening existing data; unsupported
-layouts fail explicitly. There is no legacy migration runner or automatic reset.
+layouts fail explicitly. Data from a newer release is kept for it, and the app asks
+for an update instead of offering a reset. There is no legacy migration runner or
+automatic reset.
 Only the user's explicit reset removes the database.
 
 Saved HTTP passwords remain plaintext local data as before and are never URL decoded.
@@ -332,7 +334,8 @@ the main window's corners and shadow. Linux uses a native StatusNotifierItem tra
 direct activation, speed tooltips and watcher reconnection. With the NVIDIA driver,
 Linux disables the WebKitGTK DMA-BUF renderer (tauri#13493), and NVIDIA Wayland
 sessions disable driver explicit sync for WebKit #324551, unless the environment
-already configures them. Other rendering
+already configures them. Every webview disables
+WebKitGTK's damage-based compositing, so frames repaint in full. Other rendering
 settings retain WebKitGTK defaults. `softwareRendering` explicitly enables a diagnostic
 fallback; externally supplied rendering environment variables remain authoritative.
 Linux diagnostics report the runtime WebKitGTK version, the existing WebView's native

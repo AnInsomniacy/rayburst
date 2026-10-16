@@ -83,7 +83,7 @@ function buildForm() {
   return buildDownloadsForm(preferenceStore.config, defaultDownloadDir.value)
 }
 
-const { form, isDirty, handleSave, handleReset, resetSnapshot, patchSnapshot } = usePreferenceForm({
+const { form, isDirty, handleSave, handleReset, resetSnapshot, commitInstant } = usePreferenceForm({
   buildForm,
   buildSystemConfig: buildDownloadsSystemConfig,
   transformForStore: transformDownloadsForStore,
@@ -211,13 +211,10 @@ const categorySummary = computed(() => {
 })
 const categoryBaseDir = computed(() => form.value.dir || defaultDownloadDir.value)
 async function handleCategoryManagerSave(categories: typeof form.value.fileCategories) {
-  form.value.fileCategories = categories
-  const saved = await preferenceStore.updateAndSave({ fileCategories: categories })
-  if (!saved) {
-    message.error(t('preferences.save-fail-message'))
-    return
-  }
-  patchSnapshot({ fileCategories: categories } as Partial<typeof form.value>)
+  const saved = await commitInstant({ fileCategories: categories }, () =>
+    preferenceStore.updateAndSave({ fileCategories: categories }),
+  )
+  if (!saved) message.error(t('preferences.save-fail-message'))
 }
 /** Argument placeholders, passed so translations show them verbatim. */
 const POST_DOWNLOAD_PLACEHOLDERS = { file: '{file}', dir: '{dir}', name: '{name}' }

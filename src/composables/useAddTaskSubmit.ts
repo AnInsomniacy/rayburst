@@ -89,6 +89,8 @@ interface ManualRegularEntry {
 export interface FileCategoryPolicy {
   enabled: boolean
   categories: FileCategory[]
+  /** The name the server gives a URI's file, which a redirect may hide from the URI (#730). */
+  nameOf?: (uri: string) => string | undefined
 }
 
 async function buildTorrentTaskOptions(
@@ -359,7 +361,10 @@ export async function submitManualUris(
       if (entry.uris.length > 1) {
         const atomicOptions = { ...entryOptions }
         if (fileCategory?.enabled) {
-          const candidate = getScalarOption(atomicOptions, 'out') || extractDecodedFilename(entry.uris[0])
+          const candidate =
+            getScalarOption(atomicOptions, 'out') ||
+            fileCategory.nameOf?.(entry.uris[0]) ||
+            extractDecodedFilename(entry.uris[0])
           atomicOptions.dir = await resolveDownloadDir(
             candidate || entry.uris[0],
             getScalarOption(atomicOptions, 'dir'),

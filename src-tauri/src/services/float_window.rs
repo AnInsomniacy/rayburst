@@ -10,6 +10,10 @@
 //! The orb never changes its size, and the panel is a window of its own, built
 //! hidden with the orb; neither has to move or resize the other to open, so
 //! nothing jumps.
+//!
+//! On Windows the orb steps aside while an application in fullscreen, a video
+//! or a game, fills its screen, and returns when that ends. macOS keeps windows
+//! on all desktops out of fullscreen spaces by itself.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -128,6 +132,8 @@ pub struct FloatWindow {
     shown_mode: Mutex<Option<Mode>>,
     /// When the last download stopped, in `downloading` mode.
     quiet_since: Mutex<Option<Instant>>,
+    /// The orb is hidden behind an application in fullscreen.
+    covered: Arc<AtomicBool>,
 }
 
 impl FloatWindow {
@@ -144,7 +150,10 @@ impl FloatWindow {
         drop(shown);
         let wanted = self.wanted(app, mode, tasks);
         match (wanted, app.get_webview_window(LABEL)) {
-            (true, Some(_)) if !self.leaving.load(Ordering::Acquire) => {
+            (true, Some(window)) if !self.leaving.load(Ordering::Acquire) => {
+                if self.cover(app, &window) {
+                    return;
+                }
                 let active: Vec<_> = tasks
                     .iter()
                     .filter(|task| task.status == "active")
@@ -161,7 +170,7 @@ impl FloatWindow {
                     }
                 }
             }
-            (true, None) => self.open(app),
+            (true, None) if !fullscreen_in_front(app, None) => self.open(app),
             (false, Some(window)) => self.leave(app, window),
             _ => {}
         }
@@ -174,6 +183,20 @@ impl FloatWindow {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         wants_orb(mode, busy, exists(app), &mut quiet, Instant::now())
+    }
+
+    /// Hides the orb while an application in fullscreen is in front of it and
+    /// brings it back without taking the focus; true while it is hidden.
+    fn cover(&self, app: &AppHandle, window: &WebviewWindow) -> bool {
+        let covered = fullscreen_in_front(app, Some(window));
+        if self.covered.swap(covered, Ordering::AcqRel) != covered {
+            if covered {
+                close_panel(app);
+            }
+            show_inactive(window, !covered);
+            log::info!("float_window:covered covered={covered}");
+        }
+        covered
     }
 
     fn open(&self, app: &AppHandle) {
@@ -216,6 +239,7 @@ impl FloatWindow {
         }
         let app = app.clone();
         let leaving = Arc::clone(&self.leaving);
+        let covered = Arc::clone(&self.covered);
         tauri::async_runtime::spawn(async move {
             tokio::time::sleep(LEAVE).await;
             RESIDENT.store(app.get_webview_window("main").is_none(), Ordering::Relaxed);
@@ -228,6 +252,7 @@ impl FloatWindow {
                 }
             }
             *panel() = Panel::default();
+            covered.store(false, Ordering::Release);
             leaving.store(false, Ordering::Release);
         });
     }
@@ -256,6 +281,120 @@ fn wants_orb(
         };
     }
     now.duration_since(*quiet.get_or_insert(now)) < LINGER
+}
+
+/// Shows or hides a window without activating it. Asynchronous, so the pump
+/// never waits on the thread that owns the window.
+fn show_inactive(window: &WebviewWindow, visible: bool) {
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::UI::WindowsAndMessaging::{
+            ShowWindowAsync, SW_HIDE, SW_SHOWNOACTIVATE,
+        };
+        if let Ok(hwnd) = window.hwnd() {
+            let command = if visible { SW_SHOWNOACTIVATE } else { SW_HIDE };
+            // SAFETY: the handle belongs to a live window; the call only posts.
+            unsafe { ShowWindowAsync(hwnd.0 as _, command) };
+        }
+    }
+    #[cfg(not(windows))]
+    let _ = if visible {
+        window.show()
+    } else {
+        window.hide()
+    };
+}
+
+/// Whether the foreground window fills `screen`, as a fullscreen one does; a
+/// maximized window leaves the taskbar free.
+#[cfg_attr(not(windows), allow(dead_code))]
+fn fills(window: Rect, screen: Rect) -> bool {
+    window.x <= screen.x
+        && window.y <= screen.y
+        && window.x + window.width >= screen.x + screen.width
+        && window.y + window.height >= screen.y + screen.height
+}
+
+/// Whether an application in fullscreen is in front of the orb's screen, or
+/// of any screen before the orb exists (#726). Windows reports that one is
+/// running; its window must also fill the screen, so a video in fullscreen on
+/// another screen leaves the orb in place.
+#[cfg(windows)]
+fn fullscreen_in_front(app: &AppHandle, orb: Option<&WebviewWindow>) -> bool {
+    use windows_sys::Win32::Foundation::RECT;
+    use windows_sys::Win32::UI::Shell::{
+        SHQueryUserNotificationState, QUNS_BUSY, QUNS_PRESENTATION_MODE,
+        QUNS_RUNNING_D3D_FULL_SCREEN,
+    };
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        GetClassNameW, GetForegroundWindow, GetWindowRect, GetWindowThreadProcessId,
+    };
+    let mut state = 0;
+    // SAFETY: the pointer is valid for the one value written.
+    if unsafe { SHQueryUserNotificationState(&mut state) } != 0
+        || !matches!(
+            state,
+            QUNS_BUSY | QUNS_RUNNING_D3D_FULL_SCREEN | QUNS_PRESENTATION_MODE
+        )
+    {
+        return false;
+    }
+    // SAFETY: takes no arguments; null when no window has the focus.
+    let foreground = unsafe { GetForegroundWindow() };
+    if foreground.is_null() {
+        return false;
+    }
+    let mut process = 0;
+    // SAFETY: the handle came from the system; the pointer is valid.
+    unsafe { GetWindowThreadProcessId(foreground, &mut process) };
+    if process == std::process::id() {
+        return false;
+    }
+    let mut class = [0u16; 16];
+    // SAFETY: the buffer holds the length passed.
+    let length = unsafe { GetClassNameW(foreground, class.as_mut_ptr(), class.len() as i32) };
+    let class = String::from_utf16_lossy(&class[..usize::try_from(length).unwrap_or(0)]);
+    // The desktop fills the screen as well.
+    if matches!(class.as_str(), "Progman" | "WorkerW") {
+        return false;
+    }
+    let mut rect = RECT {
+        left: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
+    };
+    // SAFETY: the handle came from the system; the pointer is valid.
+    if unsafe { GetWindowRect(foreground, &mut rect) } == 0 {
+        return false;
+    }
+    let window = Rect {
+        x: f64::from(rect.left),
+        y: f64::from(rect.top),
+        width: f64::from(rect.right - rect.left),
+        height: f64::from(rect.bottom - rect.top),
+    };
+    let screens = match orb {
+        Some(orb) => orb.current_monitor().ok().flatten().into_iter().collect(),
+        None => app.available_monitors().unwrap_or_default(),
+    };
+    screens.iter().any(|screen| {
+        let (position, size) = (screen.position(), screen.size());
+        fills(
+            window,
+            Rect {
+                x: f64::from(position.x),
+                y: f64::from(position.y),
+                width: f64::from(size.width),
+                height: f64::from(size.height),
+            },
+        )
+    })
+}
+
+#[cfg(not(windows))]
+fn fullscreen_in_front(_: &AppHandle, _: Option<&WebviewWindow>) -> bool {
+    false
 }
 
 /// Saves a mode picked in the orb's menu or the tray and applies it at once;
@@ -586,9 +725,28 @@ pub fn main_window_created() {
 
 #[cfg(test)]
 mod tests {
-    use super::{place_panel, queue, wants_orb, Mode, PanelSide, Rect, LINGER};
+    use super::{fills, place_panel, queue, wants_orb, Mode, PanelSide, Rect, LINGER};
     use crate::aria2::types::Aria2Task;
     use std::time::{Duration, Instant};
+
+    #[test]
+    fn only_a_window_filling_the_screen_hides_the_orb() {
+        let screen = Rect {
+            x: 1920.0,
+            y: 0.0,
+            width: 2560.0,
+            height: 1440.0,
+        };
+        let fullscreen = screen;
+        let maximized = Rect {
+            height: 1392.0,
+            ..screen
+        };
+        let other_screen = Rect { x: 0.0, ..screen };
+        assert!(fills(fullscreen, screen));
+        assert!(!fills(maximized, screen));
+        assert!(!fills(other_screen, screen));
+    }
 
     #[test]
     fn while_downloading_the_orb_leaves_a_moment_after_the_last_download() {

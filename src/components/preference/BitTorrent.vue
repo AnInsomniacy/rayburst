@@ -201,7 +201,7 @@ function confirmBtPeerSafeLimit(f: Record<string, unknown>): Promise<boolean> {
   })
 }
 
-const { form, isDirty, handleSave, handleReset, resetSnapshot, patchSnapshot } = usePreferenceForm({
+const { form, isDirty, handleSave, handleReset, resetSnapshot, commitInstant } = usePreferenceForm({
   buildForm,
   buildSystemConfig: buildBtSystemConfig,
   transformForStore: transformBtForStore,
@@ -342,10 +342,10 @@ async function handleSyncTracker() {
 async function applySyncedTrackers(text: string, data: string[]) {
   const now = Date.now()
   const comma = convertTrackerDataToComma(data)
-  form.value.btTracker = text
-  form.value.lastSyncTrackerTime = now
-  await preferenceStore.updateAndSave({ btTracker: comma, lastSyncTrackerTime: now })
-  patchSnapshot({ btTracker: text, lastSyncTrackerTime: now } as Partial<typeof form.value>)
+  const saved = await commitInstant({ btTracker: text, lastSyncTrackerTime: now }, () =>
+    preferenceStore.updateAndSave({ btTracker: comma, lastSyncTrackerTime: now }),
+  )
+  if (!saved) return
   await invoke('replace_system_config', {
     config: buildSystemConfigFromAppConfig(preferenceStore.config, preferenceStore.config.dir),
   })

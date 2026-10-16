@@ -191,6 +191,15 @@ pub async fn aria2_get_files(
     state.0.get_files(&gid).await
 }
 
+/// Where a task's source leads after redirects, if anywhere else (#730).
+#[tauri::command]
+pub async fn aria2_get_redirect_target(
+    state: State<'_, TaskServiceState>,
+    gid: String,
+) -> Result<Option<String>, AppError> {
+    state.0.redirect_target(&gid).await
+}
+
 #[tauri::command]
 pub async fn aria2_get_bt_trackers(
     state: State<'_, TaskServiceState>,

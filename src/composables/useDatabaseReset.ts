@@ -14,6 +14,15 @@ export function useDatabaseReset() {
 
   function showDatabaseReset(recovery = false) {
     database.notified = true
+    // History from a newer release is kept for it; resetting stays in Settings.
+    if (recovery && database.newer) {
+      dialogs.warning({
+        title: t('preferences.db-newer'),
+        content: t('preferences.db-newer-description'),
+        positiveText: t('app.confirm'),
+      })
+      return
+    }
     const dialog = dialogs.warning({
       title: recovery ? t('preferences.db-unavailable') : t('preferences.db-reset'),
       content: () =>

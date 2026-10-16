@@ -4,6 +4,10 @@
 //! compositor combinations. Retain WebKitGTK defaults, with scoped NVIDIA
 //! workarounds and an opt-in software fallback. External environment overrides
 //! remain owned by the launching environment.
+//!
+//! Every webview repaints whole frames: WebKitGTK 2.54 composites only the
+//! damaged regions, and on surfaces that keep no previous frame (without
+//! DMA-BUF) the rest of the window stays blank (#650, #705).
 
 #[cfg(target_os = "linux")]
 use std::io::Write;
@@ -128,6 +132,90 @@ pub fn pre_flight() {
 
 #[cfg(not(target_os = "linux"))]
 pub fn pre_flight() {}
+
+/// WebKit preference that limits compositing to the damaged rectangles of a
+/// frame, on by default since WebKitGTK 2.54. Where the window surface does
+/// not keep the previous frame (transparent windows, SHM and NVIDIA buffers)
+/// everything outside them blinks out (#650, #705; Handy#2166).
+#[cfg(target_os = "linux")]
+const DAMAGE_COMPOSITING_FEATURE: &str = "UseDamagingInformationForCompositing";
+
+/// Every webview repaints whole frames: Rayburst's pages are small and mostly
+/// still, so the saving the damage tracking buys is negligible next to frames
+/// that lose their content. A WebKitGTK without the preference is left as is.
+#[cfg(target_os = "linux")]
+pub fn configure_webview<R: tauri::Runtime>(webview: &tauri::Webview<R>) {
+    let configured = webview.with_webview(|platform| {
+        use webkit2gtk::{glib::object::ObjectType, WebViewExt};
+        let Some(settings) = platform.inner().settings() else {
+            return;
+        };
+        // SAFETY: the settings object is alive for the duration of the call,
+        // which runs on the GTK thread that owns it.
+        let disabled = unsafe {
+            webkit_features::disable(settings.as_ptr().cast(), DAMAGE_COMPOSITING_FEATURE)
+        };
+        if disabled {
+            log::info!("gpu_guard: whole-frame repaints (disabled {DAMAGE_COMPOSITING_FEATURE})");
+        }
+    });
+    if let Err(error) = configured {
+        log::warn!("gpu_guard: webview not configured error={error}");
+    }
+}
+
+/// WebKitGTK's feature API (2.42+), looked up at run time: binding it at link
+/// time would keep the app from starting on an older WebKitGTK.
+#[cfg(target_os = "linux")]
+mod webkit_features {
+    use std::ffi::{c_char, c_int, c_void, CStr};
+
+    type AllFeatures = unsafe extern "C" fn() -> *mut c_void;
+    type ListLength = unsafe extern "C" fn(*mut c_void) -> usize;
+    type ListGet = unsafe extern "C" fn(*mut c_void, usize) -> *mut c_void;
+    type ListUnref = unsafe extern "C" fn(*mut c_void);
+    type Identifier = unsafe extern "C" fn(*mut c_void) -> *const c_char;
+    type SetEnabled = unsafe extern "C" fn(*mut c_void, *mut c_void, c_int);
+
+    unsafe fn symbol<T>(name: &CStr) -> Option<T> {
+        let address = libc::dlsym(libc::RTLD_DEFAULT, name.as_ptr());
+        // SAFETY: the caller names a WebKitGTK function of signature `T`.
+        (!address.is_null()).then(|| std::mem::transmute_copy(&address))
+    }
+
+    /// Turns `identifier` off in `settings`; false when this WebKitGTK lacks
+    /// the API or the feature.
+    ///
+    /// # Safety
+    /// `settings` must point to a live `WebKitSettings`.
+    pub unsafe fn disable(settings: *mut c_void, identifier: &str) -> bool {
+        let (Some(all), Some(length), Some(get), Some(unref), Some(id), Some(set)) = (
+            symbol::<AllFeatures>(c"webkit_settings_get_all_features"),
+            symbol::<ListLength>(c"webkit_feature_list_get_length"),
+            symbol::<ListGet>(c"webkit_feature_list_get"),
+            symbol::<ListUnref>(c"webkit_feature_list_unref"),
+            symbol::<Identifier>(c"webkit_feature_get_identifier"),
+            symbol::<SetEnabled>(c"webkit_settings_set_feature_enabled"),
+        ) else {
+            return false;
+        };
+        let list = all();
+        if list.is_null() {
+            return false;
+        }
+        let found = (0..length(list))
+            .map(|index| get(list, index))
+            .find(|feature| {
+                let name = id(*feature);
+                !name.is_null() && CStr::from_ptr(name).to_bytes() == identifier.as_bytes()
+            });
+        if let Some(feature) = found {
+            set(settings, feature, 0);
+        }
+        unref(list);
+        found.is_some()
+    }
+}
 
 #[cfg(target_os = "linux")]
 async fn hardware_acceleration_policy(app: &tauri::AppHandle) -> Result<String, String> {

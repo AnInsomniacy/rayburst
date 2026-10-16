@@ -46,6 +46,9 @@ pub enum AppError {
     /// Database read/write error (rusqlite).
     #[error("Database error: {0}")]
     Database(String),
+    /// History written by a newer release (schema version); left untouched.
+    #[error("Database written by a newer version (schema {0})")]
+    NewerDatabase(u32),
 }
 
 impl From<std::io::Error> for AppError {

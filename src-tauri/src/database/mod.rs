@@ -53,7 +53,7 @@ impl Database {
         conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;")?;
         let version: u32 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
         if version > SCHEMA_VERSION {
-            return Err(AppError::Database("Unsupported database schema".into()));
+            return Err(AppError::NewerDatabase(version));
         }
         let transaction = conn.transaction()?;
         transaction.execute_batch(include_str!("schema.sql"))?;
@@ -79,5 +79,34 @@ impl Database {
         Ok(Self {
             conn: Mutex::new(Some(conn)),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_newer_schema_is_reported_and_left_untouched() {
+        let root = tempfile::tempdir().expect("temporary directory");
+        let path = root.path().join("history.db");
+        let newer = SCHEMA_VERSION + 1;
+        let conn = Connection::open(&path).expect("database");
+        conn.execute_batch("CREATE TABLE future (value TEXT); INSERT INTO future VALUES ('kept');")
+            .expect("future schema");
+        conn.pragma_update(None, "user_version", newer)
+            .expect("version");
+        drop(conn);
+
+        assert!(matches!(Database::open(&path), Err(AppError::NewerDatabase(v)) if v == newer));
+
+        let conn = Connection::open(&path).expect("database");
+        let version: u32 = conn
+            .query_row("PRAGMA user_version", [], |row| row.get(0))
+            .expect("version");
+        let value: String = conn
+            .query_row("SELECT value FROM future", [], |row| row.get(0))
+            .expect("row");
+        assert_eq!((version, value.as_str()), (newer, "kept"));
     }
 }

@@ -7,7 +7,7 @@
  * lets each be paused or resumed. It closes when it loses the focus, on Esc, or
  * on another click on the orb. Dragging its header takes the orb along.
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { invoke } from '@tauri-apps/api/core'
 import type { UnlistenFn } from '@tauri-apps/api/event'
@@ -106,7 +106,10 @@ async function open() {
   side.value = placed
   // Let the shown window paint the card's start state before it grows in.
   await afterReveal()
-  if (run === generation) phase.value = 'shown'
+  if (run !== generation) return
+  phase.value = 'shown'
+  // Rows that changed while it opened were not followed yet.
+  scheduleRefit()
 }
 
 async function close() {
@@ -129,16 +132,21 @@ function dismiss() {
   invoke('float_panel_dismiss').catch((error: unknown) => logger.debug('FloatPanel.dismiss', getErrorMessage(error)))
 }
 
-/** Follows the content while open: rows come and go with the downloads. */
+/**
+ * Follows the content while open: rows come and go with the downloads, and the
+ * interface size scales the card without changing its CSS size.
+ */
 let refit = 0
-const resizeObserver = new ResizeObserver(() => {
+function scheduleRefit() {
   if (phase.value !== 'shown' || refit) return
   refit = requestAnimationFrame(async () => {
     refit = 0
     const placed = await present()
     if (placed) side.value = placed
   })
-})
+}
+const resizeObserver = new ResizeObserver(scheduleRefit)
+watch(zoom, scheduleRefit)
 
 // ── Actions ─────────────────────────────────────────────────────────
 

@@ -679,7 +679,16 @@ export interface AddUriParams {
   outs: string[]
   options: Aria2EngineOptions
   /** Optional file classification config for per-URI directory routing. */
-  fileCategory?: { enabled: boolean; categories: FileCategory[]; contexts?: Record<string, ExternalDownloadContext> }
+  fileCategory?: UriFileCategoryPolicy
+}
+
+/** File classification for per-URI directory routing. */
+export interface UriFileCategoryPolicy {
+  enabled: boolean
+  categories: FileCategory[]
+  contexts?: Record<string, ExternalDownloadContext>
+  /** The name the server gives a URI's file, which a redirect may hide from the URI (#730). */
+  nameOf?: (uri: string) => string | undefined
 }
 
 /** Parameters for adding a torrent-based download task. */

@@ -8,6 +8,8 @@ import { logger } from '@shared/logger'
 export const useDatabaseStore = defineStore('database', () => {
   const phase = ref<'idle' | 'loading' | 'ready' | 'failed' | 'resetting'>('idle')
   const notified = ref(false)
+  /** History was written by a newer release; it stays untouched until the app is updated. */
+  const newer = ref(false)
   const isReady = computed(() => phase.value === 'ready')
   let initialization: Promise<void> | null = null
   let resetting: Promise<void> | null = null
@@ -21,6 +23,7 @@ export const useDatabaseStore = defineStore('database', () => {
         phase.value = 'ready'
       })().catch((error: unknown) => {
         phase.value = 'failed'
+        newer.value = typeof error === 'object' && error !== null && 'NewerDatabase' in error
         logger.error('Database.initialize', getErrorMessage(error))
         throw error
       })
@@ -46,5 +49,5 @@ export const useDatabaseStore = defineStore('database', () => {
     return resetting
   }
 
-  return { phase, notified, isReady, init, reset }
+  return { phase, notified, newer, isReady, init, reset }
 })

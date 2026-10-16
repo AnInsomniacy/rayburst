@@ -82,6 +82,11 @@ export async function getFiles(params: { gid: string }): Promise<Aria2File[]> {
   return data.map((f) => changeKeysToCamelCase(f)) as unknown as Aria2File[]
 }
 
+/** Where a download's source leads after redirects, when that is somewhere else. */
+export async function getRedirectTarget(gid: string): Promise<string | null> {
+  return invoke<string | null>('aria2_get_redirect_target', { gid })
+}
+
 export async function selectBtFiles(gid: string, indices: number[]): Promise<void> {
   await invoke('aria2_select_bt_files', { gid, indices })
 }
@@ -144,11 +149,7 @@ export async function addUri(params: {
   outs: string[]
   contexts?: Record<string, ExternalDownloadContext>
   options: Aria2EngineOptions
-  fileCategory?: {
-    enabled: boolean
-    categories: import('@shared/types').FileCategory[]
-    contexts?: Record<string, ExternalDownloadContext>
-  }
+  fileCategory?: import('@shared/types').UriFileCategoryPolicy
 }): Promise<string[]> {
   const { uris, outs, options, fileCategory } = params
   const engineOptions = formatOptionsForEngine(options)
@@ -162,7 +163,12 @@ export async function addUri(params: {
     if (fileCategory?.enabled && fileCategory.categories.length > 0) {
       const context = fileCategory.contexts?.[uri]
       opts.dir = await resolveDownloadDir(
-        mediaOutputHint(uri, opts.out || extractDecodedFilename(uri) || uri, opts.media, opts['media-format']),
+        mediaOutputHint(
+          uri,
+          opts.out || fileCategory.nameOf?.(uri) || extractDecodedFilename(uri) || uri,
+          opts.media,
+          opts['media-format'],
+        ),
         opts.dir || '',
         true,
         fileCategory.categories,

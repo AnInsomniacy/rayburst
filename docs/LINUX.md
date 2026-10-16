@@ -7,6 +7,11 @@ the backtrace) come from WebKitGTK's GPU path on particular driver, compositor
 and WebKitGTK version combinations. Downloads keep working while the window
 misbehaves.
 
+WebKitGTK 2.54 repaints only the changed parts of a frame, and with DMA-BUF
+rendering off (NVIDIA, software rendering) windows then showed only the area
+around the pointer. Rayburst has WebKitGTK repaint every frame in full, so
+these settings no longer cause that.
+
 Try these in order, restarting Rayburst after each:
 
 1. **Software rendering.** In **Settings → Advanced**, turn on **WebKitGTK

@@ -203,6 +203,9 @@ const previews = useDownloadPreview(
   (uri) => form.value.uriRequestContexts?.[uri]?.size !== undefined,
 )
 const sizeOf = (uri: string) => form.value.uriRequestContexts?.[uri]?.size ?? previews.previewOf(uri)?.size ?? null
+/** The name the browser or the server gives a URI's file; a redirect can hide it from the URI (#730). */
+const announcedName = (uri: string) =>
+  form.value.uriRequestContexts?.[uri]?.filename || previews.previewOf(uri)?.filename || undefined
 const knownUriSize = computed(() => downloadRequests.value.reduce((sum, { uri }) => sum + (sizeOf(uri) ?? 0), 0))
 const { singleUrl, filename, outputName, resolvingFilename, canResolveFilename, resolveFilename } = useFilenamePreview(
   form,
@@ -377,7 +380,7 @@ async function resolveCategoryMatches(): Promise<Map<string, { label: string; di
     const category = await resolveDownloadCategory(
       mediaOutputHint(
         uri,
-        outs[index] || form.value.out || extractDecodedFilename(uri) || uri,
+        outs[index] || form.value.out || announcedName(uri) || extractDecodedFilename(uri) || uri,
         form.value.media?.mode,
         form.value.media?.format,
       ),
@@ -845,6 +848,7 @@ async function handleSubmit() {
     const fileCategory = {
       enabled: preferenceStore.config.fileCategoryEnabled && !dirUserModified.value && !rememberedDirectory.value,
       categories: preferenceStore.config.fileCategories,
+      nameOf: announcedName,
     }
     let manualResult: ManualUriSubmitResult = { submittedTaskNames: [], magnetGids: [], magnetFailures: [] }
 

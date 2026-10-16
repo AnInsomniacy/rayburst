@@ -10,7 +10,7 @@
  * the add window, and its context menu reaches the main window and switches
  * when it shows. The window never changes its size.
  */
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
@@ -131,6 +131,8 @@ function fit() {
 }
 
 const resizeObserver = new ResizeObserver(fit)
+// The interface size scales the orb without changing its CSS size.
+watch(zoom, fit)
 
 // ── Pointer ─────────────────────────────────────────────────────────
 

@@ -455,6 +455,13 @@ impl TaskService {
         self.call("getFiles", vec![gid.into()]).await
     }
 
+    /// Where the task's source leads after redirects, from aria2's
+    /// `currentUri` (#730); `None` while unknown or without a redirect.
+    pub async fn redirect_target(&self, gid: &str) -> Result<Option<String>, AppError> {
+        let files: serde_json::Value = self.call("getServers", vec![gid.into()]).await?;
+        Ok(redirect_target(&files))
+    }
+
     /// Returns per-task options.
     pub async fn get_option(&self, gid: &str) -> Result<serde_json::Value, AppError> {
         self.call("getOption", vec![gid.into()]).await
@@ -682,6 +689,20 @@ fn validate_multicall_results(
     Ok(())
 }
 
+/// The first `currentUri` in a `getServers` answer that differs from its `uri`.
+fn redirect_target(files: &serde_json::Value) -> Option<String> {
+    files
+        .as_array()?
+        .iter()
+        .filter_map(|file| file.get("servers")?.as_array())
+        .flatten()
+        .find_map(|server| {
+            let uri = server.get("uri")?.as_str()?;
+            let current = server.get("currentUri")?.as_str()?;
+            (!current.is_empty() && current != uri).then(|| current.to_owned())
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -698,5 +719,22 @@ mod tests {
         let results = vec![serde_json::json!({"code": 1, "message": "cannot resume"})];
         let error = validate_multicall_results("resume", &gids, &results).unwrap_err();
         assert!(error.to_string().contains("cannot resume"));
+    }
+
+    #[test]
+    fn the_redirect_target_is_the_first_current_uri_that_differs() {
+        let servers = serde_json::json!([{"index": "1", "servers": [
+            {"uri": "https://a.test/x", "currentUri": "https://a.test/x"},
+            {"uri": "https://go.test/fwlink", "currentUri": "https://cdn.test/file.msix"},
+        ]}]);
+        assert_eq!(
+            redirect_target(&servers).as_deref(),
+            Some("https://cdn.test/file.msix")
+        );
+        let direct = serde_json::json!([{"index": "1", "servers": [
+            {"uri": "https://a.test/x", "currentUri": "https://a.test/x"},
+        ]}]);
+        assert_eq!(redirect_target(&direct), None);
+        assert_eq!(redirect_target(&serde_json::json!([])), None);
     }
 }

@@ -8,6 +8,7 @@ import { calcColumnWidth } from '@shared/utils/calcColumnWidth'
 import type { UriDetailSummary } from '@/composables/useTaskDetailSummary'
 import { buildSourceDetailRows, sourceRowsSignature, type SourceDetailRow } from '@/composables/useTaskDetailRows'
 import { nextFrame, renderDetailCopyableText } from './TaskDetailShared'
+import { getRedirectTarget } from '@/api/aria2'
 
 const props = defineProps<{
   task: Aria2Task | null
@@ -19,6 +20,8 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const rows = shallowRef<SourceDetailRow[]>([])
+/** Where the source leads after redirects; the task keeps the original, which stays valid (#730). */
+const redirect = ref<string | null>(null)
 const loading = ref(false)
 const hasLoaded = ref(false)
 const loadedTaskGid = ref<string | null>(null)
@@ -31,6 +34,7 @@ watch(
     const taskGid = props.task?.gid ?? null
     if (loadedTaskGid.value !== taskGid) {
       rows.value = []
+      redirect.value = null
       hasLoaded.value = false
       loadedTaskGid.value = taskGid
     }
@@ -44,6 +48,8 @@ watch(
     rows.value = buildSourceDetailRows(props.task)
     hasLoaded.value = true
     loading.value = false
+    const target = await getRedirectTarget(taskGid).catch(() => null)
+    if (current === generation) redirect.value = target
   },
   { immediate: true },
 )
@@ -115,6 +121,19 @@ const columns = computed(() => {
               renderDetailCopyableText({
                 value: summary.primaryUri || '-',
                 label: t('task.task-primary-uri'),
+                tooltip,
+                onCopy,
+              })
+          "
+        />
+      </NDescriptionsItem>
+      <NDescriptionsItem v-if="redirect" :label="t('task.task-redirected-to')">
+        <component
+          :is="
+            () =>
+              renderDetailCopyableText({
+                value: redirect ?? '',
+                label: t('task.task-redirected-to'),
                 tooltip,
                 onCopy,
               })

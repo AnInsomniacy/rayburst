@@ -10,7 +10,8 @@
  *
  * Interactions:
  *   Left-click  — toggle speed limit on/off (toast hint if unconfigured)
- *   Right-click — open speed limit configuration popover
+ *   Right-click — open the popover: speed limits, their schedule and
+ *                 shutting down once downloads finish (#733)
  */
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { speedUnitOptions as speedUnits } from '@shared/utils/format'
@@ -26,6 +27,7 @@ import {
   ArrowDownOutline,
   LockClosedOutline,
   TimerOutline,
+  PowerOutline,
 } from '@vicons/ionicons5'
 import {
   formatLimitBadge,
@@ -46,6 +48,7 @@ const stat = computed(() => appStore.stat)
 const isIdle = computed(() => stat.value.numActive === 0)
 const isLimited = computed(() => !!preferenceStore.config.speedLimitEnabled)
 const isScheduleActive = computed(() => !!preferenceStore.config.speedScheduleEnabled)
+const shutdownWhenComplete = computed(() => !!preferenceStore.config.shutdownWhenComplete)
 /** Clock badge only when schedule is actually effective (both switches ON). */
 const isScheduleEffective = computed(() => isLimited.value && isScheduleActive.value)
 const downloadSpeed = computed(() => bytesToSize(String(stat.value.downloadSpeed)))
@@ -205,6 +208,11 @@ async function handleScheduleToggle(enabled: boolean) {
   await preferenceStore.updateAndSave({ speedScheduleEnabled: enabled })
   message.success(t(enabled ? 'app.schedule-enabled' : 'app.schedule-disabled'))
 }
+
+// ── Shutdown toggle from popover ─────────────────────────────────────
+function handleShutdownToggle(enabled: boolean) {
+  void preferenceStore.updateAndSave({ shutdownWhenComplete: enabled })
+}
 </script>
 
 <template>
@@ -330,6 +338,13 @@ async function handleScheduleToggle(enabled: boolean) {
           {{ t('preferences.schedule-needs-limit') }}
         </NText>
       </Transition>
+      <div class="limit-panel-row">
+        <div class="limit-panel-label">
+          <NIcon :size="12"><PowerOutline /></NIcon>
+          <span>{{ t('preferences.shutdown-when-complete') }}</span>
+        </div>
+        <NSwitch :value="shutdownWhenComplete" size="small" @update:value="handleShutdownToggle" />
+      </div>
 
       <NButton type="primary" size="small" block style="margin-top: 12px" @click="handleApply">
         {{ t('app.speedometer-apply') }}

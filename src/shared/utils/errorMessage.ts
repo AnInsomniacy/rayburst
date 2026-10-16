@@ -13,6 +13,7 @@ const TAURI_ERROR_LABELS: Record<string, string> = {
   Aria2: 'Aria2 Next error',
   TorrentInspection: 'Torrent inspection error',
   Database: 'Database error',
+  NewerDatabase: 'Database written by a newer version',
 }
 
 type TauriErrorVariant = keyof typeof TAURI_ERROR_LABELS
@@ -111,6 +112,7 @@ function normalizeMessage(value: unknown, options: ErrorMessageOptions): string 
     if (typeof payload === 'string' && payload.trim()) {
       return formatTauriPayload(variant, payload, options.labels)
     }
+    if (typeof payload === 'number') return formatTauriPayload(variant, String(payload), options.labels)
   }
 
   return stringifyUnknownObject(value)

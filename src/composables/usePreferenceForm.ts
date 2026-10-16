@@ -235,6 +235,27 @@ export function usePreferenceForm<T extends Record<string, unknown>>(options: Us
     savedSnapshot.value = { ...savedSnapshot.value, ...patch } as T
   }
 
+  /**
+   * Applies fields that persist on their own (update channel, synced trackers,
+   * managed lists) to the form and the saved snapshot in the same tick, so the
+   * form never reads as unsaved while `save` runs (#732). Both go back when
+   * the save fails.
+   */
+  async function commitInstant(patch: Partial<T>, save: () => Promise<boolean>): Promise<boolean> {
+    const keys = Object.keys(patch) as (keyof T)[]
+    const pick = (source: T) => JSON.parse(JSON.stringify(Object.fromEntries(keys.map((key) => [key, source[key]]))))
+    const previousForm = pick(form.value) as Partial<T>
+    const previousSnapshot = pick(savedSnapshot.value) as Partial<T>
+    Object.assign(form.value, patch)
+    patchSnapshot(JSON.parse(JSON.stringify(patch)) as Partial<T>)
+    const saved = await save()
+    if (!saved) {
+      Object.assign(form.value, previousForm)
+      patchSnapshot(previousSnapshot)
+    }
+    return saved
+  }
+
   // ── Lifecycle ───────────────────────────────────────────────────────
 
   onMounted(() => {
@@ -256,5 +277,6 @@ export function usePreferenceForm<T extends Record<string, unknown>>(options: Us
     handleReset,
     resetSnapshot,
     patchSnapshot,
+    commitInstant,
   }
 }
