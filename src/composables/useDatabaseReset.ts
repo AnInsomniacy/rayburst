@@ -14,12 +14,16 @@ export function useDatabaseReset() {
 
   function showDatabaseReset(recovery = false) {
     database.notified = true
-    // History from a newer release is kept for it; resetting stays in Settings.
+    // History from a newer release is kept for it; resetting is a secondary,
+    // confirmed choice so a downgrade does not clear it by reflex.
     if (recovery && database.newer) {
       dialogs.warning({
         title: t('preferences.db-newer'),
         content: t('preferences.db-newer-description'),
         positiveText: t('app.confirm'),
+        negativeText: t('preferences.db-reset'),
+        negativeButtonProps: { text: true },
+        onNegativeClick: () => showDatabaseReset(),
       })
       return
     }
