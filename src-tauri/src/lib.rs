@@ -640,7 +640,7 @@ pub fn run() {
     #[cfg(target_os = "linux")]
     {
         builder = builder.plugin(
-            tauri::plugin::Builder::new("rendering")
+            tauri::plugin::Builder::<_, ()>::new("rendering")
                 .on_webview_ready(|webview| gpu_guard::configure_webview(&webview))
                 .build(),
         );
