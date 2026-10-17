@@ -18,6 +18,7 @@ import { knownBatchSize, useFreeSpace } from '@/composables/useFreeSpace'
 import { ADD_TASK_TYPE } from '@shared/constants'
 import { bytesToSize, detectResource } from '@shared/utils'
 import {
+  createBatchItem,
   mergeRawUriLines,
   normalizeUriLines,
   extractDecodedFilename,
@@ -52,6 +53,7 @@ import { parseChecksum } from '@shared/utils/checksum'
 import { findDuplicateTasks, type DuplicateTask } from '@/api/aria2'
 
 import {
+  isRemoteTorrentSource,
   resolveUnresolvedItems,
   retryTorrentInspection,
   chooseTorrentFile as chooseTorrentFileImpl,
@@ -612,7 +614,13 @@ watch(
         // pendingBatch after writing — use the flag instead.
         if (batchDidWrite) return
         if (text && detectResource(text, preferenceStore.config.clipboard)) {
-          form.value.uris = text.trim()
+          // Copied .torrent links open their file lists at once (#737).
+          const lines = normalizeUriLines(text)
+          if (preferenceStore.config.bittorrentEnabled && lines.length > 0 && lines.every(isRemoteTorrentSource)) {
+            appStore.enqueueBatch(lines.map((url) => createBatchItem('torrent', url)))
+          } else {
+            form.value.uris = text.trim()
+          }
         }
       } catch (e) {
         logger.debug('AddTask.readClipboard', e)
