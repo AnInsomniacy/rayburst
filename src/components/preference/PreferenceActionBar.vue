@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { NButton, NIcon, NDropdown, type DropdownOption } from 'naive-ui'
 import { RefreshOutline, EllipsisHorizontalOutline } from '@vicons/ionicons5'
 import { useEngineRestart } from '@/composables/useEngineRestart'
-import { reducedMotion } from '@/composables/useReducedMotion'
+import { reducedMotion } from '@/composables/useWindowReveal'
 
 const props = withDefaults(defineProps<{ isDirty: boolean; isValid?: boolean }>(), { isValid: true })
 const emit = defineEmits<{ save: []; discard: [] }>()

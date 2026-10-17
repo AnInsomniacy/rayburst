@@ -9,11 +9,6 @@ export function useReducedMotion(): ComputedRef<boolean> {
   return computed(() => preferenceStore.config.reduceMotion)
 }
 
-/** Whether the user asked for reduced motion. */
-export function reducedMotion(): boolean {
-  return document.documentElement.classList.contains(REDUCED_MOTION_CLASS)
-}
-
 export function useReducedMotionClass(): void {
   const reduceMotion = useReducedMotion()
   const stop = watch(

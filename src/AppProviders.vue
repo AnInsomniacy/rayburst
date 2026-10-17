@@ -51,7 +51,6 @@ import {
 import { useTheme } from './composables/useTheme'
 import { useReducedMotionClass } from './composables/useReducedMotion'
 import { useInterfaceScale } from './composables/useInterfaceScale'
-import { useWindowBackground } from './composables/useWindowBackground'
 import { usePreferenceStore } from './stores/preference'
 import { setIecSizeUnits } from '@shared/utils/format'
 import { isSupportedLocale, type SupportedLocale } from '@shared/localeCatalog'
@@ -68,7 +67,6 @@ const preferenceStore = usePreferenceStore()
 watchEffect(() => setIecSizeUnits(preferenceStore.config.iecSizeUnits))
 
 const theme = computed(() => (isDark.value ? darkTheme : null))
-useWindowBackground(computed(() => [isDark.value, colorTokens.value]))
 
 const naiveLocaleMap: Partial<Record<SupportedLocale, NLocale>> = {
   'zh-CN': zhCN,

@@ -210,9 +210,11 @@ downloaded data. A failed task is resubmitted with the new source instead.
 Every new download is confirmed in the standalone add-task window
 (`services/add_window.rs`); the main window has no add dialog and, while the engine
 starts, forwards what it receives once the engine runs. The add window is
-built hidden as soon as the main window is up and lives until the app exits,
-also in the lightweight tray; closing it only hides it, so it appears without
-loading a webview. It receives later
+built hidden as soon as the main window is up; closing it only hides it, so it
+appears without loading a webview. When lightweight mode releases the main
+window into the tray, the hidden add window goes with it, so no webview stays
+behind (#735); a download arriving then builds the window, and closing it
+destroys it again. It receives later
 handoffs while open and is put away after submission without raising the main
 window. Auto-submitted downloads use it invisibly and put it away when the engine
 accepted them. If it fails to open, its inputs wait for the next request.
@@ -228,7 +230,7 @@ while downloading and the sent speed while only seeding; otherwise its sign
 tells what the queue waits for: servers, its turn or the user. The Rayburst
 mark rests in it, and only a download of unknown size moves its fill. It can
 be dragged anywhere. A click opens a panel centered beside it, a window of its
-own built for each opening, to pause or resume each download; dragging the
+own built hidden with the orb, to pause or resume each download; dragging the
 panel's header takes the orb along. Links and torrent files dropped on the orb
 open in the add window; the orb reads dropped files itself, since its page
 receives no paths.

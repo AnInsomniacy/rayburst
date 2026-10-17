@@ -2,8 +2,8 @@
 /**
  * @fileoverview The floating orb (#669, #718, #402, #726).
  *
- * A 52 px window that stays on top; the system rounds and shadows it. It fills
- * from the bottom with the overall progress, like a level, under the received
+ * A 52 px orb that stays on top, drawn with its shadow in a transparent
+ * window. It fills from the bottom with the overall progress, like a level, under the received
  * speed while downloading and the sent speed while only seeding; otherwise its
  * sign tells what the queue waits for: servers, its turn, or the user. A check
  * follows the last download, the Rayburst mark rests in it, and a dot marks an
@@ -24,7 +24,6 @@ import { NIcon } from 'naive-ui'
 import { Add, ArrowDown, ArrowUp, Checkmark, Pause, TimeOutline } from '@vicons/ionicons5'
 import aria2Api from '@/api/aria2'
 import { useFloatUpdates, type FloatUpdate } from '@/composables/useFloatUpdates'
-import { usePlatform } from '@/composables/usePlatform'
 import { usePreferenceStore } from '@/stores/preference'
 import { FLOAT_WINDOW_MODE_LABELS, FLOAT_WINDOW_MODES, TASK_STATUS } from '@shared/constants'
 import { bytesToSize } from '@shared/utils'
@@ -56,12 +55,13 @@ const ICONS: Record<Exclude<Face, 'idle'>, Component> = {
 
 const { t } = useI18n()
 const preferenceStore = usePreferenceStore()
-const { isLinux } = usePlatform()
 const view = getCurrentWebviewWindow()
 const root = ref<HTMLElement | null>(null)
 const pulsing = ref(false)
 const done = ref(false)
 const failed = ref(false)
+/** The orb is about to go: it shrinks away first. */
+const leaving = ref(false)
 /** Something droppable is dragged over the orb. */
 const dropping = ref(false)
 const unlisteners: UnlistenFn[] = []
@@ -300,6 +300,7 @@ onMounted(async () => {
     await listen('task-monitor:complete', celebrate),
     await listen('task-monitor:p2p-download-complete', celebrate),
     await listen('task-monitor:error', () => (failed.value = true)),
+    await view.listen('float:leave', () => (leaving.value = true)),
   )
 })
 
@@ -320,115 +321,103 @@ onBeforeUnmount(() => {
     @dragleave="onDragLeave"
     @drop="onDrop"
   >
-    <div
-      class="orb"
-      :class="[`orb--${face}`, { 'orb--pulse': pulsing, 'orb--bordered': isLinux }]"
-      role="button"
-      tabindex="0"
-      :title="tooltip"
-      :aria-label="tooltip"
-      @pointerdown="onPointerDown"
-      @pointermove="onPointerMove"
-      @pointerup="onPointerUp"
-      @keydown.enter.prevent="togglePanel"
-      @contextmenu="showMenu"
-    >
-      <span class="orb-fill" :class="{ 'orb-fill--swell': sweeping }" aria-hidden="true">
-        <span class="orb-fill-level" :style="sweeping ? undefined : { height: `${fill}%` }" />
-      </span>
-
-      <Transition name="orb-face">
-        <span :key="face" class="orb-face">
-          <img v-if="face === 'idle'" class="orb-logo" src="/logo.svg" alt="" draggable="false" />
-          <template v-else-if="showsSpeed">
-            <span class="orb-speed-value" :data-length="speed.value.length">{{ speed.value }}</span>
-            <span class="orb-speed-unit">{{ speed.unit }}</span>
-          </template>
-          <template v-else>
-            <NIcon class="orb-sign" :size="percent ? 17 : 21" :component="ICONS[face]" />
-            <span v-if="percent" class="orb-percent">{{ percent }}</span>
-          </template>
+    <Transition name="orb" appear>
+      <div
+        v-if="update && !leaving"
+        class="orb"
+        :class="[`orb--${face}`, { 'orb--pulse': pulsing }]"
+        role="button"
+        tabindex="0"
+        :title="tooltip"
+        :aria-label="tooltip"
+        @pointerdown="onPointerDown"
+        @pointermove="onPointerMove"
+        @pointerup="onPointerUp"
+        @keydown.enter.prevent="togglePanel"
+        @contextmenu="showMenu"
+      >
+        <span class="orb-fill" :class="{ 'orb-fill--swell': sweeping }" aria-hidden="true">
+          <span class="orb-fill-level" :style="sweeping ? undefined : { height: `${fill}%` }" />
         </span>
-      </Transition>
 
-      <Transition name="orb-dot">
-        <span v-if="failed" class="orb-dot" />
-      </Transition>
-    </div>
+        <Transition name="orb-face">
+          <span :key="face" class="orb-face">
+            <img v-if="face === 'idle'" class="orb-logo" src="/logo.svg" alt="" draggable="false" />
+            <template v-else-if="showsSpeed">
+              <span class="orb-speed-value" :data-length="speed.value.length">{{ speed.value }}</span>
+              <span class="orb-speed-unit">{{ speed.unit }}</span>
+            </template>
+            <template v-else>
+              <NIcon class="orb-sign" :size="percent ? 17 : 21" :component="ICONS[face]" />
+              <span v-if="percent" class="orb-percent">{{ percent }}</span>
+            </template>
+          </span>
+        </Transition>
+
+        <Transition name="orb-dot">
+          <span v-if="failed" class="orb-dot" />
+        </Transition>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <style scoped>
-/* The window is sized to the orb; the system draws its corners and shadow. */
+/* The margin holds the orb's shadow and its hover growth inside the window. */
 .float-window {
   display: inline-flex;
+  padding: 8px;
   user-select: none;
 }
 
 .orb {
   --orb-accent: var(--m3-primary);
+  --orb-shadow:
+    0 0 0 1px color-mix(in srgb, var(--m3-outline-variant) 80%, transparent), 0 1px 2px var(--m3-shadow),
+    0 4px 10px -2px var(--m3-shadow);
   position: relative;
   display: grid;
   width: 52px;
   height: 52px;
-  overflow: hidden;
-  background: var(--main-bg);
+  border-radius: 50%;
+  background:
+    radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--m3-primary) 7%, transparent), transparent 62%),
+    var(--main-bg);
+  box-shadow: var(--orb-shadow);
   color: var(--m3-on-surface);
   cursor: default;
   outline: none;
-  transition: box-shadow 160ms ease;
+  transition:
+    transform 220ms var(--dialog-ease-enter),
+    box-shadow 220ms var(--dialog-ease-enter);
 }
 
-/* Hover and press tint the whole orb, as a button does; a new download flashes it. */
-.orb::before,
-.orb::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  pointer-events: none;
+.orb:hover {
+  transform: scale(1.06);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--m3-outline-variant) 80%, transparent),
+    0 2px 4px var(--m3-shadow),
+    0 6px 14px -2px var(--m3-shadow);
 }
 
-.orb::before {
-  background: var(--m3-on-surface);
-  transition: opacity 160ms ease;
+.orb:active {
+  transform: scale(0.96);
+  transition-duration: 100ms;
 }
 
-.orb:hover::before {
-  opacity: 0.04;
-}
-
-.orb:active::before {
-  opacity: 0.08;
-  transition-duration: 80ms;
-}
-
-.orb::after {
-  background: var(--m3-primary);
-}
-
-.orb--pulse::after {
-  animation: orb-pulse 700ms var(--dialog-ease-enter);
-}
-
-@keyframes orb-pulse {
-  30% {
-    opacity: 0.14;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-/* GTK draws no frame around a window without decorations. */
-.orb--bordered {
-  box-shadow: inset 0 0 0 1px var(--m3-outline-variant);
-}
-
-/* Something droppable is over it, or it has the keyboard focus. */
+/* Something droppable is over it: it rises and takes the accent. */
 .orb--drop,
+.orb--drop:hover {
+  transform: scale(1.1);
+  box-shadow:
+    0 0 0 2px var(--m3-primary),
+    0 6px 14px -2px var(--m3-shadow);
+}
+
 .orb:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--m3-primary);
+  box-shadow:
+    0 0 0 2px var(--m3-primary),
+    0 4px 10px -2px var(--m3-shadow);
 }
 
 .orb--connecting,
@@ -451,6 +440,8 @@ onBeforeUnmount(() => {
 .orb-fill {
   position: absolute;
   inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
   pointer-events: none;
 }
 
@@ -460,7 +451,7 @@ onBeforeUnmount(() => {
   height: 0;
   background: linear-gradient(
     0deg,
-    color-mix(in srgb, var(--orb-accent) 22%, transparent),
+    color-mix(in srgb, var(--orb-accent) 24%, transparent),
     color-mix(in srgb, var(--orb-accent) 10%, transparent)
   );
   box-shadow: inset 0 2px 0 color-mix(in srgb, var(--orb-accent) 55%, transparent);
@@ -479,7 +470,7 @@ onBeforeUnmount(() => {
 /* Bytes arrive but the size is unknown: a swell rises through the orb. */
 .orb-fill--swell .orb-fill-level {
   height: 45%;
-  background: linear-gradient(0deg, transparent, color-mix(in srgb, var(--orb-accent) 22%, transparent), transparent);
+  background: linear-gradient(0deg, transparent, color-mix(in srgb, var(--orb-accent) 24%, transparent), transparent);
   box-shadow: none;
   animation: orb-swell 1.6s var(--task-motion-ease) infinite;
 }
@@ -503,12 +494,6 @@ onBeforeUnmount(() => {
   justify-items: center;
   line-height: 1;
   pointer-events: none;
-  transition: transform 120ms var(--dialog-ease-enter);
-}
-
-/* A press sinks the face a little, as a button gives under the finger. */
-.orb:active .orb-face {
-  transform: scale(0.92);
 }
 
 .orb-logo {
@@ -554,34 +539,54 @@ onBeforeUnmount(() => {
 
 .orb-face-enter-active {
   transition:
-    opacity 220ms var(--dialog-ease-enter),
-    scale 220ms var(--dialog-ease-enter);
+    opacity 260ms var(--dialog-ease-enter),
+    scale 260ms var(--dialog-ease-enter);
 }
 
 .orb-face-leave-active {
-  transition: opacity 140ms var(--dialog-ease-leave);
+  transition:
+    opacity 160ms var(--dialog-ease-leave),
+    scale 160ms var(--dialog-ease-leave);
 }
 
-.orb-face-enter-from {
-  opacity: 0;
-  scale: 0.8;
-}
-
+.orb-face-enter-from,
 .orb-face-leave-to {
   opacity: 0;
+  scale: 0.7;
 }
 
-/* ── Error dot ────────────────────────────────────────────────────── */
+/* ── Pulse, error dot, arrival ────────────────────────────────────── */
+
+/* A new download: a ring of the accent spreads from the orb. */
+.orb--pulse {
+  animation: orb-pulse 700ms var(--dialog-ease-enter);
+}
+
+@keyframes orb-pulse {
+  0% {
+    box-shadow:
+      0 0 0 0 color-mix(in srgb, var(--m3-primary) 45%, transparent),
+      var(--orb-shadow);
+  }
+  35% {
+    transform: scale(1.08);
+  }
+  100% {
+    box-shadow:
+      0 0 0 8px color-mix(in srgb, var(--m3-primary) 0%, transparent),
+      var(--orb-shadow);
+  }
+}
 
 .orb-dot {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 8px;
-  height: 8px;
+  top: 1px;
+  right: 1px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--main-bg);
   border-radius: 50%;
   background: var(--m3-error);
-  box-shadow: 0 0 0 2px var(--main-bg);
 }
 
 .orb-dot-enter-active,
@@ -592,5 +597,23 @@ onBeforeUnmount(() => {
 .orb-dot-enter-from,
 .orb-dot-leave-to {
   transform: scale(0);
+}
+
+.orb-enter-active {
+  transition:
+    opacity 200ms var(--dialog-ease-enter),
+    transform 200ms var(--dialog-ease-enter);
+}
+
+.orb-leave-active {
+  transition:
+    opacity 150ms var(--dialog-ease-leave),
+    transform 150ms var(--dialog-ease-leave);
+}
+
+.orb-enter-from,
+.orb-leave-to {
+  opacity: 0;
+  transform: scale(0.8);
 }
 </style>

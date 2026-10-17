@@ -19,7 +19,7 @@ body,
   font-variant: tabular-nums;
   font-size: var(--font-size-base);
   color: var(--m3-on-surface);
-  background: var(--main-bg);
+  background: transparent;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -119,9 +119,11 @@ pre,
   app-region: no-drag;
 }
 
-/* The floating orb and its panel: sized to what they show, never scrolled. */
+/* The floating orb and its panel: transparent around what they draw, sized
+ * to it, and never scrolled. */
 html.float-window-document,
 html.float-window-document body {
+  background: transparent;
   overflow: clip;
 }
 html.float-window-document #app {

@@ -5,8 +5,8 @@
 //! handoffs and manual entry alike. It opens over the main window while that is
 //! in view, and on the screen under the pointer otherwise.
 //!
-//! It is built when a download arrives and destroyed when it closes. The
-//! system draws its frame, corners and shadow; the page moves its content.
+//! It is built, hidden, once the app has started and lives until the app exits:
+//! closing it only hides it, so a download never waits for a webview to load.
 
 use std::sync::Mutex;
 use std::time::Duration;
@@ -23,6 +23,9 @@ pub const LABEL: &str = "add";
 const INPUT_EVENT: &str = "add-window:inputs";
 /// How long a new window may take to load before it is given up.
 const READY_TIMEOUT: Duration = Duration::from_secs(10);
+/// Transparent margin around the panel the window draws, which holds the
+/// panel's shadow. Matches `PANEL_INSET` in `AddWindow.vue`.
+const PANEL_INSET: f64 = 16.0;
 
 /// Inputs for the add window: structured browser handoffs, plain links and
 /// torrent paths, batch items prepared by the main window, and a request for
@@ -62,7 +65,7 @@ struct Inner {
     opening: bool,
     /// The frontend listens for inputs.
     ready: bool,
-    /// The process lives in the tray without the main window, so closing the
+    /// The process lives in the tray without the main window, so losing the
     /// add window as the last window must not end it.
     resident: bool,
     /// The main window is being released into the tray (lightweight mode)
@@ -97,16 +100,36 @@ pub fn wanted(app: &AppHandle) -> bool {
             .is_some_and(|supervisor| supervisor.is_running())
 }
 
+/// Builds the window ahead of its first use, hidden, so it appears at once.
+/// Only beside the main window: in the tray, lightweight mode keeps no
+/// webview, so the add window is built when a download arrives (#735).
+pub fn prepare(app: &AppHandle) {
+    let Some(state) = app.try_state::<AddWindowState>() else {
+        return;
+    };
+    let mut inner = state.lock();
+    if inner.stalled
+        || inner.opening
+        || app.get_webview_window(LABEL).is_some()
+        || app.get_webview_window("main").is_none()
+    {
+        return;
+    }
+    inner.opening = true;
+    drop(inner);
+    open(app, "prepare");
+}
+
 /// Shows the window, placed for this download, once its content is sized.
 /// Main thread only: placing it reads work areas, see [`screen_height`].
 pub fn present(app: &AppHandle) -> Result<(), AppError> {
     let window = app
         .get_webview_window(LABEL)
         .ok_or_else(|| AppError::NotFound("add window".into()))?;
-    let failed = |error: tauri::Error| AppError::Io(format!("add window: {error}"));
     if !window.is_visible().unwrap_or(false) {
         place(app, &window);
     }
+    let failed = |error: tauri::Error| AppError::Io(format!("add window: {error}"));
     window.show().map_err(failed)?;
     let _ = window.unminimize();
     window.set_focus().map_err(failed)?;
@@ -183,21 +206,27 @@ pub fn detach(state: &AddWindowState) -> AddWindowInputs {
     queue
 }
 
-/// Destroys the window after a download was confirmed or dismissed, unless
-/// inputs arrived while it was closing: those are returned and keep it open.
-pub fn close(app: &AppHandle) -> AddWindowInputs {
+/// Hides the window after a download was confirmed or dismissed, and returns
+/// inputs that arrived while it was closing. Without the main window it is
+/// destroyed instead: in the tray no webview stays behind (#735), and an app
+/// that lost its main window ends as it would without it.
+pub fn park(app: &AppHandle) -> AddWindowInputs {
     let (Some(window), Some(state)) = (
         app.get_webview_window(LABEL),
         app.try_state::<AddWindowState>(),
     ) else {
         return AddWindowInputs::default();
     };
-    let mut inner = state.lock();
-    if !inner.queue.is_empty() {
-        inner.ready = true;
-        return std::mem::take(&mut inner.queue);
+    if app.get_webview_window("main").is_some() {
+        match window.hide() {
+            Ok(()) => {
+                let mut inner = state.lock();
+                inner.ready = true;
+                return std::mem::take(&mut inner.queue);
+            }
+            Err(error) => log::warn!("add_window:hide-failed error={error}"),
+        }
     }
-    drop(inner);
     if let Err(error) = window.destroy() {
         log::warn!("add_window:destroy-failed error={error}");
     }
@@ -211,14 +240,28 @@ pub fn main_window_releasing(app: &AppHandle) {
     }
 }
 
-/// Released into the tray, the process lives on, and an add window that is
-/// open or opened from the tray must not end it when it closes.
+/// The hidden add window goes with the main window. Released into the tray,
+/// the process lives on without any webview (#735) and builds the add window
+/// when a download arrives; lost otherwise (a compositor closing it outright),
+/// the app ends or stays exactly as it would without it. A window in use
+/// stays until it is closed.
 pub fn main_window_destroyed(app: &AppHandle) {
-    if let Some(state) = app.try_state::<AddWindowState>() {
-        let mut inner = state.lock();
-        if std::mem::take(&mut inner.releasing_main) {
-            inner.resident = true;
-        }
+    let Some(state) = app.try_state::<AddWindowState>() else {
+        return;
+    };
+    let mut inner = state.lock();
+    if std::mem::take(&mut inner.releasing_main) {
+        inner.resident = true;
+    }
+    drop(inner);
+    let Some(window) = app.get_webview_window(LABEL) else {
+        return;
+    };
+    if window.is_visible().unwrap_or(false) {
+        return;
+    }
+    if let Err(error) = window.destroy() {
+        log::warn!("add_window:destroy-failed error={error}");
     }
 }
 
@@ -268,7 +311,8 @@ fn open(app: &AppHandle, source: &'static str) {
             .and_then(|config| WebviewWindowBuilder::from_config(&app, &config))
             .and_then(WebviewWindowBuilder::build);
         match built {
-            Ok(_) => {
+            Ok(window) => {
+                without_system_transitions(&window);
                 log::info!("add_window:opened source={source}");
                 tauri::async_runtime::spawn(expect_ready(app, generation, source));
             }
@@ -284,19 +328,25 @@ fn open(app: &AppHandle, source: &'static str) {
     });
 }
 
-/// An opaque window in the theme's background, with the system's frame,
-/// corners and shadow around the title bar its page draws.
+/// The window is transparent and its page draws the panel, with rounded
+/// corners and a shadow, so the panel can animate in and out and grow and
+/// shrink smoothly inside a window that is resized only once per change. The
+/// native shadow would outline the whole transparent window instead.
 fn window_config(app: &AppHandle) -> tauri::Result<tauri::utils::config::WindowConfig> {
     let mut config = secondary_window_config(app, LABEL)?;
-    config.width = 600.0;
+    config.width = 600.0 + 2.0 * PANEL_INSET;
     config.height = 560.0;
     config.center = true;
+    config.transparent = true;
+    config.shadow = false;
     // GTK ignores programmatic resizes of a window the user cannot resize
     // (tao#545, tauri#6125), and this window follows its content (#731).
     config.resizable = cfg!(target_os = "linux");
-    config.traffic_light_position =
-        Some(tauri::utils::config::LogicalPosition { x: 14.0, y: 10.0 });
-    super::native_window::with_background(&mut config);
+    // macOS: the traffic lights sit in the panel's title bar, not the margin.
+    config.traffic_light_position = Some(tauri::utils::config::LogicalPosition {
+        x: PANEL_INSET + 14.0,
+        y: PANEL_INSET + 10.0,
+    });
     Ok(config)
 }
 
@@ -327,6 +377,36 @@ pub(crate) fn secondary_window_config(
     config.resizable = false;
     config.maximizable = false;
     Ok(config)
+}
+
+/// Windows fades a window in and out as it is shown and hidden. The page
+/// animates its own content instead, which that fade would cover up.
+pub(crate) fn without_system_transitions(window: &WebviewWindow) {
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::Graphics::Dwm::{
+            DwmSetWindowAttribute, DWMWA_TRANSITIONS_FORCEDISABLED,
+        };
+        let Ok(hwnd) = window.hwnd() else {
+            return;
+        };
+        let disabled: i32 = 1;
+        // SAFETY: the handle belongs to a live window, and the attribute
+        // reads a BOOL from a pointer valid for the length passed.
+        let result = unsafe {
+            DwmSetWindowAttribute(
+                hwnd.0 as _,
+                DWMWA_TRANSITIONS_FORCEDISABLED as _,
+                std::ptr::from_ref(&disabled).cast(),
+                std::mem::size_of::<i32>() as u32,
+            )
+        };
+        if result != 0 {
+            log::debug!("window:transitions-not-disabled hresult={result:#x}");
+        }
+    }
+    #[cfg(not(windows))]
+    let _ = window;
 }
 
 /// Centers the window over the main window while that is in view, and on the

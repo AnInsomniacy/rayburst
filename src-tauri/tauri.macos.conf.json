@@ -15,6 +15,7 @@
         "decorations": true,
         "hiddenTitle": true,
         "titleBarStyle": "Overlay",
+        "transparent": true,
         "visible": false,
         "center": true,
         "shadow": true

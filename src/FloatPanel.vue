@@ -2,10 +2,10 @@
 /**
  * @fileoverview The panel beside the floating orb (#669, #718, #402).
  *
- * A click on the orb builds it; it shows itself beside the orb once it has
- * its first snapshot, lists the downloads with their pieces and lets each be
- * paused or resumed. It closes, and is destroyed, when it loses the focus, on
- * Esc, or on another click on the orb. Dragging its header takes the orb along.
+ * Built hidden with the orb. A click on the orb opens it centered beside the
+ * orb, out of which it grows; it lists the downloads with their pieces and
+ * lets each be paused or resumed. It closes when it loses the focus, on Esc, or
+ * on another click on the orb. Dragging its header takes the orb along.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -18,7 +18,7 @@ import aria2Api from '@/api/aria2'
 import SegmentBar from '@/components/task/SegmentBar.vue'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 import { useFloatUpdates } from '@/composables/useFloatUpdates'
-import { usePlatform } from '@/composables/usePlatform'
+import { afterReveal, nextFrame, reducedMotion } from '@/composables/useWindowReveal'
 import { usePreferenceStore } from '@/stores/preference'
 import { TASK_STATUS } from '@shared/constants'
 import {
@@ -33,23 +33,30 @@ import { getErrorMessage } from '@shared/utils/errorMessage'
 import { logger } from '@shared/logger'
 import type { Aria2Task } from '@shared/types'
 
+interface PanelSide {
+  above: boolean
+}
+
+/** Duration of the leave animation: `--dialog-leave`. */
+const LEAVE_MS = 170
+
 const { t } = useI18n()
 const preferenceStore = usePreferenceStore()
-const { isLinux } = usePlatform()
 const view = getCurrentWebviewWindow()
 const root = ref<HTMLElement | null>(null)
-/** How long the panel waits for its first snapshot before showing without it. */
-const SNAPSHOT_WAIT_MS = 400
-
-const shown = ref(false)
+const phase = ref<'hidden' | 'shown' | 'leaving'>('hidden')
+const side = ref<PanelSide>({ above: true })
 const busy = ref(false)
 const unlisteners: UnlistenFn[] = []
+/** Counts openings and closings, so a superseded one stops where it is. */
+let generation = 0
 
 const { update } = useFloatUpdates()
 
 const zoom = computed(() => preferenceStore.config.uiScale || 1)
 const tasks = computed(() => update.value?.tasks ?? [])
 const anyActive = computed(() => (update.value?.stat.numActive ?? 0) > 0)
+const origin = computed(() => `${side.value.above ? 'bottom' : 'top'} center`)
 
 useEscapeKey(() => dismiss())
 
@@ -77,32 +84,56 @@ function metaOf(task: Aria2Task): string {
 
 // ── Open and close ──────────────────────────────────────────────────
 
-/** Sizes the window to the content, which the desktop places beside the orb and shows. */
-async function present(): Promise<boolean> {
+/** Sizes the window to the card, which the desktop places beside the orb. */
+async function present(): Promise<PanelSide | null> {
   const element = root.value
-  if (!element) return false
+  if (!element) return null
   const rect = element.getBoundingClientRect()
-  return invoke('float_panel_present', {
+  return invoke<PanelSide>('float_panel_present', {
     width: Math.ceil(rect.width * zoom.value),
     height: Math.ceil(rect.height * zoom.value),
+  }).catch((error: unknown) => {
+    logger.warn('FloatPanel.present', getErrorMessage(error))
+    return null
   })
-    .then(() => true)
-    .catch((error: unknown) => {
-      logger.warn('FloatPanel.present', getErrorMessage(error))
-      return false
-    })
 }
 
-/** Shows the panel once, sized to its first content. */
 async function open() {
-  if (shown.value) return
-  shown.value = true
-  // Measured once its fonts are in, so the shown panel does not grow and move.
+  const run = ++generation
+  phase.value = 'hidden'
+  // Measured once its fonts are in, so the shown card does not grow and move.
   await Promise.all([nextTick(), document.fonts.ready])
-  if (!(await present())) dismiss()
+  const placed = await present()
+  if (run !== generation) return
+  if (!placed) {
+    dismiss()
+    return
+  }
+  side.value = placed
+  // Let the shown window paint the card's start state before it grows in.
+  await afterReveal()
+  if (run !== generation) return
+  phase.value = 'shown'
+  // Rows that changed while it opened were not followed yet.
+  scheduleRefit()
 }
 
-/** Asks the desktop to close the panel, which destroys this window. */
+async function close() {
+  const run = ++generation
+  if (phase.value !== 'hidden') {
+    phase.value = 'leaving'
+    if (!reducedMotion()) await new Promise((resolve) => setTimeout(resolve, LEAVE_MS))
+    if (run !== generation) return
+    // Paint the start state before hiding, so the next opening never flashes this one.
+    phase.value = 'hidden'
+    await nextFrame()
+    await nextFrame()
+    if (run !== generation) return
+  }
+  await view.hide().catch((error: unknown) => logger.debug('FloatPanel.hide', getErrorMessage(error)))
+}
+
+/** Asks the desktop to close the panel; it answers with the close event. */
 function dismiss() {
   invoke('float_panel_dismiss').catch((error: unknown) => logger.debug('FloatPanel.dismiss', getErrorMessage(error)))
 }
@@ -113,10 +144,11 @@ function dismiss() {
  */
 let refit = 0
 function scheduleRefit() {
-  if (!shown.value || refit) return
-  refit = requestAnimationFrame(() => {
+  if (phase.value !== 'shown' || refit) return
+  refit = requestAnimationFrame(async () => {
     refit = 0
-    void present()
+    const placed = await present()
+    if (placed) side.value = placed
   })
 }
 const resizeObserver = new ResizeObserver(scheduleRefit)
@@ -158,22 +190,12 @@ onMounted(async () => {
   document.documentElement.classList.add('float-window-document')
   if (root.value) resizeObserver.observe(root.value)
   unlisteners.push(
+    await view.listen('float-panel:open', () => void open()),
+    await view.listen('float-panel:close', () => void close()),
     await view.onFocusChanged(({ payload: focused }) => {
-      if (!focused && shown.value) dismiss()
+      if (!focused && phase.value !== 'hidden') dismiss()
     }),
   )
-  // The desktop sends a snapshot as soon as the page listens.
-  if (!update.value) {
-    await new Promise<void>((resolve) => {
-      const timer = setTimeout(resolve, SNAPSHOT_WAIT_MS)
-      const stop = watch(update, () => {
-        clearTimeout(timer)
-        stop()
-        resolve()
-      })
-    })
-  }
-  await open()
 })
 
 onBeforeUnmount(() => {
@@ -184,8 +206,8 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="root" class="float-panel" :class="{ 'float-panel--bordered': isLinux }">
-    <section class="panel-card">
+  <div ref="root" class="float-panel" :class="`float-panel--${phase}`">
+    <section class="panel-card" :style="{ transformOrigin: origin }">
       <header class="panel-header" data-tauri-drag-region>
         <img class="panel-logo" src="/logo.svg" alt="" draggable="false" data-tauri-drag-region />
         <span class="panel-title" data-tauri-drag-region>Rayburst</span>
@@ -199,10 +221,11 @@ onBeforeUnmount(() => {
 
       <ul v-if="tasks.length" class="panel-list">
         <li
-          v-for="task in tasks"
+          v-for="(task, index) in tasks"
           :key="task.gid"
           class="panel-row"
           :class="[`panel-row--${task.status}`, { 'panel-row--seeding': seeds(task) }]"
+          :style="{ '--row': Math.min(index, 8) }"
           @click="openMain"
         >
           <div class="panel-row-head">
@@ -266,9 +289,11 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-/* The window is sized to the card; the system draws its frame. */
+/* The margin holds the card's shadow inside the transparent window;
+ * `PANEL_INSET` in float_window.rs. */
 .float-panel {
   display: inline-flex;
+  padding: 12px;
   user-select: none;
 }
 
@@ -277,13 +302,30 @@ onBeforeUnmount(() => {
   flex-direction: column;
   width: 320px;
   overflow: hidden;
+  border-radius: var(--radius-xl);
   background: var(--main-bg);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--m3-outline-variant) 80%, transparent),
+    0 2px 4px var(--m3-shadow),
+    0 10px 24px -6px var(--m3-shadow);
   color: var(--m3-on-surface);
+  transition:
+    opacity var(--dialog-fade) cubic-bezier(0.2, 0, 0, 1),
+    transform var(--dialog-enter) var(--dialog-ease-enter);
 }
 
-/* GTK draws no frame around a window without decorations. */
-.float-panel--bordered .panel-card {
-  box-shadow: inset 0 0 0 1px var(--m3-outline-variant);
+.float-panel--hidden .panel-card {
+  opacity: 0;
+  transform: scale(0.92);
+  transition: none;
+}
+
+.float-panel--leaving .panel-card {
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity var(--dialog-leave) var(--dialog-ease-leave),
+    transform var(--dialog-leave) var(--dialog-ease-leave);
 }
 
 /* ── Header ───────────────────────────────────────────────────────── */
@@ -338,6 +380,19 @@ onBeforeUnmount(() => {
 
 .panel-row:hover {
   background: color-mix(in srgb, var(--m3-on-surface) 4%, transparent);
+}
+
+/* Rows settle in one after another as the panel opens. */
+.float-panel--shown .panel-row {
+  animation: panel-row-in 260ms var(--dialog-ease-enter) both;
+  animation-delay: calc(40ms + var(--row) * 20ms);
+}
+
+@keyframes panel-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 }
 
 .panel-row-head {

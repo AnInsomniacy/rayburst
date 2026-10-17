@@ -25,7 +25,6 @@ pub mod frontend_action;
 pub mod http_api;
 pub mod media;
 pub mod monitor;
-pub mod native_window;
 pub mod notification;
 pub mod post_download;
 pub mod power;

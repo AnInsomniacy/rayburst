@@ -171,19 +171,6 @@ pub fn float_window_ready(app: AppHandle) {
     crate::services::pump::wake(&app);
 }
 
-/// Paints the calling window in its theme's background, which also starts the
-/// windows built later.
-#[tauri::command]
-pub fn window_background(
-    window: tauri::WebviewWindow,
-    red: u8,
-    green: u8,
-    blue: u8,
-) -> Result<(), AppError> {
-    crate::services::native_window::set_background(&window, (red, green, blue))
-        .map_err(|error| AppError::Io(format!("window background: {error}")))
-}
-
 /// Switches the floating window's mode from its menu.
 #[tauri::command]
 pub fn float_window_set_mode(
@@ -207,7 +194,11 @@ pub fn float_panel_dismiss(app: AppHandle) {
 
 /// Places the floating panel, sized to its content, beside the orb and shows it.
 #[tauri::command]
-pub fn float_panel_present(app: AppHandle, width: f64, height: f64) -> Result<(), AppError> {
+pub fn float_panel_present(
+    app: AppHandle,
+    width: f64,
+    height: f64,
+) -> Result<crate::services::float_window::PanelSide, AppError> {
     crate::services::float_window::present_panel(&app, width, height)
 }
 
