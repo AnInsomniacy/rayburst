@@ -84,11 +84,21 @@ export function buildBtFileTree(files: BtFileSelectionItem[]): BtFileTreeRow[] {
   return sortFoldersFirst(compact(root))
 }
 
-/** Built-in category of a file name, or null when no category lists its extension. */
-export function btFileType(name: string): BtFileType | null {
+/** Extension of a file name; a part of a split archive (`.7z.001`, `.z01`, `.r00`) goes by the archive's (#736). */
+function archiveExtension(name: string): string | null {
   const dot = name.lastIndexOf('.')
   if (dot <= 0) return null
   const extension = name.slice(dot + 1).toLowerCase()
+  if (/^\d{3}$/.test(extension)) return archiveExtension(name.slice(0, dot)) ?? extension
+  if (/^z\d\d$/.test(extension)) return 'zip'
+  if (/^r\d\d$/.test(extension)) return 'rar'
+  return extension
+}
+
+/** Built-in category of a file name, or null when no category lists its extension. */
+export function btFileType(name: string): BtFileType | null {
+  const extension = archiveExtension(name)
+  if (!extension) return null
   return (
     BUILTIN_CATEGORY_TEMPLATES.find((template) => (template.extensions as readonly string[]).includes(extension))
       ?.label ?? null

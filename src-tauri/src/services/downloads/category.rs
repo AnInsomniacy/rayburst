@@ -71,17 +71,43 @@ pub fn directory(base: &str, category: &Category) -> Result<String, AppError> {
     Ok(crate::engine::path_to_safe_string(&resolved))
 }
 
-fn extension(value: &str) -> String {
-    let name = match url::Url::parse(value) {
+/// The extensions a file goes by: its own, and for a part of a split archive
+/// (`.7z.001`, `.z01`, `.r00`) the archive's, so it lands with the archive
+/// (#736).
+fn extensions(value: &str) -> Vec<String> {
+    let name = file_name(value);
+    let own = lower_extension(&name);
+    let digits = |text: &str| !text.is_empty() && text.bytes().all(|byte| byte.is_ascii_digit());
+    let archive = if own.len() == 3 && digits(&own) {
+        Path::new(&name)
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .map(lower_extension)
+            .filter(|inner| !inner.is_empty())
+    } else if own.len() == 3 && own.starts_with('z') && digits(&own[1..]) {
+        Some("zip".to_owned())
+    } else if own.len() == 3 && own.starts_with('r') && digits(&own[1..]) {
+        Some("rar".to_owned())
+    } else {
+        None
+    };
+    std::iter::once(own).chain(archive).collect()
+}
+
+fn file_name(value: &str) -> String {
+    match url::Url::parse(value) {
         Ok(url) if matches!(url.scheme(), "http" | "https" | "sftp") => {
             urlencoding::decode(url.path())
                 .map(std::borrow::Cow::into_owned)
                 .unwrap_or_else(|_| url.path().to_owned())
         }
-        Ok(url) if matches!(url.scheme(), "magnet" | "data" | "blob") => return String::new(),
+        Ok(url) if matches!(url.scheme(), "magnet" | "data" | "blob") => String::new(),
         _ => value.to_owned(),
-    };
-    Path::new(&name)
+    }
+}
+
+fn lower_extension(name: &str) -> String {
+    Path::new(name)
         .extension()
         .and_then(|value| value.to_str())
         .unwrap_or("")
@@ -140,15 +166,13 @@ pub fn resolve(
         .iter()
         .filter(|candidate| !candidate.path.trim().is_empty())
     {
-        let ext = extension(&candidate.path);
+        let names = extensions(&candidate.path);
         let category = compiled.iter().find(|(category, patterns)| {
             !(category.extensions.is_empty() && patterns.is_empty())
                 && (category.extensions.is_empty()
                     || category.extensions.iter().any(|value| {
-                        value
-                            .trim()
-                            .trim_start_matches('.')
-                            .eq_ignore_ascii_case(&ext)
+                        let value = value.trim().trim_start_matches('.');
+                        names.iter().any(|name| value.eq_ignore_ascii_case(name))
                     }))
                 && (patterns.is_empty()
                     || candidate
@@ -292,10 +316,21 @@ mod tests {
 
     #[test]
     fn filenames_are_text_and_only_url_paths_are_decoded() {
-        assert_eq!(extension("https://example.test/file%2Epdf?x=1"), "pdf");
-        assert_eq!(extension("file%2Epdf"), "");
-        assert_eq!(extension("magnet:?dn=file.pdf"), "");
-        assert_eq!(extension(".gitignore"), "");
-        assert_eq!(extension("archive.tar.gz"), "gz");
+        assert_eq!(extensions("https://example.test/file%2Epdf?x=1"), ["pdf"]);
+        assert_eq!(extensions("file%2Epdf"), [""]);
+        assert_eq!(extensions("magnet:?dn=file.pdf"), [""]);
+        assert_eq!(extensions(".gitignore"), [""]);
+        assert_eq!(extensions("archive.tar.gz"), ["gz"]);
+    }
+
+    #[test]
+    fn parts_of_split_archives_go_by_the_archive() {
+        assert_eq!(extensions("backup.7z.001"), ["001", "7z"]);
+        assert_eq!(extensions("https://example.test/a.zip.002"), ["002", "zip"]);
+        assert_eq!(extensions("disk.z01"), ["z01", "zip"]);
+        assert_eq!(extensions("disk.R00"), ["r00", "rar"]);
+        assert_eq!(extensions("track.001"), ["001"]);
+        assert_eq!(extensions("movie.mp4"), ["mp4"]);
+        assert_eq!(extensions("photo.zip"), ["zip"]);
     }
 }

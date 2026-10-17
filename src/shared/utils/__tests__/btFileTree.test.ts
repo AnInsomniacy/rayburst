@@ -53,6 +53,13 @@ describe('file type groups', () => {
     expect(btFileType('.hidden')).toBeNull()
   })
 
+  it('files parts of split archives with the archive', () => {
+    expect(btFileType('backup.7z.001')).toBe('file-category-archives')
+    expect(btFileType('disk.z01')).toBe('file-category-archives')
+    expect(btFileType('disk.R00')).toBe('file-category-archives')
+    expect(btFileType('track.001')).toBeNull()
+  })
+
   it('groups indices in category order and skips empty categories', () => {
     expect(groupBtFilesByType(files)).toEqual([
       { type: 'file-category-videos', indices: [1, 3] },
