@@ -212,9 +212,10 @@ Every new download is confirmed in the standalone add-task window
 starts, forwards what it receives once the engine runs. The add window is
 built hidden as soon as the main window is up; closing it only hides it, so it
 appears without loading a webview. When lightweight mode releases the main
-window into the tray, the hidden add window goes with it, so no webview stays
-behind (#735); a download arriving then builds the window, and closing it
-destroys it again. It receives later
+window into the tray, every webview goes with it: the hidden add window and
+the floating orb, so no webview stays behind (#735). A download arriving then
+builds the add window, and closing it destroys it again; the orb returns with
+the main window. It receives later
 handoffs while open and is put away after submission without raising the main
 window. Auto-submitted downloads use it invisibly and put it away when the engine
 accepted them. If it fails to open, its inputs wait for the next request.

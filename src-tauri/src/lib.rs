@@ -898,6 +898,8 @@ pub fn run() {
                     services::add_window::destroyed(window.app_handle());
                 } else if window.label() == "main" {
                     services::add_window::main_window_destroyed(window.app_handle());
+                    // The orb goes with it at once, not on the next tick.
+                    services::pump::wake(window.app_handle());
                 }
             }
             _ => {}

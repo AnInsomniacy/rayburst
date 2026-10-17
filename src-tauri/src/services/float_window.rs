@@ -176,12 +176,19 @@ impl FloatWindow {
         }
     }
 
+    /// Lightweight mode releases every webview into the tray: without the
+    /// main window there is no orb either, until the main window returns.
     fn wanted(&self, app: &AppHandle, mode: Mode, tasks: &[Aria2Task]) -> bool {
         let busy = tasks.iter().any(downloading) || panel().open;
         let mut quiet = self
             .quiet_since
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mode = if app.get_webview_window("main").is_some() {
+            mode
+        } else {
+            Mode::Off
+        };
         wants_orb(mode, busy, exists(app), &mut quiet, Instant::now())
     }
 

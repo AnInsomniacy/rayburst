@@ -50,7 +50,7 @@ Every transition and micro-interaction has been carefully tuned to follow [Mater
 - **Concurrent downloads** — Independent limits for active tasks, stream connections, and BitTorrent peers
 - **Speed control** — Global and per-task upload/download limits with day-of-week and time-of-day scheduling
 - **System integration** — Tray operation, optional tray speed display, macOS Dock badge/progress, protocol handlers for `magnet://`, `ed2k://`, `thunder://`, and `rayburst://`
-- **Lightweight mode** — Destroys the WebView on minimize-to-tray while Rust keeps the engine, task monitor, notifications, history, and extension routing alive
+- **Lightweight mode** — Destroys every WebView, the floating orb included, on minimize-to-tray while Rust keeps the engine, task monitor, notifications, history, and extension routing alive
 - **Notifications and power options** — Native task start/complete/failure notifications, keep-awake during downloads, and optional shutdown after completion
 - **Network controls** — Scoped proxy support for downloads, app updates, and tracker updates, plus system proxy detection
 - **Auto-update channels** — Stable, Beta, and Latest Across Channels policies with separate download and install phases
