@@ -251,6 +251,15 @@ pub fn request_main_window(app: &AppHandle, source: &'static str, visible: bool)
             if created {
                 crate::restore_window_state_if_enabled(&handle, &window);
                 log::info!("tray:window-recreated label=main");
+                // A rebuilt window is transparent until its page paints; the
+                // page shows it then, as on a cold start.
+                #[cfg(target_os = "macos")]
+                if visible {
+                    if let Err(e) = handle.set_activation_policy(tauri::ActivationPolicy::Regular) {
+                        log::warn!("window:activate-policy-failed source={source} error={e}");
+                    }
+                }
+                return;
             }
             if visible {
                 activate_main_window(&window, source);

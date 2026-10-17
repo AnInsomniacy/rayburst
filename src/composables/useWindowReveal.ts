@@ -37,6 +37,20 @@ export async function afterReveal(): Promise<void> {
   await nextFrame()
 }
 
+/** Longest wait for a hidden page to paint before its window shows anyway. */
+const PAINT_TIMEOUT_MS = 150
+
+/**
+ * Resolves once the page has painted, so a transparent window shows its content
+ * rather than nothing; a hidden page that paints no frames shows after a moment.
+ */
+export function painted(): Promise<void> {
+  return Promise.race([
+    nextFrame().then(nextFrame),
+    new Promise<void>((resolve) => setTimeout(resolve, PAINT_TIMEOUT_MS)),
+  ])
+}
+
 /** Whether the user asked for reduced motion. */
 export function reducedMotion(): boolean {
   return document.documentElement.classList.contains('reduce-motion')

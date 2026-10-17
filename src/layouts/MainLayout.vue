@@ -25,6 +25,7 @@ import { useDatabaseReset } from '@/composables/useDatabaseReset'
 import aria2Api from '@/api/aria2'
 import { usePlatform } from '@/composables/usePlatform'
 import { useEscapeKey } from '@/composables/useEscapeKey'
+import { painted } from '@/composables/useWindowReveal'
 import { throttledResizeHandler, cancelPendingResize } from '@/layouts/resizeThrottle'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import PreferenceActionBar from '@/components/preference/PreferenceActionBar.vue'
@@ -466,6 +467,8 @@ onMounted(async () => {
     )
     if (!shouldHide) {
       const appWindow = getCurrentWindow()
+      // The window is transparent: show it once the layout has painted, not before.
+      await painted()
       await appWindow.show()
       await appWindow.setFocus()
     } else {
