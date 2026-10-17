@@ -8,6 +8,9 @@
 //! Every webview repaints whole frames: WebKitGTK 2.54 composites only the
 //! damaged regions, and on surfaces that keep no previous frame (without
 //! DMA-BUF) the rest of the window stays blank (#650, #705).
+//!
+//! Wayland lets no client place its windows or keep them on top (tao#1134),
+//! which the floating orb needs; with the orb on, the app runs under XWayland.
 
 #[cfg(target_os = "linux")]
 use std::io::Write;
@@ -42,6 +45,18 @@ fn guard_log(message: &str) {
             let _ = writeln!(file, "[{timestamp}][INFO][gpu_guard] {message}");
         }
     }
+}
+
+/// Whether the floating orb shows at all, the `floatWindow` preference.
+#[cfg(any(target_os = "linux", test))]
+fn read_float_window_from_config(data_dir: &std::path::Path) -> bool {
+    (|| -> Option<bool> {
+        let content = std::fs::read_to_string(data_dir.join("config.json")).ok()?;
+        let json: serde_json::Value = serde_json::from_str(&content).ok()?;
+        let mode = json.get("preferences")?.get("floatWindow")?.as_str()?;
+        Some(matches!(mode, "always" | "downloading"))
+    })()
+    .unwrap_or(false)
 }
 
 #[cfg(any(target_os = "linux", test))]
@@ -87,6 +102,22 @@ fn disable_dmabuf_renderer_with_marker() {
 
 #[cfg(target_os = "linux")]
 pub fn pre_flight() {
+    // A backend chosen by the launching environment is kept.
+    // GDK picks Wayland when a Wayland display is set; some sessions (WSLg)
+    // set no XDG_SESSION_TYPE.
+    let wayland_display =
+        std::env::var_os("WAYLAND_DISPLAY").is_some_and(|value| !value.is_empty());
+    if std::env::var_os("GDK_BACKEND").is_none()
+        && (wayland_display || std::env::var("XDG_SESSION_TYPE").as_deref() == Ok("wayland"))
+        && std::env::var_os("DISPLAY").is_some()
+        && data_dir().is_some_and(|dir| read_float_window_from_config(&dir))
+    {
+        // SAFETY: Called before Tauri and its worker threads are initialized.
+        unsafe {
+            std::env::set_var("GDK_BACKEND", "x11");
+        }
+        guard_log("gpu_guard: floating window on Wayland, running under XWayland (tao#1134)");
+    }
     // NVIDIA's EGL Wayland path can enable explicit sync before GTK supplies
     // an acquire point. Disable only that driver feature.
     let wayland = std::env::var("GDK_BACKEND").map_or_else(
@@ -301,6 +332,21 @@ mod tests {
         ] {
             std::fs::write(dir.path().join("config.json"), config).unwrap();
             assert_eq!(read_software_rendering_from_config(dir.path()), enabled);
+        }
+    }
+
+    #[test]
+    fn only_a_shown_floating_window_asks_for_xwayland() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(!read_float_window_from_config(dir.path()));
+        for (config, enabled) in [
+            (r#"{"preferences":{"floatWindow":"always"}}"#, true),
+            (r#"{"preferences":{"floatWindow":"downloading"}}"#, true),
+            (r#"{"preferences":{"floatWindow":"off"}}"#, false),
+            (r#"{"preferences":{}}"#, false),
+        ] {
+            std::fs::write(dir.path().join("config.json"), config).unwrap();
+            assert_eq!(read_float_window_from_config(dir.path()), enabled);
         }
     }
 }
