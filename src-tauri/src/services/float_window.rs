@@ -228,7 +228,7 @@ fn build(
 ) -> tauri::Result<WebviewWindow> {
     let window = WebviewWindowBuilder::from_config(app, &config?)?.build()?;
     super::native_window::hide_window_buttons(&window);
-    super::native_window::prepare(&window, super::native_window::Motion::Palette);
+    super::native_window::prepare(&window);
     log::info!("float_window:opened label={}", window.label());
     Ok(window)
 }

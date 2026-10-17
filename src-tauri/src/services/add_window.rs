@@ -265,7 +265,7 @@ fn open(app: &AppHandle, source: &'static str) {
             .and_then(WebviewWindowBuilder::build);
         match built {
             Ok(window) => {
-                super::native_window::prepare(&window, super::native_window::Motion::Dialog);
+                super::native_window::prepare(&window);
                 log::info!("add_window:opened source={source}");
                 tauri::async_runtime::spawn(expect_ready(app, generation, source));
             }

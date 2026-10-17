@@ -10,10 +10,10 @@
 //!
 //! - Windows animates windows as they show and as they are destroyed.
 //! - macOS infers an animation from a window's kind and finds none for a
-//!   floating window, so each window is told its kind. It fades a window out
-//!   only while ordering it out with its content, and destroying the window
-//!   removes the webview first; a closing window is ordered out and destroyed
-//!   once its fade is over.
+//!   floating window, so every window takes the quiet fade of a utility
+//!   window. It fades a window out only while ordering it out with its
+//!   content, and destroying the window removes the webview first; a closing
+//!   window is ordered out and destroyed once its fade is over.
 //! - On Linux the compositor animates windows on GNOME, KDE and their kin.
 //!   Elsewhere a window fades its own opacity in and out, which X11
 //!   compositors honor; without one it simply appears and goes.
@@ -24,15 +24,6 @@ use tauri::utils::config::{Color as ConfigColor, WindowConfig};
 use tauri::window::Color;
 use tauri::{AppHandle, Manager, WebviewWindow};
 
-/// How a window comes and goes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Motion {
-    /// Pops in and fades out, as a dialog does: the add window.
-    Dialog,
-    /// Fades in and out, as a palette does: the floating bar and its panel.
-    Palette,
-}
-
 /// How long macOS takes to fade a window out before it can be destroyed.
 #[cfg(target_os = "macos")]
 const ORDER_OUT: std::time::Duration = std::time::Duration::from_millis(260);
@@ -41,22 +32,13 @@ const ORDER_OUT: std::time::Duration = std::time::Duration::from_millis(260);
 static RETIRING: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
 /// Tells the system how to animate a window built hidden, before it first shows.
-pub fn prepare(window: &WebviewWindow, motion: Motion) {
+pub fn prepare(window: &WebviewWindow) {
     #[cfg(target_os = "macos")]
-    {
-        use objc2_app_kit::{NSWindow, NSWindowAnimationBehavior};
-        let apply: fn(&NSWindow) = match motion {
-            Motion::Dialog => {
-                |window| window.setAnimationBehavior(NSWindowAnimationBehavior::AlertPanel)
-            }
-            Motion::Palette => {
-                |window| window.setAnimationBehavior(NSWindowAnimationBehavior::UtilityWindow)
-            }
-        };
-        on_ns_window(window, apply);
-    }
+    on_ns_window(window, |window| {
+        window.setAnimationBehavior(objc2_app_kit::NSWindowAnimationBehavior::UtilityWindow);
+    });
     #[cfg(not(target_os = "macos"))]
-    let _ = (window, motion);
+    let _ = window;
 }
 
 /// Shows a window and gives it the focus.
