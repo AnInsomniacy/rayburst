@@ -108,18 +108,6 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
     </NCheckbox>
   </NFormItem>
   <NCollapseTransition :show="show">
-    <NFormItem v-if="mediaMode !== undefined" :label="t('media.mode')">
-      <NSelect
-        :value="mediaMode"
-        :options="[
-          { value: 'auto', label: t('media.auto') },
-          { value: 'file', label: t('media.original') },
-          { value: 'hls', label: 'HLS' },
-          { value: 'dash', label: 'DASH' },
-        ]"
-        @update:value="(value) => $emit('update:mediaMode', value)"
-      />
-    </NFormItem>
     <div>
       <NFormItem :label="t('task.task-user-agent') + ':'">
         <div class="ua-field-wrapper">
@@ -179,6 +167,18 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
           @update:value="$emit('update:checksum', $event)"
         />
       </NFormItem>
+      <NFormItem v-if="mediaMode !== undefined" :label="t('media.mode') + ':'">
+        <NSelect
+          :value="mediaMode"
+          :options="[
+            { value: 'auto', label: t('media.auto') },
+            { value: 'file', label: t('media.original') },
+            { value: 'hls', label: 'HLS' },
+            { value: 'dash', label: 'DASH' },
+          ]"
+          @update:value="(value) => $emit('update:mediaMode', value)"
+        />
+      </NFormItem>
       <!-- One place for credentials: HTTP authentication, or a raw Authorization header. -->
       <NFormItem :label="t('task.task-authorization') + ':'">
         <div class="http-auth-fields">
@@ -196,9 +196,6 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
               @update:value="$emit('update:httpAuthPassword', $event)"
             />
           </div>
-          <NCheckbox :checked="saveHttpAuth" @update:checked="$emit('update:saveHttpAuth', $event)">
-            {{ t('task.task-http-auth-save') }}
-          </NCheckbox>
           <NInputGroup>
             <NInputGroupLabel>Authorization</NInputGroupLabel>
             <NInput
@@ -207,6 +204,9 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
               @update:value="$emit('update:authorization', $event)"
             />
           </NInputGroup>
+          <NCheckbox :checked="saveHttpAuth" @update:checked="$emit('update:saveHttpAuth', $event)">
+            {{ t('task.task-http-auth-save') }}
+          </NCheckbox>
         </div>
       </NFormItem>
       <NFormItem :label="t('task.task-referer') + ':'">
