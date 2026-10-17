@@ -272,7 +272,8 @@ fn without_fragment(uri: &str) -> &str {
     uri.split_once('#').map_or(uri, |(base, _)| base)
 }
 
-/// Finds unfinished tasks for `uris` and finished ones whose file still exists.
+/// Finds tasks for `uris`: unfinished ones and those downloaded before, even
+/// when their files have since been moved or deleted (#545).
 #[tauri::command]
 pub async fn tasks_find_duplicates(
     state: State<'_, TaskServiceState>,
@@ -306,11 +307,7 @@ pub async fn tasks_find_duplicates(
         let Some(uri) = record.uri.as_deref().and_then(|uri| wanted.get(uri)) else {
             continue;
         };
-        let exists = record
-            .dir
-            .as_deref()
-            .is_some_and(|dir| Path::new(dir).join(&record.name).exists());
-        if exists && reported.insert(*uri) {
+        if reported.insert(*uri) {
             found.push(DuplicateTask {
                 uri: (*uri).to_owned(),
                 gid: record.gid,
