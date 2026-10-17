@@ -4428,7 +4428,6 @@ dependencies = [
  "fluent-langneg",
  "futures-util",
  "gio",
- "gtk",
  "ipnet",
  "keepawake",
  "ksni",

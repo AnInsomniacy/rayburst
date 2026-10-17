@@ -1,16 +1,17 @@
 <script setup lang="ts">
 /**
- * @fileoverview The floating bar (#669, #718, #402, #726).
+ * @fileoverview The floating orb (#669, #718, #402, #726).
  *
- * A 132 × 36 window that stays on top; the system rounds and shadows it. Its
- * background fills with the overall progress like a gauge, under the received
- * speed and the percentage while downloading, the sent speed while only
- * seeding, and otherwise what the queue waits for: servers, its turn, or the
- * user. A check follows the last download, the Rayburst mark rests in it, and
- * a dot marks an error. Only bytes arriving move it: a download of unknown
- * size sweeps its fill, everything else holds still. A click opens the panel beside it, dragging moves it, links and
- * torrents dropped on it open the add window, and its context menu reaches the
- * main window and switches when it shows. The window never changes its size.
+ * A 52 px window that stays on top; the system rounds and shadows it. It fills
+ * from the bottom with the overall progress, like a level, under the received
+ * speed while downloading and the sent speed while only seeding; otherwise its
+ * sign tells what the queue waits for: servers, its turn, or the user. A check
+ * follows the last download, the Rayburst mark rests in it, and a dot marks an
+ * error. Only bytes arriving move it: a download of unknown size sends a
+ * swell up its fill, everything else holds still. A click opens the panel
+ * beside it, dragging moves it, links and torrents dropped on it open the add
+ * window, and its context menu reaches the main window and switches when it
+ * shows. The window never changes its size.
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -28,7 +29,7 @@ import { usePreferenceStore } from '@/stores/preference'
 import { FLOAT_WINDOW_MODE_LABELS, FLOAT_WINDOW_MODES, TASK_STATUS } from '@shared/constants'
 import { bytesToSize } from '@shared/utils'
 import { createBatchItem, detectKind, encodeBase64, normalizeUriLines } from '@shared/utils/batchHelpers'
-import { floatBarState, type FloatBarKind } from '@shared/utils/floatBar'
+import { floatOrbState, type FloatOrbKind } from '@shared/utils/floatOrb'
 import { detectResource } from '@shared/utils/resource'
 import { getErrorMessage } from '@shared/utils/errorMessage'
 import { logger } from '@shared/logger'
@@ -41,7 +42,7 @@ const DONE_MS = 1600
 /** Length of the flash greeting a new download. */
 const PULSE_MS = 700
 
-type Face = FloatBarKind | 'drop'
+type Face = FloatOrbKind | 'drop'
 
 const ICONS: Record<Exclude<Face, 'idle'>, Component> = {
   downloading: ArrowDown,
@@ -61,7 +62,7 @@ const root = ref<HTMLElement | null>(null)
 const pulsing = ref(false)
 const done = ref(false)
 const failed = ref(false)
-/** Something droppable is dragged over the bar. */
+/** Something droppable is dragged over the orb. */
 const dropping = ref(false)
 const unlisteners: UnlistenFn[] = []
 let known: Set<string> | null = null
@@ -72,13 +73,13 @@ let press: { x: number; y: number } | null = null
 const { update } = useFloatUpdates(greetNewDownloads)
 
 const zoom = computed(() => preferenceStore.config.uiScale || 1)
-const state = computed(() => floatBarState(update.value, done.value))
+const state = computed(() => floatOrbState(update.value, done.value))
 const face = computed<Face>(() => (dropping.value ? 'drop' : state.value.kind))
 const active = computed(() => state.value.kind === 'downloading' || state.value.kind === 'connecting')
 
 const speed = computed(() => {
   const [value = '0', unit = ''] = bytesToSize(state.value.speed).split(' ')
-  return { value, unit: `${unit}/s` }
+  return { value, unit: `${face.value === 'seeding' ? '↑ ' : ''}${unit}/s` }
 })
 const showsSpeed = computed(() => face.value === 'downloading' || face.value === 'seeding')
 const label = computed(() => {
@@ -97,13 +98,11 @@ const label = computed(() => {
       return 'Rayburst'
   }
 })
-/** How far the downloads got; a full fill speaks for itself. */
-const aside = computed(() => {
-  const { kind, progress } = state.value
-  if (face.value === 'drop' || progress == null) return ''
-  return kind === 'downloading' || kind === 'connecting' || kind === 'waiting' || kind === 'paused'
-    ? `${Math.floor(progress)}%`
-    : ''
+/** How far a queue that waits got, under its sign. */
+const percent = computed(() => {
+  const { progress } = state.value
+  const waits = face.value === 'connecting' || face.value === 'waiting' || face.value === 'paused'
+  return waits && progress != null ? `${Math.floor(progress)}%` : ''
 })
 /** Bytes arrive for a download whose size is unknown. */
 const sweeping = computed(() => face.value === 'downloading' && state.value.progress == null)
@@ -115,6 +114,7 @@ const tooltip = computed(() => {
   if (!stat) return 'Rayburst'
   const { kind, count, progress } = state.value
   return [
+    showsSpeed.value || face.value === 'idle' ? '' : label.value,
     `↓ ${bytesToSize(stat.downloadSpeed)}/s   ↑ ${bytesToSize(stat.uploadSpeed)}/s`,
     active.value ? `${t('task.status-active')} ${count}` : '',
     kind === 'seeding' ? `${t('task.seeding')} ${count}` : '',
@@ -147,18 +147,18 @@ function celebrate() {
   doneTimer = setTimeout(() => (done.value = false), DONE_MS)
 }
 
-/** Fits the window to the bar at the current interface size. */
+/** Fits the window to the orb at the current interface size. */
 function fit() {
   const element = root.value
   if (!element) return
   const rect = element.getBoundingClientRect()
   view
     .setSize(new LogicalSize(Math.ceil(rect.width * zoom.value), Math.ceil(rect.height * zoom.value)))
-    .catch((error: unknown) => logger.debug('FloatBar.fit', getErrorMessage(error)))
+    .catch((error: unknown) => logger.debug('FloatWindow.fit', getErrorMessage(error)))
 }
 
 const resizeObserver = new ResizeObserver(fit)
-// The interface size scales the bar without changing its CSS size.
+// The interface size scales the orb without changing its CSS size.
 watch(zoom, fit)
 
 // ── Pointer ─────────────────────────────────────────────────────────
@@ -172,9 +172,9 @@ function onPointerMove(event: PointerEvent) {
   if (!press) return
   if (Math.hypot(event.screenX - press.x, event.screenY - press.y) < DRAG_THRESHOLD) return
   press = null
-  // The panel opens beside the bar's new place next time.
+  // The panel opens beside the orb's new place next time.
   void invoke('float_panel_dismiss').catch(() => undefined)
-  view.startDragging().catch((error: unknown) => logger.debug('FloatBar.drag', getErrorMessage(error)))
+  view.startDragging().catch((error: unknown) => logger.debug('FloatWindow.drag', getErrorMessage(error)))
 }
 
 function onPointerUp() {
@@ -185,7 +185,7 @@ function onPointerUp() {
 
 function togglePanel() {
   failed.value = false
-  invoke('float_panel_toggle').catch((error: unknown) => logger.warn('FloatBar.panel', getErrorMessage(error)))
+  invoke('float_panel_toggle').catch((error: unknown) => logger.warn('FloatWindow.panel', getErrorMessage(error)))
 }
 
 // ── Drops ───────────────────────────────────────────────────────────
@@ -237,25 +237,25 @@ async function onDrop(event: DragEvent) {
     pulse()
     await invoke('add_window_open', { batch: { links, items } })
   } catch (error) {
-    logger.warn('FloatBar.drop', getErrorMessage(error))
+    logger.warn('FloatWindow.drop', getErrorMessage(error))
   }
 }
 
 // ── Actions ─────────────────────────────────────────────────────────
 
 function openMain() {
-  invoke('float_window_open_main').catch((error: unknown) => logger.warn('FloatBar.open', getErrorMessage(error)))
+  invoke('float_window_open_main').catch((error: unknown) => logger.warn('FloatWindow.open', getErrorMessage(error)))
 }
 
 function toggleAll() {
   const action = active.value ? aria2Api.forcePauseAll() : aria2Api.resumeEligible()
-  action.catch((error: unknown) => logger.warn('FloatBar.toggleAll', getErrorMessage(error)))
+  action.catch((error: unknown) => logger.warn('FloatWindow.toggleAll', getErrorMessage(error)))
 }
 
-/** The desktop saves the mode and opens or closes the bar on its next tick. */
+/** The desktop saves the mode and opens or closes the orb on its next tick. */
 function setMode(mode: FloatWindowMode) {
   invoke('float_window_set_mode', { mode }).catch((error: unknown) =>
-    logger.warn('FloatBar.mode', getErrorMessage(error)),
+    logger.warn('FloatWindow.mode', getErrorMessage(error)),
   )
 }
 
@@ -288,7 +288,7 @@ async function showMenu(event: MouseEvent) {
     })
     await menu.popup()
   } catch (error) {
-    logger.warn('FloatBar.menu', getErrorMessage(error))
+    logger.warn('FloatWindow.menu', getErrorMessage(error))
   }
 }
 
@@ -314,15 +314,15 @@ onBeforeUnmount(() => {
 <template>
   <div
     ref="root"
-    class="float-bar"
+    class="float-window"
     @dragenter="onDragEnter"
     @dragover="onDragOver"
     @dragleave="onDragLeave"
     @drop="onDrop"
   >
     <div
-      class="bar"
-      :class="[`bar--${face}`, { 'bar--pulse': pulsing, 'bar--bordered': isLinux }]"
+      class="orb"
+      :class="[`orb--${face}`, { 'orb--pulse': pulsing, 'orb--bordered': isLinux }]"
       role="button"
       tabindex="0"
       :title="tooltip"
@@ -333,43 +333,44 @@ onBeforeUnmount(() => {
       @keydown.enter.prevent="togglePanel"
       @contextmenu="showMenu"
     >
-      <span class="bar-fill" :class="{ 'bar-fill--sweep': sweeping }" aria-hidden="true">
-        <span class="bar-fill-level" :style="sweeping ? undefined : { width: `${fill}%` }" />
+      <span class="orb-fill" :class="{ 'orb-fill--swell': sweeping }" aria-hidden="true">
+        <span class="orb-fill-level" :style="sweeping ? undefined : { height: `${fill}%` }" />
       </span>
 
-      <Transition name="bar-face">
-        <span :key="face" class="bar-face" :class="{ 'bar-face--centered': !aside }">
-          <img v-if="face === 'idle'" class="bar-icon bar-logo" src="/logo.svg" alt="" draggable="false" />
-          <NIcon v-else class="bar-icon" :size="15" :component="ICONS[face]" />
-          <span v-if="showsSpeed" class="bar-text bar-speed">
-            <span class="bar-speed-value">{{ speed.value }}</span>
-            <span class="bar-speed-unit">{{ speed.unit }}</span>
-          </span>
-          <span v-else class="bar-text">{{ label }}</span>
-          <span v-if="aside" class="bar-aside">{{ aside }}</span>
+      <Transition name="orb-face">
+        <span :key="face" class="orb-face">
+          <img v-if="face === 'idle'" class="orb-logo" src="/logo.svg" alt="" draggable="false" />
+          <template v-else-if="showsSpeed">
+            <span class="orb-speed-value" :data-length="speed.value.length">{{ speed.value }}</span>
+            <span class="orb-speed-unit">{{ speed.unit }}</span>
+          </template>
+          <template v-else>
+            <NIcon class="orb-sign" :size="percent ? 17 : 21" :component="ICONS[face]" />
+            <span v-if="percent" class="orb-percent">{{ percent }}</span>
+          </template>
         </span>
       </Transition>
 
-      <Transition name="bar-dot">
-        <span v-if="failed" class="bar-dot" />
+      <Transition name="orb-dot">
+        <span v-if="failed" class="orb-dot" />
       </Transition>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* The window is sized to the bar; the system draws its corners and shadow. */
-.float-bar {
+/* The window is sized to the orb; the system draws its corners and shadow. */
+.float-window {
   display: inline-flex;
   user-select: none;
 }
 
-.bar {
-  --bar-accent: var(--m3-primary);
+.orb {
+  --orb-accent: var(--m3-primary);
   position: relative;
   display: grid;
-  width: 132px;
-  height: 36px;
+  width: 52px;
+  height: 52px;
   overflow: hidden;
   background: var(--main-bg);
   color: var(--m3-on-surface);
@@ -378,9 +379,9 @@ onBeforeUnmount(() => {
   transition: box-shadow 160ms ease;
 }
 
-/* Hover and press tint the whole bar, as a button does; a new download flashes it. */
-.bar::before,
-.bar::after {
+/* Hover and press tint the whole orb, as a button does; a new download flashes it. */
+.orb::before,
+.orb::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -388,29 +389,29 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
-.bar::before {
+.orb::before {
   background: var(--m3-on-surface);
   transition: opacity 160ms ease;
 }
 
-.bar:hover::before {
+.orb:hover::before {
   opacity: 0.04;
 }
 
-.bar:active::before {
+.orb:active::before {
   opacity: 0.08;
   transition-duration: 80ms;
 }
 
-.bar::after {
+.orb::after {
   background: var(--m3-primary);
 }
 
-.bar--pulse::after {
-  animation: bar-pulse 700ms var(--dialog-ease-enter);
+.orb--pulse::after {
+  animation: orb-pulse 700ms var(--dialog-ease-enter);
 }
 
-@keyframes bar-pulse {
+@keyframes orb-pulse {
   30% {
     opacity: 0.14;
   }
@@ -420,202 +421,176 @@ onBeforeUnmount(() => {
 }
 
 /* GTK draws no frame around a window without decorations. */
-.bar--bordered {
+.orb--bordered {
   box-shadow: inset 0 0 0 1px var(--m3-outline-variant);
 }
 
 /* Something droppable is over it, or it has the keyboard focus. */
-.bar--drop,
-.bar:focus-visible {
+.orb--drop,
+.orb:focus-visible {
   box-shadow: inset 0 0 0 2px var(--m3-primary);
 }
 
-.bar--connecting,
-.bar--paused {
-  --bar-accent: var(--m3-outline);
+.orb--connecting,
+.orb--paused {
+  --orb-accent: var(--m3-outline);
 }
 
-.bar--waiting {
-  --bar-accent: var(--m3-info);
+.orb--waiting {
+  --orb-accent: var(--m3-info);
 }
 
-.bar--seeding,
-.bar--done {
-  --bar-accent: var(--m3-success);
+.orb--seeding,
+.orb--done {
+  --orb-accent: var(--m3-success);
 }
 
 /* ── Fill ─────────────────────────────────────────────────────────── */
 
-/* The progress fills the bar from the left, edged where it stands. */
-.bar-fill {
+/* The progress fills the orb from the bottom, its surface marked. */
+.orb-fill {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
-.bar-fill-level {
+.orb-fill-level {
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 0;
+  inset: auto 0 0;
+  height: 0;
   background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--bar-accent) 8%, transparent),
-    color-mix(in srgb, var(--bar-accent) 20%, transparent)
+    0deg,
+    color-mix(in srgb, var(--orb-accent) 22%, transparent),
+    color-mix(in srgb, var(--orb-accent) 10%, transparent)
   );
-  box-shadow: inset -2px 0 0 color-mix(in srgb, var(--bar-accent) 55%, transparent);
+  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--orb-accent) 55%, transparent);
   transition:
-    width var(--task-motion-progress) var(--task-motion-ease),
+    height var(--task-motion-progress) var(--task-motion-ease),
     background 240ms ease;
 }
 
-/* A full fill needs no edge. */
-.bar--seeding .bar-fill-level,
-.bar--done .bar-fill-level,
-.bar--drop .bar-fill-level {
+/* A full fill needs no surface. */
+.orb--seeding .orb-fill-level,
+.orb--done .orb-fill-level,
+.orb--drop .orb-fill-level {
   box-shadow: none;
 }
 
-/* Bytes arrive but the size is unknown: a band of light sweeps across. */
-.bar-fill--sweep .bar-fill-level {
-  width: 45%;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--bar-accent) 22%, transparent), transparent);
+/* Bytes arrive but the size is unknown: a swell rises through the orb. */
+.orb-fill--swell .orb-fill-level {
+  height: 45%;
+  background: linear-gradient(0deg, transparent, color-mix(in srgb, var(--orb-accent) 22%, transparent), transparent);
   box-shadow: none;
-  animation: bar-sweep 1.6s var(--task-motion-ease) infinite;
+  animation: orb-swell 1.6s var(--task-motion-ease) infinite;
 }
 
-@keyframes bar-sweep {
+@keyframes orb-swell {
   from {
-    translate: -100%;
+    translate: 0 100%;
   }
   to {
-    translate: 225%;
+    translate: 0 -225%;
   }
 }
 
 /* ── Face ─────────────────────────────────────────────────────────── */
 
-.bar-face {
+.orb-face {
   position: relative;
   grid-area: 1 / 1;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 6px;
-  padding: 0 11px 0 10px;
+  align-content: center;
+  justify-items: center;
+  line-height: 1;
   pointer-events: none;
   transition: transform 120ms var(--dialog-ease-enter);
 }
 
-/* Without a figure at its end, the face sits in the middle. */
-.bar-face--centered {
-  grid-template-columns: auto minmax(0, max-content);
-  justify-content: center;
-}
-
 /* A press sinks the face a little, as a button gives under the finger. */
-.bar:active .bar-face {
-  transform: scale(0.96);
+.orb:active .orb-face {
+  transform: scale(0.92);
 }
 
-.bar-icon {
-  color: var(--bar-accent);
+.orb-logo {
+  width: 28px;
+  height: 28px;
 }
 
-.bar--connecting .bar-icon,
-.bar--paused .bar-icon {
-  color: var(--m3-on-surface-variant);
-}
-
-.bar-logo {
-  width: 18px;
-  height: 18px;
-}
-
-.bar-text {
-  min-width: 0;
-  overflow: hidden;
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.bar--connecting .bar-text,
-.bar--waiting .bar-text,
-.bar--paused .bar-text {
-  color: var(--m3-on-surface-variant);
-  font-weight: 500;
-}
-
-.bar-speed {
-  display: flex;
-  align-items: baseline;
-  gap: 3px;
-}
-
-.bar-speed-value {
-  font-size: 14px;
+.orb-speed-value {
+  font-size: 15px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 
-.bar-speed-unit {
-  color: var(--m3-on-surface-variant);
-  font-size: var(--font-size-2xs);
-  font-weight: 500;
+.orb-speed-value[data-length='5'] {
+  font-size: 13.5px;
 }
 
-.bar-aside {
+.orb-speed-unit {
+  margin-top: 2px;
   color: var(--m3-on-surface-variant);
-  font-size: var(--font-size-2xs);
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.orb-sign {
+  color: var(--orb-accent);
+}
+
+.orb--connecting .orb-sign,
+.orb--paused .orb-sign {
+  color: var(--m3-on-surface-variant);
+}
+
+.orb-percent {
+  margin-top: 3px;
+  color: var(--m3-on-surface-variant);
+  font-size: 10px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-.bar--downloading .bar-aside {
-  color: var(--bar-accent);
-}
-
-.bar-face-enter-active {
+.orb-face-enter-active {
   transition:
     opacity 220ms var(--dialog-ease-enter),
-    translate 220ms var(--dialog-ease-enter);
+    scale 220ms var(--dialog-ease-enter);
 }
 
-.bar-face-leave-active {
+.orb-face-leave-active {
   transition: opacity 140ms var(--dialog-ease-leave);
 }
 
-.bar-face-enter-from {
+.orb-face-enter-from {
   opacity: 0;
-  translate: 0 4px;
+  scale: 0.8;
 }
 
-.bar-face-leave-to {
+.orb-face-leave-to {
   opacity: 0;
 }
 
 /* ── Error dot ────────────────────────────────────────────────────── */
 
-.bar-dot {
+.orb-dot {
   position: absolute;
   top: 5px;
   right: 5px;
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--m3-error);
   box-shadow: 0 0 0 2px var(--main-bg);
 }
 
-.bar-dot-enter-active,
-.bar-dot-leave-active {
+.orb-dot-enter-active,
+.orb-dot-leave-active {
   transition: transform 200ms var(--dialog-ease-enter);
 }
 
-.bar-dot-enter-from,
-.bar-dot-leave-to {
+.orb-dot-enter-from,
+.orb-dot-leave-to {
   transform: scale(0);
 }
 </style>

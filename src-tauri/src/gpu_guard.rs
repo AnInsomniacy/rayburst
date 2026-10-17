@@ -10,7 +10,7 @@
 //! DMA-BUF) the rest of the window stays blank (#650, #705).
 //!
 //! Wayland lets no client place its windows or keep them on top (tao#1134),
-//! which the floating bar needs; with the bar on, the app runs under XWayland.
+//! which the floating orb needs; with the orb on, the app runs under XWayland.
 
 #[cfg(target_os = "linux")]
 use std::io::Write;
@@ -47,7 +47,7 @@ fn guard_log(message: &str) {
     }
 }
 
-/// Whether the floating bar shows at all, the `floatWindow` preference.
+/// Whether the floating orb shows at all, the `floatWindow` preference.
 #[cfg(any(target_os = "linux", test))]
 fn read_float_window_from_config(data_dir: &std::path::Path) -> bool {
     (|| -> Option<bool> {

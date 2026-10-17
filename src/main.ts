@@ -28,7 +28,7 @@ import type { AppConfig, TauriUpdate } from '@shared/types'
 import App from './App.vue'
 import AppProviders from './AppProviders.vue'
 import AddWindow from './AddWindow.vue'
-import FloatBar from './FloatBar.vue'
+import FloatWindow from './FloatWindow.vue'
 import FloatPanel from './FloatPanel.vue'
 import './styles/tokens.css'
 import './styles/base.css'
@@ -47,7 +47,7 @@ const isFloatWindow = windowLabel === 'float' || windowLabel === 'float-panel'
 const secondary = isAddWindow
   ? AddWindow
   : windowLabel === 'float'
-    ? FloatBar
+    ? FloatWindow
     : windowLabel === 'float-panel'
       ? FloatPanel
       : null

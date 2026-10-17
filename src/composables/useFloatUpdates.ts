@@ -1,12 +1,12 @@
 /**
- * @fileoverview Snapshots the desktop sends the floating bar and its panel.
+ * @fileoverview Snapshots the desktop sends the floating orb and its panel.
  */
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import type { UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { logger } from '@shared/logger'
-import type { FloatUpdate } from '@shared/utils/floatBar'
+import type { FloatUpdate } from '@shared/utils/floatOrb'
 
 export type { FloatUpdate }
 

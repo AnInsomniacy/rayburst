@@ -1,5 +1,5 @@
 /**
- * @fileoverview What the floating bar shows for a snapshot (#669, #718).
+ * @fileoverview What the floating orb shows for a snapshot (#669, #718).
  *
  * Downloads and seeding are told apart: a torrent that only shares is not a
  * download whose size is unknown. Motion belongs to bytes arriving; a download
@@ -8,7 +8,7 @@
 import type { Aria2Task } from '@shared/types'
 import { calcProgress, getTaskCompletedLength } from './task'
 
-/** A snapshot the desktop sends the floating bar and its panel. */
+/** A snapshot the desktop sends the floating orb and its panel. */
 export interface FloatUpdate {
   stat: { downloadSpeed: number; uploadSpeed: number; numActive: number }
   /** Overall progress of the active downloads in percent, when measurable. */
@@ -17,10 +17,10 @@ export interface FloatUpdate {
   tasks: Aria2Task[]
 }
 
-export type FloatBarKind = 'idle' | 'downloading' | 'connecting' | 'seeding' | 'waiting' | 'paused' | 'done'
+export type FloatOrbKind = 'idle' | 'downloading' | 'connecting' | 'seeding' | 'waiting' | 'paused' | 'done'
 
-export interface FloatBarState {
-  kind: FloatBarKind
+export interface FloatOrbState {
+  kind: FloatOrbKind
   /** Bytes per second: received while downloading, sent while seeding. */
   speed: number
   /** Fill of the progress line in percent; null while it cannot be measured. */
@@ -45,7 +45,7 @@ function overall(tasks: Aria2Task[]): number | null {
 }
 
 /** `done` holds for a moment after the last download completed. */
-export function floatBarState(update: FloatUpdate | null, done: boolean): FloatBarState {
+export function floatOrbState(update: FloatUpdate | null, done: boolean): FloatOrbState {
   const stat = update?.stat
   const tasks = update?.tasks ?? []
   const active = tasks.filter((task) => task.status === 'active')

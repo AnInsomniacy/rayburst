@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * @fileoverview The panel beside the floating bar (#669, #718, #402).
+ * @fileoverview The panel beside the floating orb (#669, #718, #402).
  *
- * A click on the bar builds it; it shows itself beside the bar once it has
+ * A click on the orb builds it; it shows itself beside the orb once it has
  * its first snapshot, lists the downloads with their pieces and lets each be
  * paused or resumed. It closes, and is destroyed, when it loses the focus, on
- * Esc, or on another click on the bar. Dragging its header takes the bar along.
+ * Esc, or on another click on the orb. Dragging its header takes the orb along.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -77,7 +77,7 @@ function metaOf(task: Aria2Task): string {
 
 // ── Open and close ──────────────────────────────────────────────────
 
-/** Sizes the window to the content, which the desktop places beside the bar and shows. */
+/** Sizes the window to the content, which the desktop places beside the orb and shows. */
 async function present(): Promise<boolean> {
   const element = root.value
   if (!element) return false

@@ -87,7 +87,7 @@ pub fn icon_size() -> u32 {
     0
 }
 
-/// Dot color of the activity indicator; macOS keeps its template icon.
+/// Dot color of the activity indicator.
 #[cfg_attr(target_os = "macos", allow(dead_code))]
 const ACTIVITY_DOT: [u8; 3] = [0x22, 0xc5, 0x5e];
 

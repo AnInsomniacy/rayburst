@@ -193,19 +193,19 @@ pub fn float_window_set_mode(
     crate::services::float_window::set_mode(&app, mode)
 }
 
-/// Opens the floating panel beside the bar, or closes it.
+/// Opens the floating panel beside the orb, or closes it.
 #[tauri::command]
 pub fn float_panel_toggle(app: AppHandle) {
     crate::services::float_window::toggle_panel(&app);
 }
 
-/// Closes the floating panel, which lost the focus or whose bar is dragged.
+/// Closes the floating panel, which lost the focus or whose orb is dragged.
 #[tauri::command]
 pub fn float_panel_dismiss(app: AppHandle) {
     crate::services::float_window::close_panel(&app);
 }
 
-/// Places the floating panel, sized to its content, beside the bar and shows it.
+/// Places the floating panel, sized to its content, beside the orb and shows it.
 #[tauri::command]
 pub fn float_panel_present(app: AppHandle, width: f64, height: f64) -> Result<(), AppError> {
     crate::services::float_window::present_panel(&app, width, height)
