@@ -77,8 +77,11 @@ let parked = false
 // Window managers that force server-side decorations draw their own title bar (#533).
 const systemTitleBar = computed(() => isLinux.value && preferenceStore.config.systemTitleBar)
 const zoom = computed(() => preferenceStore.config.uiScale || 1)
-// A system title bar frames the window itself; no drawn panel, shadow or margin.
-const inset = computed(() => (systemTitleBar.value ? 0 : PANEL_INSET))
+// The system frames the window itself under a system title bar, and on macOS,
+// whose traffic lights would not follow a drawn panel: no panel shadow, margin
+// or motion there; the system animates the window instead.
+const framed = computed(() => !systemTitleBar.value && !isMac.value)
+const inset = computed(() => (framed.value ? PANEL_INSET : 0))
 const cardMaxHeight = computed(() =>
   capHeight.value ? capHeight.value - 2 * inset.value - (systemTitleBar.value ? 0 : TITLE_BAR_HEIGHT) : 0,
 )
@@ -159,7 +162,7 @@ async function close() {
 async function leave() {
   if (phase.value !== 'shown') return
   phase.value = 'leaving'
-  if (!reducedMotion()) await new Promise((resolve) => setTimeout(resolve, LEAVE_MS))
+  if (framed.value && !reducedMotion()) await new Promise((resolve) => setTimeout(resolve, LEAVE_MS))
 }
 
 // ── Size ────────────────────────────────────────────────────────────
@@ -288,7 +291,7 @@ onBeforeUnmount(() => {
   <div
     ref="root"
     class="add-window"
-    :class="[`add-window--${phase}`, { 'add-window--framed': !systemTitleBar }]"
+    :class="[`add-window--${phase}`, { 'add-window--framed': framed }]"
     :style="{
       // WebKitGTK lays out a hidden window at zero width, which wraps every
       // line and measured the content far too tall (#731); a fixed width keeps
@@ -334,13 +337,13 @@ onBeforeUnmount(() => {
     0 0 0 1px var(--m3-outline-variant);
 }
 
-.add-window--hidden .add-window-panel {
+.add-window--framed.add-window--hidden .add-window-panel {
   opacity: 0;
   transform: translateY(12px) scale(0.95);
   transition: none;
 }
 
-.add-window--leaving .add-window-panel {
+.add-window--framed.add-window--leaving .add-window-panel {
   opacity: 0;
   transform: translateY(6px) scale(0.97);
   transition:

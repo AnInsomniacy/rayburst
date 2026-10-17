@@ -24,8 +24,9 @@ const INPUT_EVENT: &str = "add-window:inputs";
 /// How long a new window may take to load before it is given up.
 const READY_TIMEOUT: Duration = Duration::from_secs(10);
 /// Transparent margin around the panel the window draws, which holds the
-/// panel's shadow. Matches `PANEL_INSET` in `AddWindow.vue`.
-const PANEL_INSET: f64 = 16.0;
+/// panel's shadow. Matches `PANEL_INSET` in `AddWindow.vue`. macOS frames the
+/// window itself, around its traffic lights, so there is none there.
+const PANEL_INSET: f64 = if cfg!(target_os = "macos") { 0.0 } else { 16.0 };
 
 /// Inputs for the add window: structured browser handoffs, plain links and
 /// torrent paths, batch items prepared by the main window, and a request for
@@ -332,17 +333,22 @@ fn open(app: &AppHandle, source: &'static str) {
 /// corners and a shadow, so the panel can animate in and out and grow and
 /// shrink smoothly inside a window that is resized only once per change. The
 /// native shadow would outline the whole transparent window instead.
+///
+/// macOS draws its traffic lights in the window, not in the page's panel, and
+/// they would not follow the panel's margin, motion or interface size. There
+/// the window is framed like the main window: the content fills it, and the
+/// system rounds it, shadows it and animates it in and out.
 fn window_config(app: &AppHandle) -> tauri::Result<tauri::utils::config::WindowConfig> {
     let mut config = secondary_window_config(app, LABEL)?;
     config.width = 600.0 + 2.0 * PANEL_INSET;
     config.height = 560.0;
     config.center = true;
     config.transparent = true;
-    config.shadow = false;
+    config.shadow = cfg!(target_os = "macos");
     // GTK ignores programmatic resizes of a window the user cannot resize
     // (tao#545, tauri#6125), and this window follows its content (#731).
     config.resizable = cfg!(target_os = "linux");
-    // macOS: the traffic lights sit in the panel's title bar, not the margin.
+    // macOS: the traffic lights sit centered in the page's title bar.
     config.traffic_light_position = Some(tauri::utils::config::LogicalPosition {
         x: PANEL_INSET + 14.0,
         y: PANEL_INSET + 10.0,
