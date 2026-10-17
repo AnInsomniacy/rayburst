@@ -976,7 +976,9 @@
     "space-size-free": "다운로드 {size}, 여유 공간 {free}",
     "space-short": "공간 부족: 다운로드 {size}, 여유 공간 {free}뿐",
     "drop-torrent-release": "놓아서 토렌트 추가",
-    "drop-torrent-only": ".torrent 파일만 끌어다 놓을 수 있습니다"
+    "drop-torrent-only": ".torrent 파일만 끌어다 놓을 수 있습니다",
+    "connecting": "연결 중…",
+    "drop-to-add": "놓아서 추가"
   },
   "media": {
     "probing": "미디어 분석 중",

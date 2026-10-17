@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * @fileoverview The panel beside the floating orb (#669, #718, #402).
+ * @fileoverview The panel beside the floating bar (#669, #718, #402).
  *
- * A click on the orb builds it; it shows itself beside the orb once it has
+ * A click on the bar builds it; it shows itself beside the bar once it has
  * its first snapshot, lists the downloads with their pieces and lets each be
  * paused or resumed. It closes, and is destroyed, when it loses the focus, on
- * Esc, or on another click on the orb. Dragging its header takes the orb along.
+ * Esc, or on another click on the bar. Dragging its header takes the bar along.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -57,7 +57,13 @@ function percentOf(task: Aria2Task): number {
   return calcProgress(Number(task.totalLength) || 0, getTaskCompletedLength(task))
 }
 
+const seeds = (task: Aria2Task) => task.seeder === 'true'
+
 function metaOf(task: Aria2Task): string {
+  if (seeds(task)) {
+    if (task.status === TASK_STATUS.PAUSED) return t('task.seeding-paused')
+    return `${t('task.seeding')} · ↑ ${bytesToSize(Number(task.uploadSpeed) || 0)}/s`
+  }
   const percent = `${percentOf(task)}%`
   if (task.status === TASK_STATUS.PAUSED) return `${percent} · ${t('task.status-paused')}`
   if (task.status === TASK_STATUS.WAITING) return `${percent} · ${t('task.status-waiting')}`
@@ -71,7 +77,7 @@ function metaOf(task: Aria2Task): string {
 
 // ── Open and close ──────────────────────────────────────────────────
 
-/** Sizes the window to the content, which the desktop places beside the orb and shows. */
+/** Sizes the window to the content, which the desktop places beside the bar and shows. */
 async function present(): Promise<boolean> {
   const element = root.value
   if (!element) return false
@@ -91,7 +97,8 @@ async function present(): Promise<boolean> {
 async function open() {
   if (shown.value) return
   shown.value = true
-  await nextTick()
+  // Measured once its fonts are in, so the shown panel does not grow and move.
+  await Promise.all([nextTick(), document.fonts.ready])
   if (!(await present())) dismiss()
 }
 
@@ -195,7 +202,7 @@ onBeforeUnmount(() => {
           v-for="task in tasks"
           :key="task.gid"
           class="panel-row"
-          :class="`panel-row--${task.status}`"
+          :class="[`panel-row--${task.status}`, { 'panel-row--seeding': seeds(task) }]"
           @click="openMain"
         >
           <div class="panel-row-head">
@@ -214,7 +221,7 @@ onBeforeUnmount(() => {
             </NButton>
           </div>
           <SegmentBar
-            v-if="task.status === TASK_STATUS.ACTIVE && task.bitfield"
+            v-if="task.status === TASK_STATUS.ACTIVE && task.bitfield && !seeds(task)"
             class="panel-row-bar"
             :bitfield="task.bitfield"
             :pieces="Number(task.numPieces) || 0"
@@ -389,6 +396,14 @@ onBeforeUnmount(() => {
 
 .panel-row--waiting .panel-row-bar--plain span {
   background: var(--m3-info);
+}
+
+.panel-row--seeding .panel-row-bar--plain span {
+  background: var(--m3-success);
+}
+
+.panel-row--seeding.panel-row--paused .panel-row-bar--plain span {
+  background: var(--m3-outline);
 }
 
 /* ── Empty state and footer ───────────────────────────────────────── */

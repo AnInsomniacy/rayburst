@@ -976,7 +976,9 @@
     "space-size-free": "{size} to download, {free} free",
     "space-short": "Not enough space: {size} to download, only {free} free",
     "drop-torrent-release": "Drop to add torrents",
-    "drop-torrent-only": "Only .torrent files can be dropped here"
+    "drop-torrent-only": "Only .torrent files can be dropped here",
+    "connecting": "Connecting…",
+    "drop-to-add": "Drop to add"
   },
   "media": {
     "probing": "Inspecting media",

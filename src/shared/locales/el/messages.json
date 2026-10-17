@@ -976,7 +976,9 @@
     "space-size-free": "{size} για λήψη, {free} ελεύθερα",
     "space-short": "Ανεπαρκής χώρος: {size} για λήψη, μόνο {free} ελεύθερα",
     "drop-torrent-release": "Αφήστε για προσθήκη torrent",
-    "drop-torrent-only": "Εδώ μπορείτε να αφήσετε μόνο αρχεία .torrent"
+    "drop-torrent-only": "Εδώ μπορείτε να αφήσετε μόνο αρχεία .torrent",
+    "connecting": "Σύνδεση…",
+    "drop-to-add": "Αφήστε για προσθήκη"
   },
   "media": {
     "probing": "Ανάλυση πολυμέσων",

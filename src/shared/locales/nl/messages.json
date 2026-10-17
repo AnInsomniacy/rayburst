@@ -976,7 +976,9 @@
     "space-size-free": "{size} te downloaden, {free} vrij",
     "space-short": "Onvoldoende ruimte: {size} te downloaden, slechts {free} vrij",
     "drop-torrent-release": "Loslaten om torrents toe te voegen",
-    "drop-torrent-only": "Hier kunnen alleen .torrent-bestanden worden neergezet"
+    "drop-torrent-only": "Hier kunnen alleen .torrent-bestanden worden neergezet",
+    "connecting": "Verbinden…",
+    "drop-to-add": "Loslaten om toe te voegen"
   },
   "media": {
     "probing": "Media onderzoeken",

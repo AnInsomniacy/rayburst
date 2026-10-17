@@ -976,7 +976,9 @@
     "space-size-free": "{size} للتنزيل، والمساحة الحرة {free}",
     "space-short": "المساحة غير كافية: {size} للتنزيل، والمتاح {free} فقط",
     "drop-torrent-release": "أفلِت لإضافة ملفات التورنت",
-    "drop-torrent-only": "يمكن إفلات ملفات .torrent فقط هنا"
+    "drop-torrent-only": "يمكن إفلات ملفات .torrent فقط هنا",
+    "connecting": "جارٍ الاتصال…",
+    "drop-to-add": "أفلت للإضافة"
   },
   "media": {
     "probing": "جارٍ فحص الوسائط",

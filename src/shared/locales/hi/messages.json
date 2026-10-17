@@ -976,7 +976,9 @@
     "space-size-free": "{size} डाउनलोड करना है, {free} खाली",
     "space-short": "पर्याप्त जगह नहीं: {size} डाउनलोड करना है, केवल {free} खाली",
     "drop-torrent-release": "टोरेंट जोड़ने के लिए छोड़ें",
-    "drop-torrent-only": "यहाँ केवल .torrent फ़ाइलें छोड़ी जा सकती हैं"
+    "drop-torrent-only": "यहाँ केवल .torrent फ़ाइलें छोड़ी जा सकती हैं",
+    "connecting": "कनेक्ट हो रहा है…",
+    "drop-to-add": "जोड़ने के लिए छोड़ें"
   },
   "media": {
     "probing": "मीडिया की जाँच जारी",

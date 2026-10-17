@@ -976,7 +976,9 @@
     "space-size-free": "{size} per baixar, {free} lliures",
     "space-short": "Espai insuficient: {size} per baixar, només {free} lliures",
     "drop-torrent-release": "Deixeu anar per afegir torrents",
-    "drop-torrent-only": "Aquí només es poden deixar anar fitxers .torrent"
+    "drop-torrent-only": "Aquí només es poden deixar anar fitxers .torrent",
+    "connecting": "S'està connectant…",
+    "drop-to-add": "Deixa anar per afegir"
   },
   "media": {
     "probing": "Analitzant el contingut",

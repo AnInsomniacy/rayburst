@@ -1,18 +1,18 @@
 //! The floating window (#669, #718, #402, #726).
 //!
-//! A small orb that stays on top with the overall speed and progress, so
+//! A small bar that stays on top with the overall speed and progress, so
 //! downloads can be followed without the main window. A click opens a panel
 //! beside it to follow and control each download, and links or torrents dropped
 //! on it open the add window. Its mode keeps it always, only while files
 //! download, or never; the pump opens and closes both windows accordingly and
 //! feeds them each snapshot.
 //!
-//! The orb never changes its size, and the panel is a window of its own,
+//! The bar never changes its size, and the panel is a window of its own,
 //! built when it opens and destroyed when it closes; neither has to move or
-//! resize the other, so nothing jumps. Both are opaque: the system draws their corners and shadows
-//! and animates them in and out.
+//! resize the other, so nothing jumps. Both are opaque: the system draws their
+//! corners and shadows and animates them in and out.
 //!
-//! On Windows the orb steps aside while an application in fullscreen, a video
+//! On Windows the bar steps aside while an application in fullscreen, a video
 //! or a game, fills its screen, and returns when that ends. macOS keeps windows
 //! on all desktops out of fullscreen spaces by itself.
 
@@ -35,22 +35,23 @@ pub const PANEL_LABEL: &str = "float-panel";
 const UPDATE_EVENT: &str = "float:update";
 /// Tells every window that the mode changed outside the settings.
 const MODE_EVENT: &str = "float-window:mode";
-/// Size of the orb window in logical pixels, `FloatWindow.vue`.
-const ORB_SIZE: f64 = 52.0;
-/// Space between the orb and the panel.
+/// Size of the bar window in logical pixels, `FloatBar.vue`.
+const BAR_WIDTH: f64 = 132.0;
+const BAR_HEIGHT: f64 = 36.0;
+/// Space between the bar and the panel.
 const PANEL_GAP: f64 = 8.0;
-/// Distance from the corner of the screen where the orb first appears.
+/// Distance from the corner of the screen where the bar first appears.
 const MARGIN: f64 = 16.0;
-/// A click on the orb right after the panel closed on losing focus to that
+/// A click on the bar right after the panel closed on losing focus to that
 /// very click must not open it again.
 const REOPEN_GUARD: Duration = Duration::from_millis(300);
 /// Downloads the panel lists; the main window has the rest.
 const MAX_TASKS: usize = 20;
-/// How long the orb stays after the last download in `downloading` mode: long
+/// How long the bar stays after the last download in `downloading` mode: long
 /// enough to show its check.
 const LINGER: Duration = Duration::from_millis(2400);
 
-/// When the orb shows, the `floatWindow` preference.
+/// When the bar shows, the `floatWindow` preference.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Mode {
@@ -87,15 +88,15 @@ static RESIDENT: AtomicBool = AtomicBool::new(false);
 struct Panel {
     open: bool,
     closed_at: Option<Instant>,
-    /// Where the orb sits relative to the open panel, in physical pixels, so
-    /// dragging the panel takes the orb along.
-    orb_offset: Option<(i32, i32)>,
+    /// Where the bar sits relative to the open panel, in physical pixels, so
+    /// dragging the panel takes the bar along.
+    bar_offset: Option<(i32, i32)>,
 }
 
 static PANEL: Mutex<Panel> = Mutex::new(Panel {
     open: false,
     closed_at: None,
-    orb_offset: None,
+    bar_offset: None,
 });
 
 fn panel() -> std::sync::MutexGuard<'static, Panel> {
@@ -122,7 +123,7 @@ pub struct FloatWindow {
     shown_mode: Mutex<Option<Mode>>,
     /// When the last download stopped, in `downloading` mode.
     quiet_since: Mutex<Option<Instant>>,
-    /// The orb is hidden behind an application in fullscreen.
+    /// The bar is hidden behind an application in fullscreen.
     covered: Arc<AtomicBool>,
 }
 
@@ -172,10 +173,10 @@ impl FloatWindow {
             .quiet_since
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        wants_orb(mode, busy, exists(app), &mut quiet, Instant::now())
+        wants_bar(mode, busy, exists(app), &mut quiet, Instant::now())
     }
 
-    /// Hides the orb while an application in fullscreen is in front of it and
+    /// Hides the bar while an application in fullscreen is in front of it and
     /// brings it back without taking the focus; true while it is hidden.
     fn cover(&self, app: &AppHandle, window: &WebviewWindow) -> bool {
         let covered = fullscreen_in_front(app, Some(window));
@@ -197,8 +198,8 @@ impl FloatWindow {
         let opening = Arc::clone(&self.opening);
         // Building a window waits on the event loop; never do it on that thread.
         tauri::async_runtime::spawn_blocking(move || {
-            match build(&app, orb_config(&app)) {
-                Ok(window) => restore_orb_position(&app, window),
+            match build(&app, bar_config(&app)) {
+                Ok(window) => restore_bar_position(&app, window),
                 Err(error) => log::warn!("float_window:open-failed label={LABEL} error={error}"),
             }
             opening.store(false, Ordering::Release);
@@ -209,7 +210,7 @@ impl FloatWindow {
     fn close(&self, app: &AppHandle) {
         close_panel(app);
         RESIDENT.store(app.get_webview_window("main").is_none(), Ordering::Relaxed);
-        // The panel first, so the orb is the last window when it goes.
+        // The panel first, so the bar is the last window when it goes.
         for label in [PANEL_LABEL, LABEL] {
             if let Some(window) = app.get_webview_window(label) {
                 if let Err(error) = window.destroy() {
@@ -236,10 +237,10 @@ fn downloading(task: &Aria2Task) -> bool {
     task.status == "active" && task.seeder.as_deref() != Some("true")
 }
 
-/// In `downloading` mode the orb comes with the first download and leaves a
+/// In `downloading` mode the bar comes with the first download and leaves a
 /// moment after the last one; `busy` also holds it while its panel is open.
-/// `quiet` remembers when the orb ran out of downloads.
-fn wants_orb(
+/// `quiet` remembers when the bar ran out of downloads.
+fn wants_bar(
     mode: Mode,
     busy: bool,
     shown: bool,
@@ -289,12 +290,12 @@ fn fills(window: Rect, screen: Rect) -> bool {
         && window.y + window.height >= screen.y + screen.height
 }
 
-/// Whether an application in fullscreen is in front of the orb's screen, or
-/// of any screen before the orb exists (#726). Windows reports that one is
+/// Whether an application in fullscreen is in front of the bar's screen, or
+/// of any screen before the bar exists (#726). Windows reports that one is
 /// running; its window must also fill the screen, so a video in fullscreen on
-/// another screen leaves the orb in place.
+/// another screen leaves the bar in place.
 #[cfg(windows)]
-fn fullscreen_in_front(app: &AppHandle, orb: Option<&WebviewWindow>) -> bool {
+fn fullscreen_in_front(app: &AppHandle, bar: Option<&WebviewWindow>) -> bool {
     use windows_sys::Win32::Foundation::RECT;
     use windows_sys::Win32::UI::Shell::{
         SHQueryUserNotificationState, QUNS_BUSY, QUNS_PRESENTATION_MODE,
@@ -348,8 +349,8 @@ fn fullscreen_in_front(app: &AppHandle, orb: Option<&WebviewWindow>) -> bool {
         width: f64::from(rect.right - rect.left),
         height: f64::from(rect.bottom - rect.top),
     };
-    let screens = match orb {
-        Some(orb) => orb.current_monitor().ok().flatten().into_iter().collect(),
+    let screens = match bar {
+        Some(bar) => bar.current_monitor().ok().flatten().into_iter().collect(),
         None => app.available_monitors().unwrap_or_default(),
     };
     screens.iter().any(|screen| {
@@ -371,7 +372,7 @@ fn fullscreen_in_front(_: &AppHandle, _: Option<&WebviewWindow>) -> bool {
     false
 }
 
-/// Saves a mode picked in the orb's menu or the tray and applies it at once;
+/// Saves a mode picked in the bar's menu or the tray and applies it at once;
 /// the windows holding preferences reload them.
 pub fn set_mode(app: &AppHandle, mode: Mode) -> Result<(), AppError> {
     let store = app
@@ -461,28 +462,28 @@ fn floating_config(
     Ok(config)
 }
 
-/// The orb appears without taking the focus from the window in use, at the
+/// The bar appears without taking the focus from the window in use, at the
 /// bottom right corner of the screen under the pointer until the user moves
 /// it; the window-state plugin restores where it was left.
-fn orb_config(app: &AppHandle) -> tauri::Result<tauri::utils::config::WindowConfig> {
+fn bar_config(app: &AppHandle) -> tauri::Result<tauri::utils::config::WindowConfig> {
     let mut config = floating_config(app, LABEL)?;
-    config.width = ORB_SIZE;
-    config.height = ORB_SIZE;
+    config.width = BAR_WIDTH;
+    config.height = BAR_HEIGHT;
     config.visible = true;
     // The page takes drops itself: the native handler on Windows only passes
     // files on and turns links away.
     config.drag_drop_enabled = false;
-    if let Some((x, y)) = orb_corner(app) {
+    if let Some((x, y)) = bar_corner(app) {
         config.x = Some(x);
         config.y = Some(y);
     }
     Ok(config)
 }
 
-/// Where the orb first appears, in logical pixels. The windows are built off
+/// Where the bar first appears, in logical pixels. The windows are built off
 /// the main thread, but the work area is read there: on X11 it comes from the
 /// X server, and Xlib calls from another thread crash the process (#725).
-fn orb_corner(app: &AppHandle) -> Option<(f64, f64)> {
+fn bar_corner(app: &AppHandle) -> Option<(f64, f64)> {
     let (sender, receiver) = std::sync::mpsc::channel();
     let handle = app.clone();
     app.run_on_main_thread(move || {
@@ -491,10 +492,10 @@ fn orb_corner(app: &AppHandle) -> Option<(f64, f64)> {
             let scale = monitor.scale_factor();
             (
                 f64::from(area.position.x) / scale + f64::from(area.size.width) / scale
-                    - ORB_SIZE
+                    - BAR_WIDTH
                     - MARGIN,
                 f64::from(area.position.y) / scale + f64::from(area.size.height) / scale
-                    - ORB_SIZE
+                    - BAR_HEIGHT
                     - MARGIN,
             )
         });
@@ -504,15 +505,19 @@ fn orb_corner(app: &AppHandle) -> Option<(f64, f64)> {
     receiver.recv_timeout(Duration::from_secs(2)).ok().flatten()
 }
 
-/// Puts the orb back where the user left it. The window-state plugin would do
-/// this on the thread that built the window, reading every screen's work area
-/// there; on X11 that crashes the process (#725), so it is done on the main
-/// thread, as the orb appears.
-fn restore_orb_position(app: &AppHandle, window: WebviewWindow) {
+/// Puts the bar back where the user left it, kept within its screen: a place
+/// saved for a smaller window, or on a screen since rearranged, may hang off
+/// it. The window-state plugin would do this on the thread that built the
+/// window, reading every screen's work area there; on X11 that crashes the
+/// process (#725), so it is done on the main thread, as the bar appears.
+fn restore_bar_position(app: &AppHandle, window: WebviewWindow) {
     use tauri_plugin_window_state::{StateFlags, WindowExt};
     let restored = app.run_on_main_thread(move || {
         if let Err(error) = window.restore_state(StateFlags::POSITION) {
             log::warn!("float_window:restore-failed error={error}");
+        }
+        if let Err(error) = keep_on_screen(&window) {
+            log::warn!("float_window:place-failed error={error}");
         }
     });
     if let Err(error) = restored {
@@ -520,22 +525,41 @@ fn restore_orb_position(app: &AppHandle, window: WebviewWindow) {
     }
 }
 
-/// The panel is sized by its page and placed beside the orb as it opens.
+/// Moves a window that hangs off its screen back into the work area.
+fn keep_on_screen(window: &WebviewWindow) -> tauri::Result<()> {
+    let Some(monitor) = window.current_monitor()?.or(window.primary_monitor()?) else {
+        return Ok(());
+    };
+    let position = window.outer_position()?;
+    let size = window.outer_size()?;
+    let area = monitor.work_area();
+    let (x, y) = within(
+        Rect {
+            x: f64::from(position.x),
+            y: f64::from(position.y),
+            width: f64::from(size.width),
+            height: f64::from(size.height),
+        },
+        Rect {
+            x: f64::from(area.position.x),
+            y: f64::from(area.position.y),
+            width: f64::from(area.size.width),
+            height: f64::from(area.size.height),
+        },
+    );
+    let at = PhysicalPosition::new(x.round() as i32, y.round() as i32);
+    if at != position {
+        window.set_position(at)?;
+    }
+    Ok(())
+}
+
+/// The panel is sized by its page and placed beside the bar as it opens.
 fn panel_config(app: &AppHandle) -> tauri::Result<tauri::utils::config::WindowConfig> {
     let mut config = floating_config(app, PANEL_LABEL)?;
     config.width = 344.0;
     config.height = 240.0;
     Ok(config)
-}
-
-/// Which side of the orb the panel opened on, so it grows out of the orb.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PanelSide {
-    /// The panel sits above the orb.
-    pub above: bool,
-    /// The panel's right edge lines up with the orb's.
-    pub end: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -546,37 +570,38 @@ struct Rect {
     height: f64,
 }
 
-/// Places a panel of `width` × `height` beside the orb: towards the larger
-/// half of the screen, lined up with the orb's outer edge and kept on screen.
-/// All values in physical pixels; `scale` converts the logical gap.
-fn place_panel(
-    orb: Rect,
-    width: f64,
-    height: f64,
-    area: Rect,
-    scale: f64,
-) -> (f64, f64, PanelSide) {
-    let gap = PANEL_GAP * scale;
-    let end = orb.x + orb.width / 2.0 > area.x + area.width / 2.0;
-    let x = if end {
-        orb.x + orb.width - width
-    } else {
-        orb.x
-    };
-    let above_y = orb.y - gap - height;
-    let below_y = orb.y + orb.height + gap;
-    let room_above = above_y >= area.y;
-    let room_below = below_y + height <= area.y + area.height;
-    let lower_half = orb.y + orb.height / 2.0 > area.y + area.height / 2.0;
-    let above = (lower_half && room_above) || !room_below;
-    let y = if above { above_y } else { below_y };
+/// Where `window` lands when moved the least to lie within `area`.
+fn within(window: Rect, area: Rect) -> (f64, f64) {
     let clamp = |value: f64, length: f64, start: f64, span: f64| {
         value.min(start + span - length).max(start)
     };
     (
-        clamp(x, width, area.x, area.width),
-        clamp(y, height, area.y, area.height),
-        PanelSide { above, end },
+        clamp(window.x, window.width, area.x, area.width),
+        clamp(window.y, window.height, area.y, area.height),
+    )
+}
+
+/// Places a panel of `width` × `height` beside the bar: towards the larger
+/// half of the screen, centered on the bar and kept on screen. All values in
+/// physical pixels; `scale` converts the logical gap.
+fn place_panel(bar: Rect, width: f64, height: f64, area: Rect, scale: f64) -> (f64, f64) {
+    let gap = PANEL_GAP * scale;
+    let x = bar.x + (bar.width - width) / 2.0;
+    let above_y = bar.y - gap - height;
+    let below_y = bar.y + bar.height + gap;
+    let room_above = above_y >= area.y;
+    let room_below = below_y + height <= area.y + area.height;
+    let lower_half = bar.y + bar.height / 2.0 > area.y + area.height / 2.0;
+    let above = (lower_half && room_above) || !room_below;
+    let y = if above { above_y } else { below_y };
+    within(
+        Rect {
+            x,
+            y,
+            width,
+            height,
+        },
+        area,
     )
 }
 
@@ -625,7 +650,7 @@ pub fn close_panel(app: &AppHandle) {
     }
     state.open = false;
     state.closed_at = Some(Instant::now());
-    state.orb_offset = None;
+    state.bar_offset = None;
     drop(state);
     if let Some(window) = app.get_webview_window(PANEL_LABEL) {
         if let Err(error) = window.destroy() {
@@ -635,12 +660,12 @@ pub fn close_panel(app: &AppHandle) {
 }
 
 /// Sizes the panel to its content, given in logical pixels, places it beside
-/// the orb and shows it. Main thread only: on X11 the work area it reads
+/// the bar and shows it. Main thread only: on X11 the work area it reads
 /// comes from the X server (#725).
-pub fn present_panel(app: &AppHandle, width: f64, height: f64) -> Result<PanelSide, AppError> {
+pub fn present_panel(app: &AppHandle, width: f64, height: f64) -> Result<(), AppError> {
     let missing = |label: &str| AppError::NotFound(format!("{label} window"));
     let failed = |error: tauri::Error| AppError::Io(format!("float panel: {error}"));
-    let orb = app
+    let bar = app
         .get_webview_window(LABEL)
         .ok_or_else(|| missing(LABEL))?;
     let window = app
@@ -649,15 +674,15 @@ pub fn present_panel(app: &AppHandle, width: f64, height: f64) -> Result<PanelSi
     if !panel().open {
         return Err(AppError::NotFound("open float panel".into()));
     }
-    let position = orb.outer_position().map_err(failed)?;
-    let size = orb.outer_size().map_err(failed)?;
-    let monitor = orb
+    let position = bar.outer_position().map_err(failed)?;
+    let size = bar.outer_size().map_err(failed)?;
+    let monitor = bar
         .current_monitor()
         .map_err(failed)?
         .ok_or_else(|| missing("float monitor"))?;
     let scale = monitor.scale_factor();
     let area = monitor.work_area();
-    let orb_rect = Rect {
+    let bar_rect = Rect {
         x: f64::from(position.x),
         y: f64::from(position.y),
         width: f64::from(size.width),
@@ -670,9 +695,9 @@ pub fn present_panel(app: &AppHandle, width: f64, height: f64) -> Result<PanelSi
         height: f64::from(area.size.height),
     };
     let (panel_width, panel_height) = ((width * scale).round(), (height * scale).round());
-    let (x, y, side) = place_panel(orb_rect, panel_width, panel_height, area_rect, scale);
+    let (x, y) = place_panel(bar_rect, panel_width, panel_height, area_rect, scale);
     let at = PhysicalPosition::new(x.round() as i32, y.round() as i32);
-    panel().orb_offset = Some((position.x - at.x, position.y - at.y));
+    panel().bar_offset = Some((position.x - at.x, position.y - at.y));
     window
         .set_size(PhysicalSize::new(panel_width as u32, panel_height as u32))
         .map_err(failed)?;
@@ -681,16 +706,16 @@ pub fn present_panel(app: &AppHandle, width: f64, height: f64) -> Result<PanelSi
         window.show().map_err(failed)?;
     }
     window.set_focus().map_err(failed)?;
-    Ok(side)
+    Ok(())
 }
 
-/// Dragging the open panel by its header takes the orb along.
+/// Dragging the open panel by its header takes the bar along.
 pub fn panel_moved(app: &AppHandle, position: PhysicalPosition<i32>) {
-    let Some((dx, dy)) = panel().orb_offset else {
+    let Some((dx, dy)) = panel().bar_offset else {
         return;
     };
-    if let Some(orb) = app.get_webview_window(LABEL) {
-        let _ = orb.set_position(PhysicalPosition::new(position.x + dx, position.y + dy));
+    if let Some(bar) = app.get_webview_window(LABEL) {
+        let _ = bar.set_position(PhysicalPosition::new(position.x + dx, position.y + dy));
     }
 }
 
@@ -711,12 +736,12 @@ pub fn main_window_created() {
 
 #[cfg(test)]
 mod tests {
-    use super::{fills, place_panel, queue, wants_orb, Mode, PanelSide, Rect, LINGER};
+    use super::{fills, place_panel, queue, wants_bar, within, Mode, Rect, LINGER};
     use crate::aria2::types::Aria2Task;
     use std::time::{Duration, Instant};
 
     #[test]
-    fn only_a_window_filling_the_screen_hides_the_orb() {
+    fn only_a_window_filling_the_screen_hides_the_bar() {
         let screen = Rect {
             x: 1920.0,
             y: 0.0,
@@ -735,28 +760,28 @@ mod tests {
     }
 
     #[test]
-    fn while_downloading_the_orb_leaves_a_moment_after_the_last_download() {
+    fn while_downloading_the_bar_leaves_a_moment_after_the_last_download() {
         let start = Instant::now();
         let mut quiet = None;
         let downloading = Mode::Downloading;
-        assert!(!wants_orb(downloading, false, false, &mut quiet, start));
-        assert!(wants_orb(downloading, true, false, &mut quiet, start));
-        assert!(wants_orb(downloading, true, true, &mut quiet, start));
-        // The last download stopped: the orb stays to show its check.
-        assert!(wants_orb(downloading, false, true, &mut quiet, start));
+        assert!(!wants_bar(downloading, false, false, &mut quiet, start));
+        assert!(wants_bar(downloading, true, false, &mut quiet, start));
+        assert!(wants_bar(downloading, true, true, &mut quiet, start));
+        // The last download stopped: the bar stays to show its check.
+        assert!(wants_bar(downloading, false, true, &mut quiet, start));
         let later = start + LINGER - Duration::from_millis(1);
-        assert!(wants_orb(downloading, false, true, &mut quiet, later));
+        assert!(wants_bar(downloading, false, true, &mut quiet, later));
         let expired = start + LINGER;
-        assert!(!wants_orb(downloading, false, true, &mut quiet, expired));
+        assert!(!wants_bar(downloading, false, true, &mut quiet, expired));
         // Gone; the next download brings it back and restarts the wait.
-        assert!(!wants_orb(downloading, false, false, &mut quiet, expired));
+        assert!(!wants_bar(downloading, false, false, &mut quiet, expired));
         assert_eq!(quiet, None);
-        assert!(wants_orb(Mode::Always, false, false, &mut quiet, start));
-        assert!(!wants_orb(Mode::Off, true, true, &mut quiet, start));
+        assert!(wants_bar(Mode::Always, false, false, &mut quiet, start));
+        assert!(!wants_bar(Mode::Off, true, true, &mut quiet, start));
     }
 
     #[test]
-    fn modes_read_their_preference_values_and_unknown_ones_turn_the_orb_off() {
+    fn modes_read_their_preference_values_and_unknown_ones_turn_the_bar_off() {
         let mode = |value: &str| serde_json::from_value::<Mode>(serde_json::json!(value)).unwrap();
         assert_eq!(mode("always"), Mode::Always);
         assert_eq!(mode("downloading"), Mode::Downloading);
@@ -791,49 +816,46 @@ mod tests {
         height: 1040.0,
     };
 
-    fn orb(x: f64, y: f64) -> Rect {
+    fn bar(x: f64, y: f64) -> Rect {
         Rect {
             x,
             y,
-            width: 52.0,
-            height: 52.0,
+            width: 132.0,
+            height: 36.0,
         }
     }
 
     #[test]
-    fn the_panel_opens_towards_the_larger_part_of_the_screen() {
-        // Bottom right corner: above the orb, right edges lined up.
-        let corner = orb(1852.0, 972.0);
-        let (x, y, side) = place_panel(corner, 344.0, 300.0, AREA, 1.0);
-        assert_eq!(
-            side,
-            PanelSide {
-                above: true,
-                end: true
-            }
-        );
-        assert_eq!(x + 344.0, corner.x + 52.0);
-        assert_eq!(y + 300.0 + 8.0, corner.y);
+    fn the_panel_opens_centered_on_the_bar_towards_the_larger_part_of_the_screen() {
+        // Middle of the lower half: above the bar, centered on it.
+        let middle = bar(904.0, 700.0);
+        let (x, y) = place_panel(middle, 344.0, 300.0, AREA, 1.0);
+        assert_eq!(x + 344.0 / 2.0, middle.x + 132.0 / 2.0);
+        assert_eq!(y + 300.0 + 8.0, middle.y);
 
-        // Top left corner: below the orb, left edges lined up.
-        let corner = orb(16.0, 16.0);
-        let (x, y, side) = place_panel(corner, 344.0, 300.0, AREA, 1.0);
-        assert_eq!(
-            side,
-            PanelSide {
-                above: false,
-                end: false
-            }
-        );
-        assert_eq!(x, corner.x);
-        assert_eq!(y, corner.y + 52.0 + 8.0);
+        // Top left corner: below the bar, kept on screen.
+        let corner = bar(16.0, 16.0);
+        let (x, y) = place_panel(corner, 344.0, 300.0, AREA, 1.0);
+        assert_eq!(x, 0.0);
+        assert_eq!(y, corner.y + 36.0 + 8.0);
+
+        // Bottom right corner: above the bar, against the screen's edge.
+        let (x, _) = place_panel(bar(1792.0, 988.0), 344.0, 300.0, AREA, 1.0);
+        assert_eq!(x + 344.0, AREA.width);
     }
 
     #[test]
     fn a_panel_without_room_above_opens_below_and_stays_on_screen() {
-        let (x, y, side) = place_panel(orb(1800.0, 300.0), 344.0, 400.0, AREA, 1.0);
-        assert!(!side.above);
+        let (x, y) = place_panel(bar(1800.0, 300.0), 344.0, 400.0, AREA, 1.0);
+        assert_eq!(y, 300.0 + 36.0 + 8.0);
         assert!(x + 344.0 <= AREA.width);
-        assert!(y >= 0.0);
+    }
+
+    #[test]
+    fn a_bar_saved_off_the_screen_moves_back_the_least() {
+        // Saved for the 52 px orb at the right edge: only pulled left.
+        assert_eq!(within(bar(1852.0, 972.0), AREA), (1788.0, 972.0));
+        assert_eq!(within(bar(-40.0, 1030.0), AREA), (0.0, 1004.0));
+        assert_eq!(within(bar(400.0, 300.0), AREA), (400.0, 300.0));
     }
 }

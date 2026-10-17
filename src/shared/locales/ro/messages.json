@@ -976,7 +976,9 @@
     "space-size-free": "{size} de descărcat, {free} liber",
     "space-short": "Spațiu insuficient: {size} de descărcat, doar {free} liber",
     "drop-torrent-release": "Eliberați pentru a adăuga torrente",
-    "drop-torrent-only": "Aici se pot plasa doar fișiere .torrent"
+    "drop-torrent-only": "Aici se pot plasa doar fișiere .torrent",
+    "connecting": "Se conectează…",
+    "drop-to-add": "Plasați pentru a adăuga"
   },
   "media": {
     "probing": "Analizare conținut",

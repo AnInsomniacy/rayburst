@@ -976,7 +976,9 @@
     "space-size-free": "{size} за изтегляне, {free} свободни",
     "space-short": "Няма достатъчно място: {size} за изтегляне, само {free} свободни",
     "drop-torrent-release": "Пуснете, за да добавите торенти",
-    "drop-torrent-only": "Тук могат да се пускат само .torrent файлове"
+    "drop-torrent-only": "Тук могат да се пускат само .torrent файлове",
+    "connecting": "Свързване…",
+    "drop-to-add": "Пуснете за добавяне"
   },
   "media": {
     "probing": "Анализ на медията",

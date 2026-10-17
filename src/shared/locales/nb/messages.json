@@ -976,7 +976,9 @@
     "space-size-free": "{size} å laste ned, {free} ledig",
     "space-short": "Ikke nok plass: {size} å laste ned, bare {free} ledig",
     "drop-torrent-release": "Slipp for å legge til torrenter",
-    "drop-torrent-only": "Bare .torrent-filer kan slippes her"
+    "drop-torrent-only": "Bare .torrent-filer kan slippes her",
+    "connecting": "Kobler til…",
+    "drop-to-add": "Slipp for å legge til"
   },
   "media": {
     "probing": "Undersøker medier",

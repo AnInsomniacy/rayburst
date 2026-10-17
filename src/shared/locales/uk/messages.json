@@ -976,7 +976,9 @@
     "space-size-free": "Завантажити {size}, вільно {free}",
     "space-short": "Недостатньо місця: завантажити {size}, вільно лише {free}",
     "drop-torrent-release": "Відпустіть, щоб додати торенти",
-    "drop-torrent-only": "Сюди можна перетягнути лише файли .torrent"
+    "drop-torrent-only": "Сюди можна перетягнути лише файли .torrent",
+    "connecting": "Підключення…",
+    "drop-to-add": "Відпустіть, щоб додати"
   },
   "media": {
     "probing": "Аналіз медіа",

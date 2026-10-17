@@ -976,7 +976,9 @@
     "space-size-free": "Cần tải {size}, còn trống {free}",
     "space-short": "Không đủ dung lượng: cần tải {size}, chỉ còn {free}",
     "drop-torrent-release": "Thả để thêm torrent",
-    "drop-torrent-only": "Chỉ có thể thả tệp .torrent vào đây"
+    "drop-torrent-only": "Chỉ có thể thả tệp .torrent vào đây",
+    "connecting": "Đang kết nối…",
+    "drop-to-add": "Thả để thêm"
   },
   "media": {
     "probing": "Đang phân tích nội dung",

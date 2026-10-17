@@ -976,7 +976,9 @@
     "space-size-free": "{size} herunterzuladen, {free} frei",
     "space-short": "Nicht genug Speicherplatz: {size} herunterzuladen, nur {free} frei",
     "drop-torrent-release": "Loslassen, um Torrents hinzuzufügen",
-    "drop-torrent-only": "Hier können nur .torrent-Dateien abgelegt werden"
+    "drop-torrent-only": "Hier können nur .torrent-Dateien abgelegt werden",
+    "connecting": "Verbinde…",
+    "drop-to-add": "Zum Hinzufügen ablegen"
   },
   "media": {
     "probing": "Medium wird untersucht",

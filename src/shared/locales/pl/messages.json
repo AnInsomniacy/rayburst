@@ -976,7 +976,9 @@
     "space-size-free": "Do pobrania {size}, wolne {free}",
     "space-short": "Za mało miejsca: do pobrania {size}, wolne tylko {free}",
     "drop-torrent-release": "Upuść, aby dodać torrenty",
-    "drop-torrent-only": "Można tu upuszczać tylko pliki .torrent"
+    "drop-torrent-only": "Można tu upuszczać tylko pliki .torrent",
+    "connecting": "Łączenie…",
+    "drop-to-add": "Upuść, aby dodać"
   },
   "media": {
     "probing": "Analizowanie multimediów",

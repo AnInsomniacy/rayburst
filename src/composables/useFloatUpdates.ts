@@ -1,20 +1,14 @@
 /**
- * @fileoverview Snapshots the desktop sends the floating orb and its panel.
+ * @fileoverview Snapshots the desktop sends the floating bar and its panel.
  */
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import type { UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { logger } from '@shared/logger'
-import type { Aria2Task } from '@shared/types'
+import type { FloatUpdate } from '@shared/utils/floatBar'
 
-export interface FloatUpdate {
-  stat: { downloadSpeed: number; uploadSpeed: number; numActive: number }
-  /** Overall progress of the active downloads in percent, when measurable. */
-  progress: number | null
-  /** Active downloads first, then waiting and paused ones. */
-  tasks: Aria2Task[]
-}
+export type { FloatUpdate }
 
 /** Follows the snapshots for the lifetime of the calling component. */
 export function useFloatUpdates(onUpdate?: (next: FloatUpdate) => void) {

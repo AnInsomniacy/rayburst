@@ -976,7 +976,9 @@
     "space-size-free": "需下载 {size}，可用 {free}",
     "space-short": "空间不足：需下载 {size}，仅剩 {free}",
     "drop-torrent-release": "松开以添加种子",
-    "drop-torrent-only": "只能拖入 .torrent 种子文件"
+    "drop-torrent-only": "只能拖入 .torrent 种子文件",
+    "connecting": "连接中…",
+    "drop-to-add": "松开以添加"
   },
   "media": {
     "probing": "正在探测媒体",

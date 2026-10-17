@@ -976,7 +976,9 @@
     "space-size-free": "{size} à télécharger, {free} libres",
     "space-short": "Espace insuffisant : {size} à télécharger, seulement {free} libres",
     "drop-torrent-release": "Déposez pour ajouter les torrents",
-    "drop-torrent-only": "Seuls les fichiers .torrent peuvent être déposés ici"
+    "drop-torrent-only": "Seuls les fichiers .torrent peuvent être déposés ici",
+    "connecting": "Connexion…",
+    "drop-to-add": "Déposer pour ajouter"
   },
   "media": {
     "probing": "Analyse du média",

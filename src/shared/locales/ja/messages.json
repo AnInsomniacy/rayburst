@@ -976,7 +976,9 @@
     "space-size-free": "ダウンロード {size}、空き {free}",
     "space-short": "空き容量が不足しています：ダウンロード {size}、空き {free}",
     "drop-torrent-release": "ドロップしてトレントを追加",
-    "drop-torrent-only": "ドロップできるのは .torrent ファイルのみです"
+    "drop-torrent-only": "ドロップできるのは .torrent ファイルのみです",
+    "connecting": "接続中…",
+    "drop-to-add": "ドロップして追加"
   },
   "media": {
     "probing": "メディアを解析中",

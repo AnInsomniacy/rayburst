@@ -976,7 +976,9 @@
     "space-size-free": "İndirilecek {size}, boş {free}",
     "space-short": "Yetersiz alan: indirilecek {size}, yalnızca {free} boş",
     "drop-torrent-release": "Torrent eklemek için bırakın",
-    "drop-torrent-only": "Buraya yalnızca .torrent dosyaları bırakılabilir"
+    "drop-torrent-only": "Buraya yalnızca .torrent dosyaları bırakılabilir",
+    "connecting": "Bağlanıyor…",
+    "drop-to-add": "Eklemek için bırakın"
   },
   "media": {
     "probing": "Medya inceleniyor",
