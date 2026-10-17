@@ -215,6 +215,15 @@ pub fn float_panel_present(
     crate::services::float_window::present_panel(&app, width, height)
 }
 
+/// True only for the first main page of the process. Text already on the
+/// clipboard then was copied before Rayburst ran, not for it (#738); a page
+/// recreated from the tray still picks up links copied meanwhile.
+#[tauri::command]
+pub fn clipboard_baseline_wanted() -> bool {
+    static TAKEN: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    !TAKEN.swap(true, std::sync::atomic::Ordering::Relaxed)
+}
+
 /// Programmatically triggers the minimize-to-tray flow from the frontend.
 ///
 /// Delegates entirely to [`handle_minimize_to_tray()`](crate::handle_minimize_to_tray)

@@ -483,6 +483,14 @@ if (isFloatWindow) {
     }
 
     let lastClipboardText = ''
+    // Only links copied after launch count, not what the clipboard held before (#738).
+    const { invoke: invokeCommand } = await import('@tauri-apps/api/core')
+    if (await invokeCommand<boolean>('clipboard_baseline_wanted').catch(() => false)) {
+      if (preferenceStore.config.clipboard?.enable) {
+        const { readText } = await import('@tauri-apps/plugin-clipboard-manager')
+        lastClipboardText = ((await readText().catch(() => '')) || '').trim()
+      }
+    }
     getCurrentWindow().onFocusChanged(async ({ payload: focused }) => {
       if (!focused) return
       const clipboardConfig = preferenceStore.config.clipboard
