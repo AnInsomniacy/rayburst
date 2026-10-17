@@ -6,7 +6,7 @@
 //! in view, and on the screen under the pointer otherwise.
 //!
 //! It is built when a download arrives and destroyed when it closes. The
-//! system draws its frame, corners and shadow; the page moves its content.
+//! system draws its frame, corners and shadow, and animates it in and out.
 
 use std::sync::Mutex;
 use std::time::Duration;
@@ -107,10 +107,7 @@ pub fn present(app: &AppHandle) -> Result<(), AppError> {
     if !window.is_visible().unwrap_or(false) {
         place(app, &window);
     }
-    window.show().map_err(failed)?;
-    let _ = window.unminimize();
-    window.set_focus().map_err(failed)?;
-    Ok(())
+    super::native_window::present(&window).map_err(failed)
 }
 
 /// Hands inputs to the add window, opening it when needed.
@@ -183,8 +180,9 @@ pub fn detach(state: &AddWindowState) -> AddWindowInputs {
     queue
 }
 
-/// Destroys the window after a download was confirmed or dismissed, unless
-/// inputs arrived while it was closing: those are returned and keep it open.
+/// Destroys the window as it animates out after a download was confirmed or
+/// dismissed, unless inputs arrived while it was closing: those are returned
+/// and keep it open. Inputs that arrive as it goes reopen it once it is gone.
 pub fn close(app: &AppHandle) -> AddWindowInputs {
     let (Some(window), Some(state)) = (
         app.get_webview_window(LABEL),
@@ -198,9 +196,7 @@ pub fn close(app: &AppHandle) -> AddWindowInputs {
         return std::mem::take(&mut inner.queue);
     }
     drop(inner);
-    if let Err(error) = window.destroy() {
-        log::warn!("add_window:destroy-failed error={error}");
-    }
+    super::native_window::retire(window);
     AddWindowInputs::default()
 }
 
@@ -268,7 +264,8 @@ fn open(app: &AppHandle, source: &'static str) {
             .and_then(|config| WebviewWindowBuilder::from_config(&app, &config))
             .and_then(WebviewWindowBuilder::build);
         match built {
-            Ok(_) => {
+            Ok(window) => {
+                super::native_window::prepare(&window, super::native_window::Motion::Dialog);
                 log::info!("add_window:opened source={source}");
                 tauri::async_runtime::spawn(expect_ready(app, generation, source));
             }

@@ -184,7 +184,7 @@ impl FloatWindow {
             if covered {
                 close_panel(app);
             }
-            show_inactive(window, !covered);
+            super::native_window::show_inactive(window, !covered);
             log::info!("float_window:covered covered={covered}");
         }
         covered
@@ -206,16 +206,14 @@ impl FloatWindow {
         });
     }
 
-    /// Destroys both windows; the system animates them out.
+    /// Destroys both windows as they animate out.
     fn close(&self, app: &AppHandle) {
         close_panel(app);
         RESIDENT.store(app.get_webview_window("main").is_none(), Ordering::Relaxed);
         // The panel first, so the bar is the last window when it goes.
         for label in [PANEL_LABEL, LABEL] {
             if let Some(window) = app.get_webview_window(label) {
-                if let Err(error) = window.destroy() {
-                    log::warn!("float_window:destroy-failed label={label} error={error}");
-                }
+                super::native_window::retire(window);
             }
         }
         *panel() = Panel::default();
@@ -223,12 +221,14 @@ impl FloatWindow {
     }
 }
 
+/// Builds a hidden window that fades in and out.
 fn build(
     app: &AppHandle,
     config: tauri::Result<tauri::utils::config::WindowConfig>,
 ) -> tauri::Result<WebviewWindow> {
     let window = WebviewWindowBuilder::from_config(app, &config?)?.build()?;
     super::native_window::hide_window_buttons(&window);
+    super::native_window::prepare(&window, super::native_window::Motion::Palette);
     log::info!("float_window:opened label={}", window.label());
     Ok(window)
 }
@@ -256,28 +256,6 @@ fn wants_bar(
         };
     }
     now.duration_since(*quiet.get_or_insert(now)) < LINGER
-}
-
-/// Shows or hides a window without activating it. Asynchronous, so the pump
-/// never waits on the thread that owns the window.
-fn show_inactive(window: &WebviewWindow, visible: bool) {
-    #[cfg(windows)]
-    {
-        use windows_sys::Win32::UI::WindowsAndMessaging::{
-            ShowWindowAsync, SW_HIDE, SW_SHOWNOACTIVATE,
-        };
-        if let Ok(hwnd) = window.hwnd() {
-            let command = if visible { SW_SHOWNOACTIVATE } else { SW_HIDE };
-            // SAFETY: the handle belongs to a live window; the call only posts.
-            unsafe { ShowWindowAsync(hwnd.0 as _, command) };
-        }
-    }
-    #[cfg(not(windows))]
-    let _ = if visible {
-        window.show()
-    } else {
-        window.hide()
-    };
 }
 
 /// Whether the foreground window fills `screen`, as a fullscreen one does; a
@@ -469,7 +447,6 @@ fn bar_config(app: &AppHandle) -> tauri::Result<tauri::utils::config::WindowConf
     let mut config = floating_config(app, LABEL)?;
     config.width = BAR_WIDTH;
     config.height = BAR_HEIGHT;
-    config.visible = true;
     // The page takes drops itself: the native handler on Windows only passes
     // files on and turns links away.
     config.drag_drop_enabled = false;
@@ -505,11 +482,11 @@ fn bar_corner(app: &AppHandle) -> Option<(f64, f64)> {
     receiver.recv_timeout(Duration::from_secs(2)).ok().flatten()
 }
 
-/// Puts the bar back where the user left it, kept within its screen: a place
-/// saved for a smaller window, or on a screen since rearranged, may hang off
-/// it. The window-state plugin would do this on the thread that built the
-/// window, reading every screen's work area there; on X11 that crashes the
-/// process (#725), so it is done on the main thread, as the bar appears.
+/// Puts the bar back where the user left it, kept within its screen, and shows
+/// it there: a place saved for a smaller window, or on a screen since
+/// rearranged, may hang off it. The window-state plugin would do this on the
+/// thread that built the window, reading every screen's work area there; on
+/// X11 that crashes the process (#725), so it is done on the main thread.
 fn restore_bar_position(app: &AppHandle, window: WebviewWindow) {
     use tauri_plugin_window_state::{StateFlags, WindowExt};
     let restored = app.run_on_main_thread(move || {
@@ -519,6 +496,7 @@ fn restore_bar_position(app: &AppHandle, window: WebviewWindow) {
         if let Err(error) = keep_on_screen(&window) {
             log::warn!("float_window:place-failed error={error}");
         }
+        super::native_window::show_inactive(&window, true);
     });
     if let Err(error) = restored {
         log::warn!("float_window:restore-failed error={error}");
@@ -622,14 +600,19 @@ pub fn toggle_panel(app: &AppHandle) {
     }
     state.open = true;
     drop(state);
-    if app.get_webview_window(PANEL_LABEL).is_some() {
-        return;
-    }
     // A fresh window each time: one shown again after hiding repaints its page
     // only after the system has animated it in. The page presents itself once
-    // it has its snapshot. Building waits on the event loop, so not here.
+    // it has its snapshot. Building waits on the event loop, so not here, and
+    // only once the last panel, still fading out, is gone.
     let app = app.clone();
-    tauri::async_runtime::spawn_blocking(move || match build(&app, panel_config(&app)) {
+    tauri::async_runtime::spawn_blocking(move || {
+        super::native_window::wait_gone(&app, PANEL_LABEL);
+        open_panel(&app);
+    });
+}
+
+fn open_panel(app: &AppHandle) {
+    match build(app, panel_config(app)) {
         // Closed again while it was being built.
         Ok(window) if !panel().open => {
             let _ = window.destroy();
@@ -639,10 +622,10 @@ pub fn toggle_panel(app: &AppHandle) {
             log::warn!("float_window:open-failed label={PANEL_LABEL} error={error}");
             panel().open = false;
         }
-    });
+    }
 }
 
-/// Closes the panel and destroys its window.
+/// Closes the panel and destroys its window as it animates out.
 pub fn close_panel(app: &AppHandle) {
     let mut state = panel();
     if !state.open {
@@ -653,9 +636,7 @@ pub fn close_panel(app: &AppHandle) {
     state.bar_offset = None;
     drop(state);
     if let Some(window) = app.get_webview_window(PANEL_LABEL) {
-        if let Err(error) = window.destroy() {
-            log::warn!("float_window:destroy-failed label={PANEL_LABEL} error={error}");
-        }
+        super::native_window::retire(window);
     }
 }
 
@@ -702,10 +683,7 @@ pub fn present_panel(app: &AppHandle, width: f64, height: f64) -> Result<(), App
         .set_size(PhysicalSize::new(panel_width as u32, panel_height as u32))
         .map_err(failed)?;
     window.set_position(at).map_err(failed)?;
-    if !window.is_visible().unwrap_or(false) {
-        window.show().map_err(failed)?;
-    }
-    window.set_focus().map_err(failed)?;
+    super::native_window::present(&window).map_err(failed)?;
     Ok(())
 }
 

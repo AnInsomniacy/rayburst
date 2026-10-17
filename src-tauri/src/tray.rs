@@ -87,14 +87,17 @@ pub fn icon_size() -> u32 {
     0
 }
 
-/// Dot color of the activity indicator.
+/// Dot color of the activity indicator; macOS keeps its template icon.
+#[cfg_attr(target_os = "macos", allow(dead_code))]
 const ACTIVITY_DOT: [u8; 3] = [0x22, 0xc5, 0x5e];
 
 /// The tray bitmap, with a green dot in the lower right while downloads run.
+#[cfg_attr(target_os = "macos", allow(dead_code))]
 pub fn tray_icon_image_with_activity(active: bool) -> tauri::image::Image<'static> {
     with_activity(tray_icon_image(), active)
 }
 
+#[cfg_attr(target_os = "macos", allow(dead_code))]
 fn with_activity(base: tauri::image::Image<'static>, active: bool) -> tauri::image::Image<'static> {
     if !active {
         return base;
@@ -107,6 +110,7 @@ fn with_activity(base: tauri::image::Image<'static>, active: bool) -> tauri::ima
 
 /// Clears a ring around the dot so it reads on any part of the logo, then
 /// paints the dot with anti-aliased edges.
+#[cfg_attr(target_os = "macos", allow(dead_code))]
 fn paint_activity_dot(rgba: &mut [u8], width: u32, height: u32) {
     let size = width.min(height) as f32;
     let radius = size * 0.2;
