@@ -2,17 +2,12 @@
 /**
  * @fileoverview Content of the standalone add-task window.
  *
- * The desktop builds this window ahead of time, hidden, and hands it every new
- * download: browser handoffs, links, torrent files and manual entry from the
- * main window. It shows itself once there is something to confirm, and puts
- * itself away after the user submits or cancels, or after handing
- * auto-submitted downloads to the engine.
- *
- * The window is transparent and draws its panel, rounded and shadowed, with a
- * margin around it. Motion stays inside the page, where it runs on the
- * compositor: the panel rises in and sinks away, and
- * grows or shrinks with its content inside a window that is resized once per
- * change instead of on every frame.
+ * The desktop builds this window when a download arrives: browser handoffs,
+ * links, torrent files and manual entry from the main window. It shows itself
+ * once there is something to confirm, sized to its content, and is destroyed
+ * after the user submits or cancels, or after handing auto-submitted downloads
+ * to the engine. The system draws its frame and animates it, content and
+ * all, as it appears and goes.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -29,7 +24,6 @@ import { useAppMessage } from '@/composables/useAppMessage'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 import { usePlatform } from '@/composables/usePlatform'
 import { listenForTorrentDrops } from '@/composables/useTorrentDrop'
-import { afterReveal, nextFrame, reducedMotion } from '@/composables/useWindowReveal'
 import { logger } from '@shared/logger'
 import { getErrorMessage } from '@shared/utils/errorMessage'
 import type { BatchItem, ExternalDownloadInput } from '@shared/types'
@@ -41,20 +35,14 @@ interface AddWindowInputs {
   manual: boolean
 }
 
-/** Logical width of the panel at 100% interface size. */
-const PANEL_WIDTH = 600
-/** Transparent margin around the panel for its shadow; `PANEL_INSET` in add_window.rs. */
-const PANEL_INSET = 16
+/** Logical width of the window at 100% interface size. */
+const WINDOW_WIDTH = 600
 /** Height of the drawn title bar. */
 const TITLE_BAR_HEIGHT = 32
 /** How far the window may grow beyond its height with nothing expanded before its content scrolls. */
 const MAX_GROWTH = 1.2
 /** Share of the screen's work area the window never exceeds. */
 const MAX_SCREEN_SHARE = 0.9
-/** Quiet time after which the content has finished animating; longer than its transitions. */
-const SETTLE_MS = 400
-/** Duration of the leave animation: `--dialog-leave`. */
-const LEAVE_MS = 170
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -68,19 +56,14 @@ const root = ref<HTMLElement | null>(null)
 const capHeight = ref(0)
 /** Height of the freshly mounted window, links tab, advanced options closed, in CSS pixels. */
 let baseHeight = 0
-const phase = ref<'hidden' | 'shown' | 'leaving'>('hidden')
 const unlisteners: UnlistenFn[] = []
 let closing = false
-// Put away after an earlier download; preferences may have changed since.
-let parked = false
 
 // Window managers that force server-side decorations draw their own title bar (#533).
 const systemTitleBar = computed(() => isLinux.value && preferenceStore.config.systemTitleBar)
 const zoom = computed(() => preferenceStore.config.uiScale || 1)
-// A system title bar frames the window itself; no drawn panel, shadow or margin.
-const inset = computed(() => (systemTitleBar.value ? 0 : PANEL_INSET))
 const cardMaxHeight = computed(() =>
-  capHeight.value ? capHeight.value - 2 * inset.value - (systemTitleBar.value ? 0 : TITLE_BAR_HEIGHT) : 0,
+  capHeight.value ? capHeight.value - (systemTitleBar.value ? 0 : TITLE_BAR_HEIGHT) : 0,
 )
 
 useEscapeKey(() => void addTask.value?.dismiss(), { fromEditable: true })
@@ -105,10 +88,6 @@ function submissionsSettled(): Promise<void> {
 
 async function receive(batch: AddWindowInputs) {
   if (isEmpty(batch)) return
-  if (parked) {
-    parked = false
-    await preferenceStore.reloadPreferenceFromDisk()
-  }
   if (batch.manual && !appStore.addTaskVisible) appStore.showAddTaskDialog()
   if (batch.items.length > 0 && appStore.enqueueForwardedItems(batch.items) > 0) {
     message.warning(t('task.duplicate-task'))
@@ -137,42 +116,22 @@ async function close() {
   }
   // The main window keeps its own copy of the preferences this window may have saved.
   await emit('add-window:closed').catch(() => undefined)
-  await leave()
-  // Paint the start state before hiding, so the next showing never flashes this one.
-  phase.value = 'hidden'
-  await nextFrame()
-  await nextFrame()
   try {
-    const late = await invoke<AddWindowInputs>('add_window_park')
-    parked = true
+    const late = await invoke<AddWindowInputs>('add_window_close')
     closing = false
     await receive(late)
   } catch (error) {
-    logger.warn('AddWindow.park', getErrorMessage(error))
+    logger.warn('AddWindow.close', getErrorMessage(error))
     await view.destroy()
   }
 }
 
-// ── Motion ──────────────────────────────────────────────────────────
-
-/** Fades the panel out before the window is put away. */
-async function leave() {
-  if (phase.value !== 'shown') return
-  phase.value = 'leaving'
-  if (!reducedMotion()) await new Promise((resolve) => setTimeout(resolve, LEAVE_MS))
-}
-
 // ── Size ────────────────────────────────────────────────────────────
-// Resizing the window relays out the whole webview, too slow to follow an
-// animation frame by frame. When the content grows, the window grows at once to
-// the most the panel may take, so the panel expands smoothly inside its
-// transparent margin; once the content has stopped moving, the window shrinks
-// to fit it again.
+// The window follows its content, one resize at a time.
 
 let appliedHeight = 0
 let wantedHeight = 0
 let sizing = false
-let settleTimer: ReturnType<typeof setTimeout> | undefined
 
 function fitHeight(): number {
   return root.value ? Math.ceil(root.value.getBoundingClientRect().height * zoom.value) : 0
@@ -187,7 +146,7 @@ async function applyHeight(height: number) {
   try {
     while (wantedHeight !== appliedHeight) {
       const next = wantedHeight
-      const width = Math.round((PANEL_WIDTH + 2 * inset.value) * zoom.value)
+      const width = Math.round(WINDOW_WIDTH * zoom.value)
       await view.setSize(new LogicalSize(width, next))
       appliedHeight = next
     }
@@ -197,16 +156,6 @@ async function applyHeight(height: number) {
   } finally {
     sizing = false
   }
-}
-
-function onContentResize() {
-  const fit = fitHeight()
-  // Without a transparent margin the window has to follow the content directly.
-  if (fit > appliedHeight) {
-    void applyHeight(systemTitleBar.value ? fit : Math.max(fit, Math.round(capHeight.value * zoom.value)))
-  }
-  clearTimeout(settleTimer)
-  settleTimer = setTimeout(() => void applyHeight(fitHeight()), systemTitleBar.value ? 0 : SETTLE_MS)
 }
 
 /**
@@ -219,28 +168,23 @@ async function measureScreen() {
   const height = await invoke<number | null>('add_window_screen_height').catch(() => null)
   const logical = height ?? window.screen.availHeight
   const screenCap = Math.floor((logical * MAX_SCREEN_SHARE) / zoom.value)
-  // A measurement holding no more than the margin and title bar saw no
-  // content; capping by it would leave the window too small to use (#712).
-  const chrome = 2 * inset.value + (systemTitleBar.value ? 0 : TITLE_BAR_HEIGHT)
+  // A measurement holding no more than the title bar saw no content; capping
+  // by it would leave the window too small to use (#712).
+  const chrome = systemTitleBar.value ? 0 : TITLE_BAR_HEIGHT
   capHeight.value = baseHeight > chrome ? Math.min(screenCap, Math.round(baseHeight * MAX_GROWTH)) : screenCap
 }
 
-const resizeObserver = new ResizeObserver(onContentResize)
+const resizeObserver = new ResizeObserver(() => void applyHeight(fitHeight()))
 
 watch(
   () => appStore.addTaskVisible,
   async (visible) => {
     if (!visible) return
-    phase.value = 'hidden'
     await view.setTitle(`${t('task.new-task')} - Rayburst`).catch(() => undefined)
     await measureScreen()
     await nextTick()
-    clearTimeout(settleTimer)
     await applyHeight(fitHeight())
     await invoke('add_window_present').catch((error: unknown) => logger.warn('AddWindow.present', error))
-    // Let the shown window paint the panel's start state before it animates.
-    await afterReveal()
-    phase.value = 'shown'
   },
 )
 
@@ -277,7 +221,6 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  clearTimeout(settleTimer)
   resizeObserver.disconnect()
   appStore.setExternalInputErrorHandler(null)
   for (const unlisten of unlisteners) unlisten()
@@ -288,64 +231,44 @@ onBeforeUnmount(() => {
   <div
     ref="root"
     class="add-window"
-    :class="[`add-window--${phase}`, { 'add-window--framed': !systemTitleBar }]"
+    :class="{ 'add-window--bordered': isLinux && !systemTitleBar }"
     :style="{
       // WebKitGTK lays out a hidden window at zero width, which wraps every
       // line and measured the content far too tall (#731); a fixed width keeps
       // measurements taken before the first showing true.
-      width: `${PANEL_WIDTH + 2 * inset}px`,
-      padding: `${inset}px`,
+      width: `${WINDOW_WIDTH}px`,
       ...(cardMaxHeight ? { '--add-window-max-height': `${cardMaxHeight}px` } : {}),
     }"
   >
-    <div class="add-window-panel">
-      <header v-if="!systemTitleBar" class="add-window-titlebar" :class="{ mac: isMac }" data-tauri-drag-region>
-        <span class="add-window-title" data-tauri-drag-region>{{ t('task.new-task') }}</span>
-        <WindowControls :is-maximized="false" :platform="platform" :maximizable="false" @close="addTask?.dismiss()" />
-      </header>
-      <AddTask
-        ref="addTask"
-        :show="appStore.addTaskVisible"
-        @close="close"
-        @submitted="emit('add-window:submitted').catch(() => undefined)"
-      />
-      <TorrentDropOverlay />
-    </div>
+    <header v-if="!systemTitleBar" class="add-window-titlebar" :class="{ mac: isMac }" data-tauri-drag-region>
+      <span class="add-window-title" data-tauri-drag-region>{{ t('task.new-task') }}</span>
+      <WindowControls :is-maximized="false" :platform="platform" :maximizable="false" @close="addTask?.dismiss()" />
+    </header>
+    <AddTask
+      ref="addTask"
+      :show="appStore.addTaskVisible"
+      @close="close"
+      @submitted="emit('add-window:submitted').catch(() => undefined)"
+    />
+    <TorrentDropOverlay />
   </div>
 </template>
 
 <style scoped>
-.add-window-panel {
+.add-window {
   position: relative;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   background: var(--main-bg);
-  transform-origin: center;
-  transition:
-    opacity var(--dialog-fade) cubic-bezier(0.2, 0, 0, 1),
-    transform var(--dialog-enter) var(--dialog-ease-enter);
 }
 
-.add-window--framed .add-window-panel {
-  border-radius: var(--radius-md);
-  box-shadow:
-    0 2px 12px var(--m3-shadow),
-    0 0 0 1px var(--m3-outline-variant);
-}
-
-.add-window--hidden .add-window-panel {
-  opacity: 0;
-  transform: translateY(12px) scale(0.95);
-  transition: none;
-}
-
-.add-window--leaving .add-window-panel {
-  opacity: 0;
-  transform: translateY(6px) scale(0.97);
-  transition:
-    opacity var(--dialog-leave) var(--dialog-ease-leave),
-    transform var(--dialog-leave) var(--dialog-ease-leave);
+/* GTK draws no frame around a window without decorations. */
+.add-window--bordered::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  border: 1px solid var(--m3-outline-variant);
+  pointer-events: none;
 }
 
 .add-window-titlebar {
@@ -355,11 +278,6 @@ onBeforeUnmount(() => {
   height: 32px;
   flex-shrink: 0;
   padding-inline: 16px;
-}
-
-/* The caption buttons belong to the panel's corner, not the window's. */
-.add-window-titlebar :deep(.caption-bar) {
-  position: absolute;
 }
 
 /* macOS draws its traffic lights over the left of the title bar. */
@@ -377,12 +295,11 @@ onBeforeUnmount(() => {
 </style>
 
 <style>
-/* The window is transparent around the panel, and the page never scrolls:
- * focusing a field below the window's edge would otherwise move the whole
- * page. Only the card's content scrolls, once the window is full. */
+/* The page never scrolls: focusing a field below the window's edge would
+ * otherwise move the whole page. Only the card's content scrolls, once the
+ * window is full. */
 html.add-window-document,
 html.add-window-document body {
-  background: transparent;
   overflow: clip;
 }
 

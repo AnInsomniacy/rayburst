@@ -2,7 +2,7 @@
 /**
  * @fileoverview The floating orb (#669, #718, #402, #726).
  *
- * A 52 px orb that stays on top. At rest it shows the Rayburst mark; while
+ * A 52 px window that stays on top; the system rounds and shadows it. At rest it shows the Rayburst mark; while
  * downloading, the overall speed, ringed by the overall progress. It pulses
  * when a download starts, shows a check when the last one completes, a pause
  * sign when everything waits paused, and a dot after an error. A click opens
@@ -21,6 +21,7 @@ import { NIcon } from 'naive-ui'
 import { Checkmark, Pause } from '@vicons/ionicons5'
 import aria2Api from '@/api/aria2'
 import { useFloatUpdates, type FloatUpdate } from '@/composables/useFloatUpdates'
+import { usePlatform } from '@/composables/usePlatform'
 import { usePreferenceStore } from '@/stores/preference'
 import { FLOAT_WINDOW_MODE_LABELS, FLOAT_WINDOW_MODES, TASK_STATUS } from '@shared/constants'
 import { bytesToSize } from '@shared/utils'
@@ -41,12 +42,12 @@ const RING_LENGTH = 2 * Math.PI * RING_RADIUS
 
 const { t } = useI18n()
 const preferenceStore = usePreferenceStore()
+const { isLinux } = usePlatform()
 const view = getCurrentWebviewWindow()
 const root = ref<HTMLElement | null>(null)
 const pulsing = ref(false)
 const done = ref(false)
 const failed = ref(false)
-const leaving = ref(false)
 /** Something droppable is dragged over the orb. */
 const dropping = ref(false)
 const unlisteners: UnlistenFn[] = []
@@ -269,7 +270,6 @@ onMounted(async () => {
   document.documentElement.classList.add('float-window-document')
   if (root.value) resizeObserver.observe(root.value)
   unlisteners.push(
-    await view.listen('float:leave', () => (leaving.value = true)),
     // Lifecycle events reach every window.
     await listen('task-monitor:complete', celebrate),
     await listen('task-monitor:p2p-download-complete', celebrate),
@@ -294,62 +294,66 @@ onBeforeUnmount(() => {
     @dragleave="onDragLeave"
     @drop="onDrop"
   >
-    <Transition name="orb" appear>
-      <div
-        v-if="update && !leaving"
-        class="orb"
-        :class="[`orb--${mode}`, { 'orb--pulse': pulsing, 'orb--spinning': indeterminate, 'orb--drop': dropping }]"
-        role="button"
-        tabindex="0"
-        :title="tooltip"
-        :aria-label="tooltip"
-        @pointerdown="onPointerDown"
-        @pointermove="onPointerMove"
-        @pointerup="onPointerUp"
-        @keydown.enter.prevent="togglePanel"
-        @contextmenu="showMenu"
-      >
-        <svg class="orb-ring" viewBox="0 0 44 44" aria-hidden="true">
-          <defs>
-            <linearGradient id="orb-ring-gradient" x1="0" y1="0" x2="1" y2="1">
-              <stop class="orb-ring-stop" offset="0" />
-              <stop class="orb-ring-stop orb-ring-stop--end" offset="1" />
-            </linearGradient>
-          </defs>
-          <circle class="orb-ring-track" cx="22" cy="22" :r="RING_RADIUS" />
-          <circle
-            class="orb-ring-value"
-            cx="22"
-            cy="22"
-            :r="RING_RADIUS"
-            :stroke-dasharray="RING_LENGTH"
-            :stroke-dashoffset="ringOffset"
-          />
-        </svg>
+    <div
+      class="orb"
+      :class="[
+        `orb--${mode}`,
+        {
+          'orb--pulse': pulsing,
+          'orb--spinning': indeterminate,
+          'orb--drop': dropping,
+          'orb--bordered': isLinux,
+        },
+      ]"
+      role="button"
+      tabindex="0"
+      :title="tooltip"
+      :aria-label="tooltip"
+      @pointerdown="onPointerDown"
+      @pointermove="onPointerMove"
+      @pointerup="onPointerUp"
+      @keydown.enter.prevent="togglePanel"
+      @contextmenu="showMenu"
+    >
+      <svg class="orb-ring" viewBox="0 0 44 44" aria-hidden="true">
+        <defs>
+          <linearGradient id="orb-ring-gradient" x1="0" y1="0" x2="1" y2="1">
+            <stop class="orb-ring-stop" offset="0" />
+            <stop class="orb-ring-stop orb-ring-stop--end" offset="1" />
+          </linearGradient>
+        </defs>
+        <circle class="orb-ring-track" cx="22" cy="22" :r="RING_RADIUS" />
+        <circle
+          class="orb-ring-value"
+          cx="22"
+          cy="22"
+          :r="RING_RADIUS"
+          :stroke-dasharray="RING_LENGTH"
+          :stroke-dashoffset="ringOffset"
+        />
+      </svg>
 
-        <Transition name="orb-face">
-          <img v-if="mode === 'idle'" key="idle" class="orb-face orb-logo" src="/logo.svg" alt="" draggable="false" />
-          <span v-else-if="mode === 'active'" key="active" class="orb-face orb-speed">
-            <span class="orb-speed-value" :data-length="speed.value.length">{{ speed.value }}</span>
-            <span class="orb-speed-unit">{{ speed.unit }}</span>
-          </span>
-          <NIcon v-else-if="mode === 'paused'" key="paused" class="orb-face orb-symbol" :size="19"><Pause /></NIcon>
-          <NIcon v-else key="done" class="orb-face orb-symbol orb-symbol--done" :size="23"><Checkmark /></NIcon>
-        </Transition>
+      <Transition name="orb-face">
+        <img v-if="mode === 'idle'" key="idle" class="orb-face orb-logo" src="/logo.svg" alt="" draggable="false" />
+        <span v-else-if="mode === 'active'" key="active" class="orb-face orb-speed">
+          <span class="orb-speed-value" :data-length="speed.value.length">{{ speed.value }}</span>
+          <span class="orb-speed-unit">{{ speed.unit }}</span>
+        </span>
+        <NIcon v-else-if="mode === 'paused'" key="paused" class="orb-face orb-symbol" :size="19"><Pause /></NIcon>
+        <NIcon v-else key="done" class="orb-face orb-symbol orb-symbol--done" :size="23"><Checkmark /></NIcon>
+      </Transition>
 
-        <Transition name="orb-dot">
-          <span v-if="failed" class="orb-dot" />
-        </Transition>
-      </div>
-    </Transition>
+      <Transition name="orb-dot">
+        <span v-if="failed" class="orb-dot" />
+      </Transition>
+    </div>
   </div>
 </template>
 
 <style scoped>
-/* The margin holds the orb's shadow and its hover growth inside the window. */
+/* The window is sized to the orb; the system draws its corners and shadow. */
 .float-window {
   display: inline-flex;
-  padding: 8px;
   user-select: none;
 }
 
@@ -359,48 +363,34 @@ onBeforeUnmount(() => {
   place-items: center;
   width: 52px;
   height: 52px;
-  border-radius: 50%;
   background:
     radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--m3-primary) 7%, transparent), transparent 62%),
     var(--main-bg);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--m3-outline-variant) 80%, transparent),
-    0 1px 2px var(--m3-shadow),
-    0 4px 10px -2px var(--m3-shadow);
   color: var(--m3-on-surface);
   cursor: default;
   outline: none;
-  transition:
-    transform 220ms var(--dialog-ease-enter),
-    box-shadow 220ms var(--dialog-ease-enter);
+  transition: box-shadow 220ms var(--dialog-ease-enter);
 }
 
 .orb:hover {
-  transform: scale(1.06);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--m3-outline-variant) 80%, transparent),
-    0 2px 4px var(--m3-shadow),
-    0 6px 14px -2px var(--m3-shadow);
+  box-shadow: inset 0 0 0 52px color-mix(in srgb, var(--m3-on-surface) 4%, transparent);
 }
 
 .orb:active {
-  transform: scale(0.96);
+  box-shadow: inset 0 0 0 52px color-mix(in srgb, var(--m3-on-surface) 8%, transparent);
   transition-duration: 100ms;
 }
 
-/* Something droppable is over it: it rises and takes the accent. */
-.orb--drop,
-.orb--drop:hover {
-  transform: scale(1.1);
-  box-shadow:
-    0 0 0 2px var(--m3-primary),
-    0 6px 14px -2px var(--m3-shadow);
+/* GTK draws no frame around a window without decorations. */
+.orb--bordered {
+  box-shadow: inset 0 0 0 1px var(--m3-outline-variant);
 }
 
+/* Something droppable is over it, or it has the keyboard focus. */
+.orb--drop,
+.orb--drop:hover,
 .orb:focus-visible {
-  box-shadow:
-    0 0 0 2px var(--m3-primary),
-    0 4px 10px -2px var(--m3-shadow);
+  box-shadow: inset 0 0 0 2px var(--m3-primary);
 }
 
 /* ── Ring ─────────────────────────────────────────────────────────── */
@@ -477,6 +467,12 @@ onBeforeUnmount(() => {
 .orb-face {
   grid-area: 1 / 1;
   pointer-events: none;
+  transition: transform 120ms var(--dialog-ease-enter);
+}
+
+/* A press sinks the face a little, as a button gives under the finger. */
+.orb:active .orb-face {
+  transform: scale(0.92);
 }
 
 .orb-logo {
@@ -544,7 +540,7 @@ onBeforeUnmount(() => {
   transform: scale(0.6);
 }
 
-/* ── Pulse, error dot, arrival ────────────────────────────────────── */
+/* ── Pulse, error dot ─────────────────────────────────────────────── */
 
 .orb--pulse {
   animation: orb-pulse 700ms var(--dialog-ease-enter);
@@ -552,26 +548,20 @@ onBeforeUnmount(() => {
 
 @keyframes orb-pulse {
   0% {
-    box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--m3-outline-variant) 80%, transparent),
-      0 0 0 0 color-mix(in srgb, var(--m3-primary) 45%, transparent),
-      0 4px 10px -2px var(--m3-shadow);
+    box-shadow: inset 0 0 0 0 color-mix(in srgb, var(--m3-primary) 45%, transparent);
   }
   35% {
-    transform: scale(1.08);
+    box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--m3-primary) 45%, transparent);
   }
   100% {
-    box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--m3-outline-variant) 80%, transparent),
-      0 0 0 8px color-mix(in srgb, var(--m3-primary) 0%, transparent),
-      0 4px 10px -2px var(--m3-shadow);
+    box-shadow: inset 0 0 0 0 color-mix(in srgb, var(--m3-primary) 0%, transparent);
   }
 }
 
 .orb-dot {
   position: absolute;
-  top: 1px;
-  right: 1px;
+  top: 5px;
+  right: 5px;
   width: 10px;
   height: 10px;
   border: 2px solid var(--main-bg);
@@ -587,23 +577,5 @@ onBeforeUnmount(() => {
 .orb-dot-enter-from,
 .orb-dot-leave-to {
   transform: scale(0);
-}
-
-.orb-enter-active {
-  transition:
-    opacity 200ms var(--dialog-ease-enter),
-    transform 200ms var(--dialog-ease-enter);
-}
-
-.orb-leave-active {
-  transition:
-    opacity 150ms var(--dialog-ease-leave),
-    transform 150ms var(--dialog-ease-leave);
-}
-
-.orb-enter-from,
-.orb-leave-to {
-  opacity: 0;
-  transform: scale(0.8);
 }
 </style>

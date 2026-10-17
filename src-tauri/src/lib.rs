@@ -745,10 +745,9 @@ pub fn run() {
             commands::take_pending_deep_links,
             commands::take_pending_external_inputs,
             commands::add_window_attach,
+            commands::add_window_close,
             commands::add_window_detach,
             commands::add_window_open,
-            commands::add_window_park,
-            commands::add_window_prepare,
             commands::add_window_present,
             commands::add_window_screen_height,
             commands::take_pending_frontend_actions,
@@ -829,6 +828,7 @@ pub fn run() {
             commands::float_panel_toggle,
             commands::float_panel_dismiss,
             commands::float_panel_present,
+            commands::window_background,
         ])
         // ── Window event interception ─────────────────────────────────
         //

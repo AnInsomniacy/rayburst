@@ -7,9 +7,10 @@
 //! download, or never; the pump opens and closes both windows accordingly and
 //! feeds them each snapshot.
 //!
-//! The orb never changes its size, and the panel is a window of its own, built
-//! hidden with the orb; neither has to move or resize the other to open, so
-//! nothing jumps.
+//! The orb never changes its size, and the panel is a window of its own,
+//! built when it opens and destroyed when it closes; neither has to move or
+//! resize the other, so nothing jumps. Both are opaque: the system draws their corners and shadows
+//! and animates them in and out.
 //!
 //! On Windows the orb steps aside while an application in fullscreen, a video
 //! or a game, fills its screen, and returns when that ends. macOS keeps windows
@@ -32,24 +33,14 @@ use crate::error::AppError;
 pub const LABEL: &str = "float";
 pub const PANEL_LABEL: &str = "float-panel";
 const UPDATE_EVENT: &str = "float:update";
-/// Asks the orb to animate out before it is destroyed.
-const LEAVE_EVENT: &str = "float:leave";
-const PANEL_OPEN_EVENT: &str = "float-panel:open";
-const PANEL_CLOSE_EVENT: &str = "float-panel:close";
 /// Tells every window that the mode changed outside the settings.
 const MODE_EVENT: &str = "float-window:mode";
-/// Size of the orb window in logical pixels: the 52 px orb and the margin
-/// holding its shadow, `FloatWindow.vue`.
-const ORB_SIZE: f64 = 68.0;
-const ORB_INSET: f64 = 8.0;
-/// Margin holding the panel's shadow, `FloatPanel.vue`.
-const PANEL_INSET: f64 = 12.0;
-/// Space between the orb and the panel as drawn.
+/// Size of the orb window in logical pixels, `FloatWindow.vue`.
+const ORB_SIZE: f64 = 52.0;
+/// Space between the orb and the panel.
 const PANEL_GAP: f64 = 8.0;
 /// Distance from the corner of the screen where the orb first appears.
 const MARGIN: f64 = 16.0;
-/// Length of the orb's leave animation.
-const LEAVE: Duration = Duration::from_millis(200);
 /// A click on the orb right after the panel closed on losing focus to that
 /// very click must not open it again.
 const REOPEN_GUARD: Duration = Duration::from_millis(300);
@@ -127,7 +118,6 @@ struct Update<'a> {
 #[derive(Default)]
 pub struct FloatWindow {
     opening: Arc<AtomicBool>,
-    leaving: Arc<AtomicBool>,
     /// The mode the tray menus show.
     shown_mode: Mutex<Option<Mode>>,
     /// When the last download stopped, in `downloading` mode.
@@ -150,7 +140,7 @@ impl FloatWindow {
         drop(shown);
         let wanted = self.wanted(app, mode, tasks);
         match (wanted, app.get_webview_window(LABEL)) {
-            (true, Some(window)) if !self.leaving.load(Ordering::Acquire) => {
+            (true, Some(window)) => {
                 if self.cover(app, &window) {
                     return;
                 }
@@ -171,7 +161,7 @@ impl FloatWindow {
                 }
             }
             (true, None) if !fullscreen_in_front(app, None) => self.open(app),
-            (false, Some(window)) => self.leave(app, window),
+            (false, Some(_)) => self.close(app),
             _ => {}
         }
     }
@@ -207,55 +197,39 @@ impl FloatWindow {
         let opening = Arc::clone(&self.opening);
         // Building a window waits on the event loop; never do it on that thread.
         tauri::async_runtime::spawn_blocking(move || {
-            for (label, config) in [(LABEL, orb_config(&app)), (PANEL_LABEL, panel_config(&app))] {
-                let built = config
-                    .and_then(|config| WebviewWindowBuilder::from_config(&app, &config))
-                    .and_then(WebviewWindowBuilder::build);
-                match built {
-                    Ok(window) => {
-                        super::add_window::without_system_transitions(&window);
-                        if label == LABEL {
-                            restore_orb_position(&app, window);
-                        }
-                        log::info!("float_window:opened label={label}");
-                    }
-                    Err(error) => {
-                        log::warn!("float_window:open-failed label={label} error={error}")
-                    }
-                }
+            match build(&app, orb_config(&app)) {
+                Ok(window) => restore_orb_position(&app, window),
+                Err(error) => log::warn!("float_window:open-failed label={LABEL} error={error}"),
             }
             opening.store(false, Ordering::Release);
         });
     }
 
-    /// Lets the orb animate out, then destroys both windows.
-    fn leave(&self, app: &AppHandle, window: WebviewWindow) {
-        if self.leaving.swap(true, Ordering::AcqRel) {
-            return;
-        }
+    /// Destroys both windows; the system animates them out.
+    fn close(&self, app: &AppHandle) {
         close_panel(app);
-        if let Err(error) = window.emit_to(LABEL, LEAVE_EVENT, ()) {
-            log::debug!("float_window:emit-failed label={LABEL} error={error}");
-        }
-        let app = app.clone();
-        let leaving = Arc::clone(&self.leaving);
-        let covered = Arc::clone(&self.covered);
-        tauri::async_runtime::spawn(async move {
-            tokio::time::sleep(LEAVE).await;
-            RESIDENT.store(app.get_webview_window("main").is_none(), Ordering::Relaxed);
-            // The panel first, so the orb is the last window when it goes.
-            for label in [PANEL_LABEL, LABEL] {
-                if let Some(window) = app.get_webview_window(label) {
-                    if let Err(error) = window.destroy() {
-                        log::warn!("float_window:destroy-failed label={label} error={error}");
-                    }
+        RESIDENT.store(app.get_webview_window("main").is_none(), Ordering::Relaxed);
+        // The panel first, so the orb is the last window when it goes.
+        for label in [PANEL_LABEL, LABEL] {
+            if let Some(window) = app.get_webview_window(label) {
+                if let Err(error) = window.destroy() {
+                    log::warn!("float_window:destroy-failed label={label} error={error}");
                 }
             }
-            *panel() = Panel::default();
-            covered.store(false, Ordering::Release);
-            leaving.store(false, Ordering::Release);
-        });
+        }
+        *panel() = Panel::default();
+        self.covered.store(false, Ordering::Release);
     }
+}
+
+fn build(
+    app: &AppHandle,
+    config: tauri::Result<tauri::utils::config::WindowConfig>,
+) -> tauri::Result<WebviewWindow> {
+    let window = WebviewWindowBuilder::from_config(app, &config?)?.build()?;
+    super::native_window::hide_window_buttons(&window);
+    log::info!("float_window:opened label={}", window.label());
+    Ok(window)
 }
 
 fn downloading(task: &Aria2Task) -> bool {
@@ -463,28 +437,27 @@ fn queue(tasks: &[Aria2Task]) -> Vec<Aria2Task> {
         .collect()
 }
 
-/// Borderless and transparent on top of other windows, out of the taskbar and
-/// on every desktop; the pages draw what shows.
+/// Opaque, without a title bar, on top of other windows, out of the taskbar and
+/// on every desktop. macOS rounds and shadows only titled windows, so there
+/// the title bar stays, transparent and without its buttons.
 fn floating_config(
     app: &AppHandle,
     label: &str,
 ) -> tauri::Result<tauri::utils::config::WindowConfig> {
     let mut config = super::add_window::secondary_window_config(app, label)?;
     config.center = false;
-    config.decorations = false;
-    // GTK keeps a window the user cannot resize at least 200x200, which would
-    // leave a transparent square around the orb catching clicks (tauri#6125).
+    config.decorations = cfg!(target_os = "macos");
+    // GTK keeps a window the user cannot resize at least 200x200 (tauri#6125).
     // Without borders the user cannot resize it anyway.
     config.resizable = cfg!(target_os = "linux");
-    config.transparent = true;
-    config.shadow = false;
     config.always_on_top = true;
     config.skip_taskbar = true;
     config.focus = false;
     config.visible_on_all_workspaces = true;
-    config.title_bar_style = tauri::TitleBarStyle::Visible;
-    config.hidden_title = false;
+    config.title_bar_style = tauri::TitleBarStyle::Overlay;
+    config.hidden_title = true;
     config.traffic_light_position = None;
+    super::native_window::with_background(&mut config);
     Ok(config)
 }
 
@@ -534,7 +507,7 @@ fn orb_corner(app: &AppHandle) -> Option<(f64, f64)> {
 /// Puts the orb back where the user left it. The window-state plugin would do
 /// this on the thread that built the window, reading every screen's work area
 /// there; on X11 that crashes the process (#725), so it is done on the main
-/// thread. The orb is still transparent and empty, so it never shows the move.
+/// thread, as the orb appears.
 fn restore_orb_position(app: &AppHandle, window: WebviewWindow) {
     use tauri_plugin_window_state::{StateFlags, WindowExt};
     let restored = app.run_on_main_thread(move || {
@@ -575,7 +548,7 @@ struct Rect {
 
 /// Places a panel of `width` × `height` beside the orb: towards the larger
 /// half of the screen, lined up with the orb's outer edge and kept on screen.
-/// All values in physical pixels; `scale` converts the logical insets.
+/// All values in physical pixels; `scale` converts the logical gap.
 fn place_panel(
     orb: Rect,
     width: f64,
@@ -583,27 +556,22 @@ fn place_panel(
     area: Rect,
     scale: f64,
 ) -> (f64, f64, PanelSide) {
-    let orb_inset = ORB_INSET * scale;
-    let panel_inset = PANEL_INSET * scale;
     let gap = PANEL_GAP * scale;
     let end = orb.x + orb.width / 2.0 > area.x + area.width / 2.0;
     let x = if end {
-        orb.x + orb.width - orb_inset + panel_inset - width
+        orb.x + orb.width - width
     } else {
-        orb.x + orb_inset - panel_inset
+        orb.x
     };
-    let above_y = orb.y + orb_inset - gap + panel_inset - height;
-    let below_y = orb.y + orb.height - orb_inset + gap - panel_inset;
-    let room_above = above_y + panel_inset >= area.y;
-    let room_below = below_y + height - panel_inset <= area.y + area.height;
+    let above_y = orb.y - gap - height;
+    let below_y = orb.y + orb.height + gap;
+    let room_above = above_y >= area.y;
+    let room_below = below_y + height <= area.y + area.height;
     let lower_half = orb.y + orb.height / 2.0 > area.y + area.height / 2.0;
     let above = (lower_half && room_above) || !room_below;
     let y = if above { above_y } else { below_y };
-    // The drawn panel stays on screen; its transparent margin may leave it.
     let clamp = |value: f64, length: f64, start: f64, span: f64| {
-        value
-            .min(start + span - length + panel_inset)
-            .max(start - panel_inset)
+        value.min(start + span - length).max(start)
     };
     (
         clamp(x, width, area.x, area.width),
@@ -629,13 +597,27 @@ pub fn toggle_panel(app: &AppHandle) {
     }
     state.open = true;
     drop(state);
-    if let Err(error) = app.emit_to(PANEL_LABEL, PANEL_OPEN_EVENT, ()) {
-        log::warn!("float_window:panel-open-failed error={error}");
-        panel().open = false;
+    if app.get_webview_window(PANEL_LABEL).is_some() {
+        return;
     }
+    // A fresh window each time: one shown again after hiding repaints its page
+    // only after the system has animated it in. The page presents itself once
+    // it has its snapshot. Building waits on the event loop, so not here.
+    let app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || match build(&app, panel_config(&app)) {
+        // Closed again while it was being built.
+        Ok(window) if !panel().open => {
+            let _ = window.destroy();
+        }
+        Ok(_) => {}
+        Err(error) => {
+            log::warn!("float_window:open-failed label={PANEL_LABEL} error={error}");
+            panel().open = false;
+        }
+    });
 }
 
-/// Asks the panel to animate out; it hides itself.
+/// Closes the panel and destroys its window.
 pub fn close_panel(app: &AppHandle) {
     let mut state = panel();
     if !state.open {
@@ -645,7 +627,11 @@ pub fn close_panel(app: &AppHandle) {
     state.closed_at = Some(Instant::now());
     state.orb_offset = None;
     drop(state);
-    let _ = app.emit_to(PANEL_LABEL, PANEL_CLOSE_EVENT, ());
+    if let Some(window) = app.get_webview_window(PANEL_LABEL) {
+        if let Err(error) = window.destroy() {
+            log::warn!("float_window:destroy-failed label={PANEL_LABEL} error={error}");
+        }
+    }
 }
 
 /// Sizes the panel to its content, given in logical pixels, places it beside
@@ -809,15 +795,15 @@ mod tests {
         Rect {
             x,
             y,
-            width: 68.0,
-            height: 68.0,
+            width: 52.0,
+            height: 52.0,
         }
     }
 
     #[test]
     fn the_panel_opens_towards_the_larger_part_of_the_screen() {
-        // Bottom right corner: above the orb, drawn right edges lined up.
-        let corner = orb(1836.0, 956.0);
+        // Bottom right corner: above the orb, right edges lined up.
+        let corner = orb(1852.0, 972.0);
         let (x, y, side) = place_panel(corner, 344.0, 300.0, AREA, 1.0);
         assert_eq!(
             side,
@@ -826,10 +812,10 @@ mod tests {
                 end: true
             }
         );
-        assert_eq!(x + 344.0 - 12.0, corner.x + 68.0 - 8.0);
-        assert_eq!(y + 300.0 - 12.0 + 8.0, corner.y + 8.0);
+        assert_eq!(x + 344.0, corner.x + 52.0);
+        assert_eq!(y + 300.0 + 8.0, corner.y);
 
-        // Top left corner: below the orb, drawn left edges lined up.
+        // Top left corner: below the orb, left edges lined up.
         let corner = orb(16.0, 16.0);
         let (x, y, side) = place_panel(corner, 344.0, 300.0, AREA, 1.0);
         assert_eq!(
@@ -839,15 +825,15 @@ mod tests {
                 end: false
             }
         );
-        assert_eq!(x + 12.0, corner.x + 8.0);
-        assert_eq!(y + 12.0, corner.y + 68.0 - 8.0 + 8.0);
+        assert_eq!(x, corner.x);
+        assert_eq!(y, corner.y + 52.0 + 8.0);
     }
 
     #[test]
     fn a_panel_without_room_above_opens_below_and_stays_on_screen() {
         let (x, y, side) = place_panel(orb(1800.0, 300.0), 344.0, 400.0, AREA, 1.0);
         assert!(!side.above);
-        assert!(x + 344.0 - 12.0 <= AREA.width);
-        assert!(y + 12.0 >= 0.0);
+        assert!(x + 344.0 <= AREA.width);
+        assert!(y >= 0.0);
     }
 }

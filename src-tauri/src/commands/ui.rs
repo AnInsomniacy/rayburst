@@ -171,6 +171,19 @@ pub fn float_window_ready(app: AppHandle) {
     crate::services::pump::wake(&app);
 }
 
+/// Paints the calling window in its theme's background, which also starts the
+/// windows built later.
+#[tauri::command]
+pub fn window_background(
+    window: tauri::WebviewWindow,
+    red: u8,
+    green: u8,
+    blue: u8,
+) -> Result<(), AppError> {
+    crate::services::native_window::set_background(&window, (red, green, blue))
+        .map_err(|error| AppError::Io(format!("window background: {error}")))
+}
+
 /// Switches the floating window's mode from its menu.
 #[tauri::command]
 pub fn float_window_set_mode(

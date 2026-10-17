@@ -483,8 +483,6 @@ onMounted(async () => {
         await appWindow.hide()
       }
     }
-    // Build the add window, hidden, now that this window is up, so no download waits for it.
-    invoke('add_window_prepare').catch((error: unknown) => logger.debug('MainLayout.addWindowPrepare', error))
   }
 
   await startSnapshotListener()
