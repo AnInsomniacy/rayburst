@@ -155,7 +155,7 @@ watch(zoom, scheduleRefit)
 
 // ── Actions ─────────────────────────────────────────────────────────
 
-function startDrag(event: PointerEvent) {
+function startDrag(event: MouseEvent) {
   if (event.button !== 0) return
   invoke('float_panel_start_drag').catch((error: unknown) => logger.warn('FloatPanel.drag', getErrorMessage(error)))
 }
@@ -212,7 +212,7 @@ onBeforeUnmount(() => {
 <template>
   <div ref="root" class="float-panel" :class="`float-panel--${phase}`">
     <section class="panel-card" :style="{ transformOrigin: origin }">
-      <header class="panel-header" @pointerdown="startDrag">
+      <header class="panel-header" @mousedown="startDrag">
         <img class="panel-logo" src="/logo.svg" alt="" draggable="false" />
         <span class="panel-title">Rayburst</span>
         <span v-if="update" class="panel-speeds">

@@ -825,6 +825,7 @@ pub fn run() {
             commands::cancel_shutdown,
             commands::float_window_open_main,
             commands::float_window_ready,
+            commands::float_window_fit,
             commands::float_window_set_mode,
             commands::float_panel_toggle,
             commands::float_panel_dismiss,

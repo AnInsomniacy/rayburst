@@ -171,6 +171,12 @@ pub fn float_window_ready(app: AppHandle) {
     crate::services::pump::wake(&app);
 }
 
+/// Fits the non-resizable orb to the current interface scale.
+#[tauri::command]
+pub fn float_window_fit(app: AppHandle, width: u32, height: u32) -> Result<(), AppError> {
+    crate::services::float_window::fit_orb(&app, width, height)
+}
+
 /// Switches the floating window's mode from its menu.
 #[tauri::command]
 pub fn float_window_set_mode(

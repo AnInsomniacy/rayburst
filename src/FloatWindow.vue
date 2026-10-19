@@ -18,12 +18,12 @@ import { useI18n } from 'vue-i18n'
 import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { Menu } from '@tauri-apps/api/menu'
-import { LogicalSize } from '@tauri-apps/api/window'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { NIcon } from 'naive-ui'
 import { Add, ArrowDown, ArrowUp, Checkmark, Pause, TimeOutline } from '@vicons/ionicons5'
 import aria2Api from '@/api/aria2'
 import { useFloatUpdates, type FloatUpdate } from '@/composables/useFloatUpdates'
+import { useFloatDrag } from '@/composables/useFloatDrag'
 import { usePreferenceStore } from '@/stores/preference'
 import { useWindowScale } from '@/composables/useWindowScale'
 import { FLOAT_WINDOW_MODE_LABELS, FLOAT_WINDOW_MODES, TASK_STATUS } from '@shared/constants'
@@ -35,8 +35,6 @@ import { getErrorMessage } from '@shared/utils/errorMessage'
 import { logger } from '@shared/logger'
 import type { FloatWindowMode } from '@shared/types'
 
-/** Pointer travel that turns a press into a drag, in CSS pixels. */
-const DRAG_THRESHOLD = 4
 /** How long the check stays after the last download completed. */
 const DONE_MS = 1600
 /** Length of the flash greeting a new download. */
@@ -69,7 +67,6 @@ const unlisteners: UnlistenFn[] = []
 let known: Set<string> | null = null
 let pulseTimer: ReturnType<typeof setTimeout> | undefined
 let doneTimer: ReturnType<typeof setTimeout> | undefined
-let press: { x: number; y: number } | null = null
 
 const { update } = useFloatUpdates({ onUpdate: greetNewDownloads })
 
@@ -153,36 +150,19 @@ function fit() {
   const element = root.value
   if (!element) return
   const rect = element.getBoundingClientRect()
-  view
-    .setSize(new LogicalSize(Math.ceil(rect.width * zoom.value), Math.ceil(rect.height * zoom.value)))
-    .catch((error: unknown) => logger.debug('FloatWindow.fit', getErrorMessage(error)))
+  invoke('float_window_fit', {
+    width: Math.ceil(rect.width * zoom.value),
+    height: Math.ceil(rect.height * zoom.value),
+  }).catch((error: unknown) => logger.debug('FloatWindow.fit', getErrorMessage(error)))
 }
 
 const resizeObserver = new ResizeObserver(fit)
 // The interface size scales the orb without changing its CSS size.
 watch(zoom, fit)
 
-// ── Pointer ─────────────────────────────────────────────────────────
+// ── Mouse ─────────────────────────────────────────────────────────
 
-function onPointerDown(event: PointerEvent) {
-  if (event.button !== 0) return
-  press = { x: event.screenX, y: event.screenY }
-}
-
-function onPointerMove(event: PointerEvent) {
-  if (!press) return
-  if (Math.hypot(event.screenX - press.x, event.screenY - press.y) < DRAG_THRESHOLD) return
-  press = null
-  // The panel opens beside the orb's new place next time.
-  void invoke('float_panel_dismiss').catch(() => undefined)
-  view.startDragging().catch((error: unknown) => logger.debug('FloatWindow.drag', getErrorMessage(error)))
-}
-
-function onPointerUp() {
-  if (!press) return
-  press = null
-  togglePanel()
-}
+const { onMouseDown } = useFloatDrag(togglePanel)
 
 function togglePanel() {
   failed.value = false
@@ -331,9 +311,7 @@ onBeforeUnmount(() => {
         tabindex="0"
         :title="tooltip"
         :aria-label="tooltip"
-        @pointerdown="onPointerDown"
-        @pointermove="onPointerMove"
-        @pointerup="onPointerUp"
+        @mousedown="onMouseDown"
         @keydown.enter.prevent="togglePanel"
         @contextmenu="showMenu"
       >
