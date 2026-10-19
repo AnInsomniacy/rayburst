@@ -247,10 +247,10 @@ rayburst/
 │   │   ├── engine/             #   Aria2 Next sidecar lifecycle, runtime config, state, cleanup
 │   │   ├── services/           #   Runtime services (stat, speed, monitor, HTTP API, deep links)
 │   │   ├── error.rs            #   AppError enum
-│   │   ├── gpu_guard.rs        #   Linux GPU compatibility guard
 │   │   ├── menu.rs             #   Native menu builder
 │   │   ├── tray.rs             #   System tray setup
 │   │   ├── upnp.rs             #   UPnP/IGD port mapping
+│   │   ├── webkit.rs           #   Linux WebKitGTK rendering setup
 │   │   └── lib.rs              #   Tauri builder & plugin registration
 │   ├── native-messaging/       #   Browser Native Messaging launcher
 │   └── binaries/               #   Aria2 Next sidecar binaries (6 platforms)

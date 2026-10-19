@@ -537,8 +537,8 @@ export interface AppConfig {
   favoriteDirectories: string[]
   lastCheckUpdateTime: number
   lastSyncTrackerTime: number
-  /** Linux-only: explicitly opt into software rendering instead of WebKitGTK defaults. */
-  softwareRendering: boolean
+  /** Linux-only: opt into WebKitGTK hardware compositing. */
+  hardwareRendering: boolean
   updateChannel: UpdateChannel
   runMode: string
   userAgent: string

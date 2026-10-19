@@ -173,10 +173,10 @@ const { form, isDirty, handleSave, handleReset, resetSnapshot } = usePreferenceF
     }
 
     // WebKitGTK rendering variables are read at process startup.
-    if (changed.softwareRendering !== undefined && changed.softwareRendering !== prevConfig.softwareRendering) {
+    if (changed.hardwareRendering !== undefined && changed.hardwareRendering !== prevConfig.hardwareRendering) {
       dialog.info({
         title: t('preferences.restart-required'),
-        content: t('preferences.software-rendering-restart-confirm'),
+        content: t('preferences.rendering-restart-confirm'),
         positiveText: t('preferences.restart-now'),
         negativeText: t('preferences.engine-restart-later'),
         maskClosable: false,
@@ -585,11 +585,11 @@ onMounted(async () => {
         <NFormItem v-if="isLinux">
           <template #label>
             <PreferenceHintLabel
-              :label="t('preferences.software-rendering')"
-              :hint="t('preferences.software-rendering-hint')"
+              :label="t('preferences.hardware-compositing')"
+              :hint="t('preferences.hardware-compositing-hint')"
             />
           </template>
-          <NSwitch v-model:value="form.softwareRendering" />
+          <NSwitch v-model:value="form.hardwareRendering" />
         </NFormItem>
         <NFormItem :label="t('preferences.history-section')">
           <NSpace>

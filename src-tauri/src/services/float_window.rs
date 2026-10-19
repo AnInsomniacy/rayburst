@@ -811,6 +811,67 @@ pub fn main_window_created() {
     RESIDENT.store(false, Ordering::Relaxed);
 }
 
+// ── Display backend ─────────────────────────────────────────────────
+// Wayland lets no client place its windows or keep them on top (tao#1134),
+// which the orb needs, so a Wayland session with the orb on runs the app under
+// XWayland. GTK chooses its backend once, at startup.
+
+/// Marks a `GDK_BACKEND` this app set, so that a relaunch chooses again.
+#[cfg(target_os = "linux")]
+const OWN_BACKEND: &str = "RAYBURST_XWAYLAND";
+
+#[cfg(target_os = "linux")]
+static NATIVE_WAYLAND: AtomicBool = AtomicBool::new(false);
+
+/// Runs the app under XWayland when the orb shows in a Wayland session, unless
+/// the launching environment chose a backend. Must run before any other thread
+/// starts.
+pub fn prepare_backend() {
+    #[cfg(target_os = "linux")]
+    {
+        use std::env;
+        // SAFETY (all `env` writes here): called in `run` before Tauri starts
+        // any thread.
+        if env::var_os(OWN_BACKEND).is_some() {
+            unsafe {
+                env::remove_var("GDK_BACKEND");
+                env::remove_var(OWN_BACKEND);
+            }
+        }
+        // Some sessions (WSLg) set a Wayland display but no session type.
+        let wayland = env::var_os("WAYLAND_DISPLAY").is_some_and(|value| !value.is_empty())
+            || env::var("XDG_SESSION_TYPE").as_deref() == Ok("wayland");
+        if !wayland || env::var_os("GDK_BACKEND").is_some() || env::var_os("DISPLAY").is_none() {
+            return;
+        }
+        let orb = crate::startup_preference("floatWindow")
+            .and_then(|mode| serde_json::from_value::<Mode>(mode).ok())
+            .is_some_and(|mode| mode != Mode::Off);
+        if orb {
+            unsafe {
+                env::set_var("GDK_BACKEND", "x11");
+                env::set_var(OWN_BACKEND, "1");
+            }
+        } else {
+            NATIVE_WAYLAND.store(true, Ordering::Relaxed);
+        }
+    }
+}
+
+/// Whether showing the orb takes a restart: under native Wayland it would
+/// first have to move to XWayland ([`prepare_backend`]).
+pub fn needs_relaunch(shown: bool) -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        shown && NATIVE_WAYLAND.load(Ordering::Relaxed)
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = shown;
+        false
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{fills, place_panel, queue, wants_orb, Mode, Panel, PanelSide, Rect, LINGER};

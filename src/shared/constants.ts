@@ -297,8 +297,8 @@ export const DEFAULT_APP_CONFIG = {
   // ── Auto Update ───────────────────────────────────────────────
   autoCheckUpdate: true, // qBT checks every launch; security best practice
   autoCheckUpdateInterval: 0, // 0 means every frontend startup, including lightweight restores
-  /** Linux-only: keep WebKitGTK defaults; software fallback is explicitly opt-in. */
-  softwareRendering: false,
+  /** Linux-only: WebKitGTK hardware compositing, opt-in: it freezes or blanks windows on many drivers and virtual GPUs. */
+  hardwareRendering: false,
   updateChannel: (appVersion.includes('-') ? 'beta' : 'stable') as 'stable' | 'beta',
   lastCheckUpdateTime: 0,
 

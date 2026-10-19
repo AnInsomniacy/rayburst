@@ -15,7 +15,7 @@ export interface AdvancedForm {
   logLevel: AppConfig['logLevel']
   aria2LogLevel: AppConfig['aria2LogLevel']
   tempFilesDir: string
-  softwareRendering: boolean
+  hardwareRendering: boolean
 }
 
 export function buildAdvancedForm(config: AppConfig): AdvancedForm {
@@ -30,7 +30,7 @@ export function buildAdvancedForm(config: AppConfig): AdvancedForm {
     logLevel: config.logLevel,
     aria2LogLevel: config.aria2LogLevel,
     tempFilesDir: config.tempFilesDir,
-    softwareRendering: config.softwareRendering,
+    hardwareRendering: config.hardwareRendering,
   }
 }
 

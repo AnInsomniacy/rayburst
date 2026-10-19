@@ -337,16 +337,13 @@ separate process group. Development builds do not register installed-app identit
 
 Windows are transparent and the page draws what it shows; Windows 11 and macOS add
 the main window's corners and shadow. Linux uses a native StatusNotifierItem tray with
-direct activation, speed tooltips and watcher reconnection. With the NVIDIA driver,
-Linux disables the WebKitGTK DMA-BUF renderer (tauri#13493), and NVIDIA Wayland
-sessions disable driver explicit sync for WebKit #324551, unless the environment
-already configures them. Every webview disables
-WebKitGTK's damage-based compositing, so frames repaint in full. Other rendering
-settings retain WebKitGTK defaults. `softwareRendering` explicitly enables a diagnostic
-fallback; externally supplied rendering environment variables remain authoritative.
-Linux diagnostics report the runtime WebKitGTK version, the existing WebView's native
-hardware acceleration policy, and rendering overrides. A policy is not proof of GPU
-use. An unavailable WebView or policy read failure is reported without creating a window.
+direct activation, speed tooltips and watcher reconnection. WebKitGTK hardware
+compositing is off by default (`WEBKIT_DISABLE_DMABUF_RENDERER`), as it freezes or
+blanks windows on many drivers and virtual GPUs; `hardwareRendering` in Advanced turns
+it on after a restart. Every webview disables WebKitGTK's damage-based compositing, so
+frames repaint in full. With the floating orb on, a Wayland session runs the app under
+XWayland, the only way the orb can place itself and stay on top. Diagnostics report the
+WebKitGTK version, whether hardware compositing is on, and the display backend.
 The tray icon carries a green dot while downloads run (macOS keeps its template image
 and the menu bar speedometer) and shows both speeds in its tooltip. Hiding the tray icon
 turns minimize-to-tray into a plain minimize, so the window always stays reachable.

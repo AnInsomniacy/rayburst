@@ -8,7 +8,6 @@ mod database;
 mod diagnostics;
 mod engine;
 mod error;
-mod gpu_guard;
 mod i18n;
 mod log_policy;
 #[cfg(target_os = "macos")]
@@ -17,6 +16,7 @@ mod native_messaging;
 mod proxy_bypass;
 mod services;
 mod tray;
+mod webkit;
 
 #[cfg(windows)]
 pub use engine::windows_process::prepare_install;
@@ -33,27 +33,25 @@ use tauri::{Emitter, Manager};
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_store::StoreExt;
 
-/// Pre-reads the user's log-level preference from the raw config.json file.
-///
-/// `tauri-plugin-store` isn't available until after `Builder.build()`, so we
-/// read the raw JSON file directly. Falls back to `Info` when no preference
-/// has been persisted yet.
+/// Reads a preference from the raw config.json file, for decisions made before
+/// `tauri-plugin-store` is available.
+pub(crate) fn startup_preference(key: &str) -> Option<serde_json::Value> {
+    let path = dirs::data_dir()?.join(APP_ID).join("config.json");
+    let mut json: serde_json::Value = serde_json::from_slice(&std::fs::read(path).ok()?).ok()?;
+    Some(json.get_mut("preferences")?.get_mut(key)?.take())
+}
+
+/// The user's log level, `Info` until one is saved.
 pub(crate) fn read_log_level() -> log::LevelFilter {
-    (|| -> Option<log::LevelFilter> {
-        let data_dir = dirs::data_dir()?.join(APP_ID);
-        let store_path = data_dir.join("config.json");
-        let content = std::fs::read_to_string(store_path).ok()?;
-        let json: serde_json::Value = serde_json::from_str(&content).ok()?;
-        let level_str = json.get("preferences")?.get("logLevel")?.as_str()?;
-        match level_str {
-            "error" => Some(log::LevelFilter::Error),
-            "warn" => Some(log::LevelFilter::Warn),
-            "info" => Some(log::LevelFilter::Info),
-            "debug" => Some(log::LevelFilter::Debug),
-            _ => None,
-        }
-    })()
-    .unwrap_or(log::LevelFilter::Info)
+    match startup_preference("logLevel")
+        .as_ref()
+        .and_then(|value| value.as_str())
+    {
+        Some("error") => log::LevelFilter::Error,
+        Some("warn") => log::LevelFilter::Warn,
+        Some("debug") => log::LevelFilter::Debug,
+        _ => log::LevelFilter::Info,
+    }
 }
 
 /// Tracks the application lifecycle phase for window visibility decisions.
@@ -574,8 +572,9 @@ fn handle_run_event(app: &tauri::AppHandle, event: tauri::RunEvent) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Apply explicit Linux rendering overrides before any threads start.
-    gpu_guard::pre_flight();
+    // Environment GTK and WebKitGTK read once, before any thread starts.
+    webkit::prepare();
+    services::float_window::prepare_backend();
     // GTK names the window after the program: its Wayland app ID and X11
     // class, which shells match to `Rayburst.desktop` for the icon (#745).
     #[cfg(target_os = "linux")]
@@ -645,7 +644,7 @@ pub fn run() {
     {
         builder = builder.plugin(
             tauri::plugin::Builder::<_, ()>::new("rendering")
-                .on_webview_ready(|webview| gpu_guard::configure_webview(&webview))
+                .on_webview_ready(|webview| webkit::configure_webview(&webview))
                 .build(),
         );
     }

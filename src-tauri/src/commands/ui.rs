@@ -189,7 +189,7 @@ pub fn float_window_set_mode(
 /// Whether the floating window in `mode` shows only after a restart (Wayland).
 #[tauri::command]
 pub fn float_window_needs_relaunch(mode: crate::services::float_window::Mode) -> bool {
-    crate::gpu_guard::float_window_needs_relaunch(mode != crate::services::float_window::Mode::Off)
+    crate::services::float_window::needs_relaunch(mode != crate::services::float_window::Mode::Off)
 }
 
 /// Opens the floating panel beside the orb, or closes it.
