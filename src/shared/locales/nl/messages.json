@@ -954,7 +954,6 @@
     "checksum-placeholder": "Optioneel, bijv. sha-256=…",
     "checksum-hint": "Plak een MD5- of SHA-hash; de download mislukt als het bestand niet overeenkomt",
     "checksum-invalid": "Onbekende MD5- of SHA-hash",
-    "checksum-single-only": "Alleen beschikbaar voor één gewone download",
     "duplicate-title": "Dubbele downloads",
     "duplicate-message": "{count} link(s) al gedownload of bezig met downloaden:",
     "duplicate-more": "en nog {count}",

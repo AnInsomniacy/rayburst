@@ -954,7 +954,6 @@
     "checksum-placeholder": "اختیاری، مثلاً sha-256=…",
     "checksum-hint": "یک چکیدهٔ MD5 یا SHA بچسبانید؛ اگر فایل مطابقت نداشته باشد دانلود ناموفق می‌شود",
     "checksum-invalid": "چکیدهٔ MD5 یا SHA شناخته‌شده نیست",
-    "checksum-single-only": "فقط برای یک دانلود عادی در دسترس است",
     "duplicate-title": "دانلودهای تکراری",
     "duplicate-message": "{count} پیوند قبلاً دانلود شده یا در حال دانلود است:",
     "duplicate-more": "و {count} مورد دیگر",

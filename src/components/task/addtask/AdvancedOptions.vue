@@ -160,7 +160,7 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
         class="checksum-item"
         :label="t('task.checksum') + ':'"
         :validation-status="checksum?.trim() && !parsedChecksum ? 'error' : undefined"
-        :feedback="checksumAvailable ? checksumFeedback : t('task.checksum-single-only')"
+        :feedback="checksumAvailable ? checksumFeedback : undefined"
       >
         <NInput
           :value="checksum"

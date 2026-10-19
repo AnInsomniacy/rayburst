@@ -954,7 +954,6 @@
     "checksum-placeholder": "Tùy chọn, ví dụ sha-256=…",
     "checksum-hint": "Dán mã băm MD5 hoặc SHA; tải xuống sẽ thất bại nếu tệp không khớp",
     "checksum-invalid": "Mã băm MD5 hoặc SHA không hợp lệ",
-    "checksum-single-only": "Chỉ dùng được cho một lượt tải thông thường",
     "duplicate-title": "Tải xuống trùng lặp",
     "duplicate-message": "{count} liên kết đã tải hoặc đang tải:",
     "duplicate-more": "và {count} mục khác",

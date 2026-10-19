@@ -954,7 +954,6 @@
     "checksum-placeholder": "اختياري، مثل sha-256=…",
     "checksum-hint": "الصق بصمة MD5 أو SHA؛ يفشل التنزيل إذا لم يطابقها الملف",
     "checksum-invalid": "بصمة MD5 أو SHA غير معروفة",
-    "checksum-single-only": "متاح فقط لتنزيل عادي واحد",
     "duplicate-title": "تنزيلات مكررة",
     "duplicate-message": "{count} من الروابط نُزّلت مسبقًا أو قيد التنزيل:",
     "duplicate-more": "و{count} أخرى",

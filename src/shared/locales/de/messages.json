@@ -954,7 +954,6 @@
     "checksum-placeholder": "Optional, z. B. sha-256=…",
     "checksum-hint": "MD5- oder SHA-Prüfsumme einfügen; stimmt die Datei nicht überein, schlägt der Download fehl",
     "checksum-invalid": "Keine gültige MD5- oder SHA-Prüfsumme",
-    "checksum-single-only": "Nur für einen einzelnen regulären Download verfügbar",
     "duplicate-title": "Doppelte Downloads",
     "duplicate-message": "{count} Link(s) bereits heruntergeladen oder im Download:",
     "duplicate-more": "und {count} weitere",

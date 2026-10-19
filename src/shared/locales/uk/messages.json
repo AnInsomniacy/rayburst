@@ -954,7 +954,6 @@
     "checksum-placeholder": "Необов’язково, наприклад sha-256=…",
     "checksum-hint": "Вставте хеш MD5 або SHA; якщо файл не збігається, завантаження завершиться помилкою",
     "checksum-invalid": "Нерозпізнаний хеш MD5 або SHA",
-    "checksum-single-only": "Доступно лише для одного звичайного завантаження",
     "duplicate-title": "Повторні завантаження",
     "duplicate-message": "Посилань, які вже завантажено або завантажуються: {count}",
     "duplicate-more": "і ще {count}",

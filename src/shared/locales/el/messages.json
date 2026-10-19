@@ -954,7 +954,6 @@
     "checksum-placeholder": "Προαιρετικό, π.χ. sha-256=…",
     "checksum-hint": "Επικολλήστε ένα hash MD5 ή SHA· η λήψη αποτυγχάνει αν το αρχείο δεν ταιριάζει",
     "checksum-invalid": "Μη αναγνωρισμένο hash MD5 ή SHA",
-    "checksum-single-only": "Διαθέσιμο μόνο για μία κανονική λήψη",
     "duplicate-title": "Διπλότυπες λήψεις",
     "duplicate-message": "Σύνδεσμοι που έχουν ήδη ληφθεί ή λαμβάνονται: {count}",
     "duplicate-more": "και {count} ακόμη",

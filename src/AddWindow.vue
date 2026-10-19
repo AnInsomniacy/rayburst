@@ -71,6 +71,8 @@ const capHeight = ref(0)
 /** Height of the freshly mounted window, links tab, advanced options closed, in CSS pixels. */
 let baseHeight = 0
 const phase = ref<'hidden' | 'shown' | 'leaving'>('hidden')
+/** Until its layers land, the card's content holds still instead of scrolling. */
+const entering = ref(false)
 const unlisteners: UnlistenFn[] = []
 let closing = false
 let presenting: Promise<void> | undefined
@@ -216,6 +218,14 @@ async function leave() {
     await invoke('add_window_leave').catch((error: unknown) => logger.warn('AddWindow.leave', error))
 }
 
+/** Resolves once the entrance's transitions have ended or been cancelled. */
+async function entranceFinished() {
+  await nextTick()
+  // Reading the animations flushes styles, so the entrance's have started.
+  const animations = root.value?.getAnimations?.({ subtree: true }) ?? []
+  await Promise.allSettled(animations.map((animation) => animation.finished))
+}
+
 // ── Size ────────────────────────────────────────────────────────────
 // With a transparent margin, the window is not resized frame by frame: that
 // relays out the whole webview, too slow for WebView2 and WebKitGTK. When the
@@ -335,6 +345,7 @@ watch(
       active = false
     })
     phase.value = 'hidden'
+    entering.value = true
     await view.setTitle(`${t('task.new-task')} - Rayburst`).catch(() => undefined)
     if (!active) return
     await measureScreen()
@@ -353,7 +364,10 @@ watch(
     if (!active) return
     // Let the shown window paint the panel's start state before it animates.
     await afterReveal()
-    if (active) phase.value = 'shown'
+    if (!active) return
+    phase.value = 'shown'
+    await entranceFinished()
+    if (active) entering.value = false
   },
   // Invalidate even when a close and reopen occur in the same Vue tick.
   { flush: 'sync' },
@@ -408,7 +422,7 @@ onBeforeUnmount(() => {
   <div
     ref="root"
     class="add-window"
-    :class="[`add-window--${phase}`, { 'add-window--framed': framed }]"
+    :class="[`add-window--${phase}`, { 'add-window--framed': framed, 'add-window--entering': entering }]"
     :style="rootStyle"
   >
     <div class="add-window-panel">
@@ -480,6 +494,12 @@ onBeforeUnmount(() => {
 
 .add-window :deep([data-reveal='3']) {
   transition-delay: calc(2 * var(--add-window-layer-delay));
+}
+
+/* A rising layer reaches below the content it lands in, which would scroll
+ * the card for a moment. The window fits the landed content. */
+.add-window--entering :deep(.n-card-content) {
+  overflow-y: hidden !important;
 }
 
 .add-window--hidden :deep([data-reveal]) {

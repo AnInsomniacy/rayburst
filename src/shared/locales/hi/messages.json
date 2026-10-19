@@ -954,7 +954,6 @@
     "checksum-placeholder": "वैकल्पिक, जैसे sha-256=…",
     "checksum-hint": "MD5 या SHA डाइजेस्ट चिपकाएँ; फ़ाइल मेल न खाने पर डाउनलोड विफल हो जाएगा",
     "checksum-invalid": "MD5 या SHA डाइजेस्ट पहचाना नहीं गया",
-    "checksum-single-only": "केवल एक सामान्य डाउनलोड के लिए उपलब्ध",
     "duplicate-title": "डुप्लिकेट डाउनलोड",
     "duplicate-message": "{count} लिंक पहले ही डाउनलोड हो चुके हैं या डाउनलोड हो रहे हैं:",
     "duplicate-more": "और {count} अन्य",

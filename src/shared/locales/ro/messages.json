@@ -954,7 +954,6 @@
     "checksum-placeholder": "Opțional, de ex. sha-256=…",
     "checksum-hint": "Lipiți un rezumat MD5 sau SHA; descărcarea eșuează dacă fișierul nu corespunde",
     "checksum-invalid": "Rezumat MD5 sau SHA nerecunoscut",
-    "checksum-single-only": "Disponibil doar pentru o singură descărcare obișnuită",
     "duplicate-title": "Descărcări duplicate",
     "duplicate-message": "Linkuri deja descărcate sau în curs de descărcare: {count}",
     "duplicate-more": "și încă {count}",

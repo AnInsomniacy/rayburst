@@ -954,7 +954,6 @@
     "checksum-placeholder": "Opcjonalnie, np. sha-256=…",
     "checksum-hint": "Wklej skrót MD5 lub SHA; pobieranie nie powiedzie się, jeśli plik się nie zgadza",
     "checksum-invalid": "Nierozpoznany skrót MD5 lub SHA",
-    "checksum-single-only": "Dostępne tylko dla pojedynczego zwykłego pobierania",
     "duplicate-title": "Zduplikowane pobierania",
     "duplicate-message": "Linki już pobrane lub pobierane: {count}",
     "duplicate-more": "i jeszcze {count}",

@@ -954,7 +954,6 @@
     "checksum-placeholder": "Opcional, p. ej. sha-256=…",
     "checksum-hint": "Pega un resumen MD5 o SHA; la descarga falla si el archivo no coincide",
     "checksum-invalid": "Resumen MD5 o SHA no reconocido",
-    "checksum-single-only": "Solo disponible para una única descarga normal",
     "duplicate-title": "Descargas duplicadas",
     "duplicate-message": "{count} enlace(s) ya descargado(s) o en descarga:",
     "duplicate-more": "y {count} más",

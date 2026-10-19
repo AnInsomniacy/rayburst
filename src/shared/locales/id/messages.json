@@ -954,7 +954,6 @@
     "checksum-placeholder": "Opsional, mis. sha-256=…",
     "checksum-hint": "Tempel digest MD5 atau SHA; unduhan gagal jika berkas tidak cocok",
     "checksum-invalid": "Digest MD5 atau SHA tidak dikenali",
-    "checksum-single-only": "Hanya tersedia untuk satu unduhan biasa",
     "duplicate-title": "Unduhan duplikat",
     "duplicate-message": "{count} tautan sudah diunduh atau sedang diunduh:",
     "duplicate-more": "dan {count} lainnya",

@@ -954,7 +954,6 @@
     "checksum-placeholder": "選填，例如 sha-256=…",
     "checksum-hint": "貼上 MD5 或 SHA 摘要，不符則下載失敗",
     "checksum-invalid": "無法識別的 MD5 或 SHA 摘要",
-    "checksum-single-only": "僅適用於單一一般下載",
     "duplicate-title": "重複下載",
     "duplicate-message": "{count} 個連結已下載或正在下載：",
     "duplicate-more": "以及另外 {count} 個",

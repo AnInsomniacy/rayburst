@@ -954,7 +954,6 @@
     "checksum-placeholder": "任意、例：sha-256=…",
     "checksum-hint": "MD5 または SHA のダイジェストを貼り付けてください。ファイルが一致しない場合、ダウンロードは失敗します",
     "checksum-invalid": "認識できない MD5 または SHA ダイジェストです",
-    "checksum-single-only": "単一の通常ダウンロードでのみ使用できます",
     "duplicate-title": "重複したダウンロード",
     "duplicate-message": "{count} 件のリンクはダウンロード済みまたはダウンロード中です：",
     "duplicate-more": "ほか {count} 件",

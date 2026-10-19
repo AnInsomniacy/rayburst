@@ -954,7 +954,6 @@
     "checksum-placeholder": "Optional, e.g. sha-256=…",
     "checksum-hint": "Paste an MD5 or SHA digest; the download fails on a mismatch",
     "checksum-invalid": "Not a recognized MD5 or SHA digest",
-    "checksum-single-only": "Only available for a single regular download",
     "duplicate-title": "Duplicate downloads",
     "duplicate-message": "{count} link(s) were already downloaded or are downloading:",
     "duplicate-more": "and {count} more",

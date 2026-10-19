@@ -954,7 +954,6 @@
     "checksum-placeholder": "Facultatif, ex. sha-256=…",
     "checksum-hint": "Collez une empreinte MD5 ou SHA ; le téléchargement échoue si le fichier ne correspond pas",
     "checksum-invalid": "Empreinte MD5 ou SHA non reconnue",
-    "checksum-single-only": "Disponible uniquement pour un seul téléchargement classique",
     "duplicate-title": "Téléchargements en double",
     "duplicate-message": "{count} lien(s) déjà téléchargé(s) ou en cours de téléchargement :",
     "duplicate-more": "et {count} de plus",

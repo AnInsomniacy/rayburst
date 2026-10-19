@@ -954,7 +954,6 @@
     "checksum-placeholder": "По избор, напр. sha-256=…",
     "checksum-hint": "Поставете MD5 или SHA хеш; изтеглянето е неуспешно, ако файлът не съвпада",
     "checksum-invalid": "Неразпознат MD5 или SHA хеш",
-    "checksum-single-only": "Достъпно само за едно обикновено изтегляне",
     "duplicate-title": "Дублирани изтегляния",
     "duplicate-message": "Връзки, които вече са изтеглени или се изтеглят: {count}",
     "duplicate-more": "и още {count}",

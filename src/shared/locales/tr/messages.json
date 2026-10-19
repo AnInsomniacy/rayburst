@@ -954,7 +954,6 @@
     "checksum-placeholder": "İsteğe bağlı, örn. sha-256=…",
     "checksum-hint": "Bir MD5 veya SHA özeti yapıştırın; dosya eşleşmezse indirme başarısız olur",
     "checksum-invalid": "Tanınmayan MD5 veya SHA özeti",
-    "checksum-single-only": "Yalnızca tek bir normal indirme için kullanılabilir",
     "duplicate-title": "Yinelenen indirmeler",
     "duplicate-message": "{count} bağlantı zaten indirildi veya indiriliyor:",
     "duplicate-more": "ve {count} tane daha",

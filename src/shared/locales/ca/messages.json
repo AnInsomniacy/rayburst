@@ -954,7 +954,6 @@
     "checksum-placeholder": "Opcional, p. ex. sha-256=…",
     "checksum-hint": "Enganxeu un resum MD5 o SHA; la baixada falla si el fitxer no hi coincideix",
     "checksum-invalid": "Resum MD5 o SHA no reconegut",
-    "checksum-single-only": "Només disponible per a una única baixada normal",
     "duplicate-title": "Baixades duplicades",
     "duplicate-message": "{count} enllaç(os) ja baixat(s) o en baixada:",
     "duplicate-more": "i {count} més",

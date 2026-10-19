@@ -954,7 +954,6 @@
     "checksum-placeholder": "ไม่บังคับ เช่น sha-256=…",
     "checksum-hint": "วางค่าแฮช MD5 หรือ SHA หากไฟล์ไม่ตรงกัน การดาวน์โหลดจะล้มเหลว",
     "checksum-invalid": "ไม่รู้จักค่าแฮช MD5 หรือ SHA นี้",
-    "checksum-single-only": "ใช้ได้เฉพาะการดาวน์โหลดปกติรายการเดียว",
     "duplicate-title": "ดาวน์โหลดซ้ำ",
     "duplicate-message": "มี {count} ลิงก์ที่ดาวน์โหลดแล้วหรือกำลังดาวน์โหลด:",
     "duplicate-more": "และอีก {count} รายการ",

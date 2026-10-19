@@ -954,7 +954,6 @@
     "checksum-placeholder": "Nem kötelező, pl. sha-256=…",
     "checksum-hint": "Illesszen be egy MD5 vagy SHA kivonatot; ha a fájl nem egyezik, a letöltés sikertelen lesz",
     "checksum-invalid": "Nem felismerhető MD5 vagy SHA kivonat",
-    "checksum-single-only": "Csak egyetlen normál letöltésnél érhető el",
     "duplicate-title": "Ismétlődő letöltések",
     "duplicate-message": "Már letöltött vagy letöltés alatt álló hivatkozások: {count}",
     "duplicate-more": "és még {count}",

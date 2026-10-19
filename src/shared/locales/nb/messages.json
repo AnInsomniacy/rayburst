@@ -954,7 +954,6 @@
     "checksum-placeholder": "Valgfritt, f.eks. sha-256=…",
     "checksum-hint": "Lim inn en MD5- eller SHA-sum; nedlastingen mislykkes hvis filen ikke samsvarer",
     "checksum-invalid": "Ukjent MD5- eller SHA-sum",
-    "checksum-single-only": "Bare tilgjengelig for én vanlig nedlasting",
     "duplicate-title": "Dupliserte nedlastinger",
     "duplicate-message": "{count} lenke(r) er allerede lastet ned eller lastes ned:",
     "duplicate-more": "og {count} til",
