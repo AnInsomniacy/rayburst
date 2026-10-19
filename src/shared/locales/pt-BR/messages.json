@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "Ocultar ícone do Dock ao minimizar (macOS)",
     "lightweight-mode": "Modo leve",
     "lightweight-mode-hint": "Libera a memória da interface enquanto está na bandeja",
+    "float-window-in-lightweight": "Manter a janela flutuante no modo leve",
     "tray-speedometer": "Mostrar velocidade em tempo real na bandeja",
     "dock-badge-speed": "Exibir velocidade no ícone do Dock (macOS)",
     "show-progress-bar": "Mostrar barra de progresso",

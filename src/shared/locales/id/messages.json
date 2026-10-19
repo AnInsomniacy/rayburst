@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "Sembunyikan ikon Dock saat diminimalkan (macOS)",
     "lightweight-mode": "Mode Ringan",
     "lightweight-mode-hint": "Membebaskan memori antarmuka saat berada di baki sistem",
+    "float-window-in-lightweight": "Pertahankan jendela mengambang dalam mode ringan",
     "tray-speedometer": "Tampilkan kecepatan real-time di baki",
     "dock-badge-speed": "Tampilkan kecepatan di ikon Dock (macOS)",
     "show-progress-bar": "Tampilkan bilah kemajuan",

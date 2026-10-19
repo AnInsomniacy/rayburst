@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "Ẩn biểu tượng Dock khi thu nhỏ (macOS)",
     "lightweight-mode": "Chế độ nhẹ",
     "lightweight-mode-hint": "Giải phóng bộ nhớ giao diện khi ở khay hệ thống",
+    "float-window-in-lightweight": "Giữ cửa sổ nổi trong chế độ nhẹ",
     "tray-speedometer": "Hiện tốc độ thời gian thực trên khay",
     "dock-badge-speed": "Tốc độ trên biểu tượng Dock (macOS)",
     "show-progress-bar": "Hiện thanh tiến trình",

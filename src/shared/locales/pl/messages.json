@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "Ukryj ikonę Dock przy minimalizacji (macOS)",
     "lightweight-mode": "Tryb lekki",
     "lightweight-mode-hint": "Zwalnia pamięć interfejsu, gdy jest w zasobniku",
+    "float-window-in-lightweight": "Zachowaj pływające okno w trybie lekkim",
     "tray-speedometer": "Pokaż prędkość w czasie rzeczywistym w zasobniku",
     "dock-badge-speed": "Pokaż prędkość na ikonie Docka (macOS)",
     "show-progress-bar": "Pokaż pasek postępu",

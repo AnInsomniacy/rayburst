@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "ซ่อนไอคอน Dock เมื่อย่อลงถาด (macOS)",
     "lightweight-mode": "โหมดเบา",
     "lightweight-mode-hint": "คืนหน่วยความจำของหน้าจอขณะอยู่ในถาดระบบ",
+    "float-window-in-lightweight": "คงหน้าต่างลอยไว้ในโหมดน้ำหนักเบา",
     "tray-speedometer": "แสดงความเร็วแบบเรียลไทม์ในถาด",
     "dock-badge-speed": "แสดงความเร็วบนไอคอน Dock (macOS)",
     "show-progress-bar": "แสดงแถบความคืบหน้า",

@@ -285,6 +285,7 @@ export const DEFAULT_APP_CONFIG = {
   notifyOnStart: true,
   notifyOnComplete: true, // main value of OS notification: background completion alert
   floatWindow: 'off' as const,
+  floatWindowInLightweight: false, // lightweight mode frees every webview by default
   mediaSelectBeforeDownload: true,
   mediaDefaultFormat: 'mp4' as const,
   newTaskShowDownloading: true, // auto-navigate to downloads after adding task

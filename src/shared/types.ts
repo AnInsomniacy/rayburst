@@ -514,6 +514,8 @@ export interface AppConfig {
   notifyOnComplete: boolean
   /** When the floating window with speed and progress stays on top (#669, #718, #726). */
   floatWindow: FloatWindowMode
+  /** Lightweight mode keeps the floating window in the tray instead of releasing it too. */
+  floatWindowInLightweight: boolean
   showProgressBar: boolean
   showTrayIcon: boolean
   traySpeedometer: boolean

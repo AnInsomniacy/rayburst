@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "最小化時隱藏 Dock 圖示（macOS）",
     "lightweight-mode": "輕量模式",
     "lightweight-mode-hint": "在系統匣時釋放介面記憶體",
+    "float-window-in-lightweight": "輕量模式下保留懸浮窗",
     "tray-speedometer": "工具列顯示速度",
     "dock-badge-speed": "Dock 圖示顯示速度（macOS）",
     "show-progress-bar": "顯示下載進度列",

@@ -613,6 +613,12 @@ onMounted(async () => {
           </template>
           <NSwitch v-model:value="form.lightweightMode" />
         </NFormItem>
+        <NFormItem
+          v-if="form.lightweightMode && form.floatWindow !== 'off'"
+          :label="t('preferences.float-window-in-lightweight')"
+        >
+          <NSwitch v-model:value="form.floatWindowInLightweight" />
+        </NFormItem>
 
         <PreferenceAssociations />
       </NForm>

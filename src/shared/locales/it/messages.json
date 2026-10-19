@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "Nascondi icona Dock quando minimizzato (macOS)",
     "lightweight-mode": "Modalità leggera",
     "lightweight-mode-hint": "Libera la memoria dell’interfaccia mentre è nell’area di notifica",
+    "float-window-in-lightweight": "Mantieni la finestra mobile in modalità leggera",
     "tray-speedometer": "Mostra velocità in tempo reale nella barra",
     "dock-badge-speed": "Velocità sull'icona del Dock (macOS)",
     "show-progress-bar": "Mostra barra di avanzamento",

@@ -19,6 +19,7 @@ export interface GeneralForm {
   updateChannel: AppConfig['updateChannel']
   showProgressBar: boolean
   floatWindow: AppConfig['floatWindow']
+  floatWindowInLightweight: boolean
   dockBadgeSpeed: boolean
   openAtLogin: boolean
   autoHideWindow: boolean
@@ -67,6 +68,7 @@ export function buildGeneralForm(config: AppConfig): GeneralForm {
     updateChannel: config.updateChannel,
     showProgressBar: config.showProgressBar,
     floatWindow: config.floatWindow,
+    floatWindowInLightweight: config.floatWindowInLightweight,
     dockBadgeSpeed: config.dockBadgeSpeed,
     openAtLogin: config.openAtLogin,
     autoHideWindow: config.autoHideWindow,

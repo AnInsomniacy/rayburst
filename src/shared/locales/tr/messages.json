@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "Küçültüldüğünde Dock simgesini gizle (macOS)",
     "lightweight-mode": "Hafif Mod",
     "lightweight-mode-hint": "Sistem tepsisindeyken arayüzün belleğini boşaltır",
+    "float-window-in-lightweight": "Hafif modda kayan pencereyi koru",
     "tray-speedometer": "Tepside gerçek zamanlı hız göster",
     "dock-badge-speed": "Dock simgesinde hız göster (macOS)",
     "show-progress-bar": "İlerleme çubuğu göster",

@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "트레이로 최소화 시 Dock 아이콘 숨기기 (macOS)",
     "lightweight-mode": "경량 모드",
     "lightweight-mode-hint": "트레이에 있는 동안 화면 메모리를 해제합니다",
+    "float-window-in-lightweight": "경량 모드에서도 플로팅 창 유지",
     "tray-speedometer": "트레이에 실시간 속도 표시",
     "dock-badge-speed": "Dock 아이콘에 속도 표시 (macOS)",
     "show-progress-bar": "다운로드 진행률 표시",

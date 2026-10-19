@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "トレイに最小化時にDockアイコンを隠す (macOS)",
     "lightweight-mode": "軽量モード",
     "lightweight-mode-hint": "トレイにある間、画面のメモリを解放します",
+    "float-window-in-lightweight": "軽量モードでもフローティングウィンドウを表示",
     "tray-speedometer": "トレイにリアルタイム速度を表示",
     "dock-badge-speed": "Dockアイコンに速度を表示 (macOS)",
     "show-progress-bar": "ダウンロード進捗バーを表示",

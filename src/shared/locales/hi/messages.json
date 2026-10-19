@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "Minimized होने पर Dock icon छिपाएं (macOS)",
     "lightweight-mode": "हल्का मोड",
     "lightweight-mode-hint": "ट्रे में रहते समय इंटरफ़ेस की मेमोरी खाली करता है",
+    "float-window-in-lightweight": "लाइटवेट मोड में फ़्लोटिंग विंडो बनाए रखें",
     "tray-speedometer": "Tray में real-time speed दिखाएं",
     "dock-badge-speed": "Dock icon पर speed badge दिखाएं (macOS)",
     "show-progress-bar": "Download progress bar दिखाएं",

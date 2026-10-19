@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "Скрыть значок Dock при сворачивании (macOS)",
     "lightweight-mode": "Облегчённый режим",
     "lightweight-mode-hint": "Освобождает память интерфейса, пока он в трее",
+    "float-window-in-lightweight": "Оставлять плавающее окно в облегчённом режиме",
     "tray-speedometer": "Показывать скорость в реальном времени в лотке",
     "dock-badge-speed": "Скорость на значке Dock (macOS)",
     "show-progress-bar": "Показывать индикатор прогресса",

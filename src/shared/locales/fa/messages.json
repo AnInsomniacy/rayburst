@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "مخفی کردن آیکون Dock هنگام کمینه‌سازی (macOS)",
     "lightweight-mode": "حالت سبک",
     "lightweight-mode-hint": "در زمان حضور در سینی سیستم، حافظهٔ رابط را آزاد می‌کند",
+    "float-window-in-lightweight": "نگه داشتن پنجره شناور در حالت سبک",
     "tray-speedometer": "نمایش سرعت لحظه‌ای در نوار",
     "dock-badge-speed": "نمایش سرعت در نماد Dock (macOS)",
     "show-progress-bar": "نمایش نوار پیشرفت",

@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "إخفاء أيقونة Dock عند التصغير (macOS)",
     "lightweight-mode": "الوضع الخفيف",
     "lightweight-mode-hint": "يحرّر ذاكرة الواجهة أثناء وجودها في شريط النظام",
+    "float-window-in-lightweight": "إبقاء النافذة العائمة في الوضع الخفيف",
     "tray-speedometer": "إظهار السرعة الفورية في الشريط",
     "dock-badge-speed": "عرض السرعة على أيقونة Dock (macOS)",
     "show-progress-bar": "إظهار شريط التقدم",

@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "Hide Dock Icon When Minimized (macOS)",
     "lightweight-mode": "Lightweight Mode",
     "lightweight-mode-hint": "Frees the interface's memory while in the tray",
+    "float-window-in-lightweight": "Keep the floating window in lightweight mode",
     "tray-speedometer": "Show Speed in Tray",
     "dock-badge-speed": "Show Speed on Dock Icon (macOS)",
     "show-progress-bar": "Show download progress bar",

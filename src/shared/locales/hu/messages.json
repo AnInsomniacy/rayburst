@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "Dock ikon elrejtése tálcára kicsinyítéskor (macOS)",
     "lightweight-mode": "Könnyű mód",
     "lightweight-mode-hint": "Felszabadítja a felület memóriáját, amíg a tálcán van",
+    "float-window-in-lightweight": "Lebegő ablak megtartása könnyített módban",
     "tray-speedometer": "Valós idejű sebesség megjelenítése a tálcán",
     "dock-badge-speed": "Sebesség a Dock ikonon (macOS)",
     "show-progress-bar": "Folyamatjelző megjelenítése",

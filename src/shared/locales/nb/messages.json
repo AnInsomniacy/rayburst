@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "Skjul Dock-ikon ved minimering (macOS)",
     "lightweight-mode": "Lettvektsmodus",
     "lightweight-mode-hint": "Frigjør minnet til grensesnittet mens det ligger i systemstatusfeltet",
+    "float-window-in-lightweight": "Behold det flytende vinduet i lettvektsmodus",
     "tray-speedometer": "Vis sanntidshastighet i systemkurven",
     "dock-badge-speed": "Vis hastighet på Dock-ikonet (macOS)",
     "show-progress-bar": "Vis fremdriftslinje",

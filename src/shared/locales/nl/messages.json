@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "Dock-pictogram verbergen bij minimaliseren (macOS)",
     "lightweight-mode": "Lichtgewicht modus",
     "lightweight-mode-hint": "Geeft het geheugen van de interface vrij zolang deze in het systeemvak staat",
+    "float-window-in-lightweight": "Zwevend venster behouden in lichte modus",
     "tray-speedometer": "Realtime snelheid in systeemvak tonen",
     "dock-badge-speed": "Snelheid op Dock-pictogram (macOS)",
     "show-progress-bar": "Voortgangsbalk tonen",

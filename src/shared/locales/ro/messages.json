@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "Ascunde pictograma Dock la minimizare (macOS)",
     "lightweight-mode": "Mod ușor",
     "lightweight-mode-hint": "Eliberează memoria interfeței cât timp este în zona de notificare",
+    "float-window-in-lightweight": "Păstrează fereastra plutitoare în modul ușor",
     "tray-speedometer": "Arată viteza în timp real în bară",
     "dock-badge-speed": "Viteza pe pictograma Dock (macOS)",
     "show-progress-bar": "Arată bara de progres",

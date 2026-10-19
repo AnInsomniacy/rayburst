@@ -210,6 +210,7 @@
     "hide-dock-on-minimize": "Скриване на иконата в Dock при минимизиране (macOS)",
     "lightweight-mode": "Олекотен режим",
     "lightweight-mode-hint": "Освобождава паметта на интерфейса, докато е в системната област",
+    "float-window-in-lightweight": "Плаващият прозорец остава в олекотен режим",
     "tray-speedometer": "Покажи скоростта в реално време в лентата",
     "dock-badge-speed": "Показване на скоростта в Dock (macOS)",
     "show-progress-bar": "Покажи лента за прогрес",
