@@ -71,7 +71,7 @@ let pulseTimer: ReturnType<typeof setTimeout> | undefined
 let doneTimer: ReturnType<typeof setTimeout> | undefined
 let press: { x: number; y: number } | null = null
 
-const { update } = useFloatUpdates(greetNewDownloads)
+const { update } = useFloatUpdates({ onUpdate: greetNewDownloads })
 
 const zoom = useWindowScale()
 const state = computed(() => floatOrbState(update.value, done.value))
