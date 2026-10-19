@@ -102,7 +102,7 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
 
 <template>
   <!-- Closed, nothing follows the toggle, so it keeps no space for a message. -->
-  <NFormItem :show-label="false" :show-feedback="show">
+  <NFormItem class="advanced-toggle" :show-label="false" :show-feedback="show">
     <NCheckbox :checked="show" @update:checked="$emit('update:show', $event)">
       {{ t('task.show-advanced-options') }}
     </NCheckbox>
@@ -269,6 +269,12 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
 </template>
 
 <style scoped>
+/* The toggle holds no input, so it takes the checkbox's height rather than an
+ * input's; the gap above it then matches the gap between fields. */
+.advanced-toggle :deep(.n-form-item-blank) {
+  min-height: 0;
+}
+
 /* ── UA field wrapper — stacks textarea + warning ────────────────── */
 .ua-field-wrapper {
   display: flex;
