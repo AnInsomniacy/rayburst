@@ -631,9 +631,11 @@ onUnmounted(() => {
   max-height: min(720px, calc(100vh - 48px));
 }
 
-.category-manager-card :deep(.n-card__content) {
+/* Naive UI 2.44 names the card's content `n-card-content`. Bounded by the
+ * card, it scrolls only when a short window cannot fit it. */
+.category-manager-card :deep(.n-card-content) {
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .category-manager {
