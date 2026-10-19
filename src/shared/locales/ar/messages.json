@@ -219,6 +219,7 @@
     "float-window-always": "دائمًا",
     "float-window-downloading": "أثناء التنزيل",
     "float-window-off": "إيقاف",
+    "float-window-restart-confirm": "على Wayland، تعمل النافذة العائمة بعد إعادة التشغيل.",
     "language": "اللغة",
     "select-language": "اختر اللغة",
     "follow-system": "اتباع النظام",

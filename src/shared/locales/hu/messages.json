@@ -219,6 +219,7 @@
     "float-window-always": "Mindig",
     "float-window-downloading": "Letöltés közben",
     "float-window-off": "Ki",
+    "float-window-restart-confirm": "Waylanden a lebegő ablak újraindítás után működik.",
     "language": "Nyelv",
     "select-language": "Nyelv kiválasztása",
     "follow-system": "Rendszer követése",

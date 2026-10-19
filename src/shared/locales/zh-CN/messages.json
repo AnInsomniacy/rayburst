@@ -219,6 +219,7 @@
     "float-window-always": "一直显示",
     "float-window-downloading": "下载时显示",
     "float-window-off": "不显示",
+    "float-window-restart-confirm": "在 Wayland 下，悬浮窗需重启后生效。",
     "language": "语言",
     "select-language": "选择语言",
     "follow-system": "跟随系统",

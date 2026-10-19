@@ -219,6 +219,7 @@
     "float-window-always": "همیشه",
     "float-window-downloading": "هنگام دانلود",
     "float-window-off": "خاموش",
+    "float-window-restart-confirm": "در Wayland، پنجره شناور پس از راه‌اندازی مجدد کار می‌کند.",
     "language": "زبان",
     "select-language": "انتخاب زبان",
     "follow-system": "پیروی از سیستم",

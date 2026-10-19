@@ -219,6 +219,7 @@
     "float-window-always": "Întotdeauna",
     "float-window-downloading": "În timpul descărcărilor",
     "float-window-off": "Dezactivată",
+    "float-window-restart-confirm": "Pe Wayland, fereastra plutitoare funcționează după repornire.",
     "language": "Limbă",
     "select-language": "Selectează limba",
     "follow-system": "Urmează sistemul",

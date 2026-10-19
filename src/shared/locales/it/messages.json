@@ -219,6 +219,7 @@
     "float-window-always": "Sempre",
     "float-window-downloading": "Durante i download",
     "float-window-off": "Disattivata",
+    "float-window-restart-confirm": "Su Wayland, la finestra mobile funziona dopo un riavvio.",
     "language": "Lingua",
     "select-language": "Seleziona lingua",
     "follow-system": "Segui il sistema",

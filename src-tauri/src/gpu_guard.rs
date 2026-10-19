@@ -100,6 +100,36 @@ fn disable_dmabuf_renderer_with_marker() {
     }
 }
 
+/// The display backend this process chose for the floating window, once.
+#[cfg(target_os = "linux")]
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum FloatBackend {
+    /// No choice: an X11 session, no XWayland, or a backend the launching
+    /// environment set.
+    Given,
+    /// A Wayland session without the orb at startup, running natively.
+    Wayland,
+    /// A Wayland session with the orb at startup, running under XWayland.
+    XWayland,
+}
+
+#[cfg(target_os = "linux")]
+static FLOAT_BACKEND: std::sync::OnceLock<FloatBackend> = std::sync::OnceLock::new();
+
+/// Whether showing the floating window needs a restart: on Wayland it runs
+/// under XWayland, which a process can only choose before GTK starts.
+pub fn float_window_needs_relaunch(shown: bool) -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        shown && FLOAT_BACKEND.get() == Some(&FloatBackend::Wayland)
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = shown;
+        false
+    }
+}
+
 #[cfg(target_os = "linux")]
 pub fn pre_flight() {
     // A backend chosen by the launching environment is kept.
@@ -107,17 +137,24 @@ pub fn pre_flight() {
     // set no XDG_SESSION_TYPE.
     let wayland_display =
         std::env::var_os("WAYLAND_DISPLAY").is_some_and(|value| !value.is_empty());
-    if std::env::var_os("GDK_BACKEND").is_none()
+    let backend = if std::env::var_os("GDK_BACKEND").is_none()
         && (wayland_display || std::env::var("XDG_SESSION_TYPE").as_deref() == Ok("wayland"))
         && std::env::var_os("DISPLAY").is_some()
-        && data_dir().is_some_and(|dir| read_float_window_from_config(&dir))
     {
-        // SAFETY: Called before Tauri and its worker threads are initialized.
-        unsafe {
-            std::env::set_var("GDK_BACKEND", "x11");
+        if data_dir().is_some_and(|dir| read_float_window_from_config(&dir)) {
+            // SAFETY: Called before Tauri and its worker threads are initialized.
+            unsafe {
+                std::env::set_var("GDK_BACKEND", "x11");
+            }
+            guard_log("gpu_guard: floating window on Wayland, running under XWayland (tao#1134)");
+            FloatBackend::XWayland
+        } else {
+            FloatBackend::Wayland
         }
-        guard_log("gpu_guard: floating window on Wayland, running under XWayland (tao#1134)");
-    }
+    } else {
+        FloatBackend::Given
+    };
+    let _ = FLOAT_BACKEND.set(backend);
     // NVIDIA's EGL Wayland path can enable explicit sync before GTK supplies
     // an acquire point. Disable only that driver feature.
     let wayland = std::env::var("GDK_BACKEND").map_or_else(

@@ -219,6 +219,7 @@
     "float-window-always": "常に表示",
     "float-window-downloading": "ダウンロード中のみ",
     "float-window-off": "オフ",
+    "float-window-restart-confirm": "Wayland では、フローティングウィンドウは再起動後に有効になります。",
     "language": "言語",
     "select-language": "言語を選択",
     "follow-system": "システムに従う",

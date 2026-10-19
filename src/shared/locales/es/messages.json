@@ -219,6 +219,7 @@
     "float-window-always": "Siempre",
     "float-window-downloading": "Durante las descargas",
     "float-window-off": "Desactivada",
+    "float-window-restart-confirm": "En Wayland, la ventana flotante funciona tras reiniciar.",
     "language": "Idioma",
     "select-language": "Seleccionar idioma",
     "follow-system": "Seguir sistema",

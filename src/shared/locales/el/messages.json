@@ -219,6 +219,7 @@
     "float-window-always": "Πάντα",
     "float-window-downloading": "Κατά τη λήψη",
     "float-window-off": "Ανενεργό",
+    "float-window-restart-confirm": "Στο Wayland, το αιωρούμενο παράθυρο λειτουργεί μετά από επανεκκίνηση.",
     "language": "Γλώσσα",
     "select-language": "Επιλογή γλώσσας",
     "follow-system": "Ακολουθήστε το σύστημα",

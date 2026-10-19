@@ -219,6 +219,7 @@
     "float-window-always": "Immer",
     "float-window-downloading": "Beim Herunterladen",
     "float-window-off": "Aus",
+    "float-window-restart-confirm": "Unter Wayland funktioniert das schwebende Fenster nach einem Neustart.",
     "language": "Sprache",
     "select-language": "Sprache wählen",
     "follow-system": "Systemstandard",

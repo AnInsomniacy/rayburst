@@ -16,7 +16,7 @@ import { handleTaskComplete, handleP2pDownloadComplete, handleTaskError } from '
 import { shouldDeleteTorrent, trashTorrentFile } from '@/composables/useDownloadCleanup'
 import { getTaskName, resolveOpenTarget, checkTaskIsSharing, getTaskSharingKind } from '@shared/utils'
 import type { TaskSharingKind } from '@shared/utils/task'
-import type { Aria2Task, TaskSnapshot } from '@shared/types'
+import type { Aria2Task, FloatWindowMode, TaskSnapshot } from '@shared/types'
 import { ARIA2_ERROR_CODES } from '@shared/aria2ErrorCodes'
 import { FLOAT_WINDOW_MODE_LABELS } from '@shared/constants'
 import { useHistoryStore } from '@/stores/history'
@@ -46,6 +46,7 @@ import { useAppMessage } from '@/composables/useAppMessage'
 import { NModal, NButton, NCheckbox, NProgress, NPagination, useDialog } from 'naive-ui'
 
 import { useAppEvents } from '@/composables/useAppEvents'
+import { useFloatWindowRelaunch } from '@/composables/useFloatWindowRelaunch'
 import { loadAddedAtFromRecords } from '@/composables/useTaskOrder'
 
 const { t } = useI18n()
@@ -144,6 +145,8 @@ let unlistenTrayMenu: (() => void) | null = null
 let unlistenResize: (() => void) | null = null
 let unlistenExitDialog: (() => void) | null = null
 let unlistenAddWindowSubmit: (() => void) | null = null
+let unlistenFloatMode: (() => void) | null = null
+const offerFloatWindowRelaunch = useFloatWindowRelaunch()
 let unlistenSnapshot: (() => void) | null = null
 let unlistenTaskMonitor: Array<() => void> = []
 let unlistenFocusRecheck: (() => void) | null = null
@@ -664,6 +667,10 @@ onMounted(async () => {
     }
   })
   unlistenAddWindowSubmit = await listen('add-window:submitted', showDownloadsAfterSubmit)
+  // The floating window's mode changed from its menu or the tray.
+  unlistenFloatMode = await listen<FloatWindowMode>('float-window:mode', ({ payload }) => {
+    void offerFloatWindowRelaunch(payload)
+  })
 
   // Sync native menu labels with current locale
   try {
@@ -731,6 +738,7 @@ onUnmounted(() => {
   if (unlistenResize) unlistenResize()
   if (unlistenExitDialog) unlistenExitDialog()
   if (unlistenAddWindowSubmit) unlistenAddWindowSubmit()
+  if (unlistenFloatMode) unlistenFloatMode()
   if (unlistenPowerCountdown) unlistenPowerCountdown()
   dismissCountdown()
   cancelPendingResize()

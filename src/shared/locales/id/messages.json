@@ -219,6 +219,7 @@
     "float-window-always": "Selalu",
     "float-window-downloading": "Saat mengunduh",
     "float-window-off": "Mati",
+    "float-window-restart-confirm": "Di Wayland, jendela mengambang berfungsi setelah dimulai ulang.",
     "language": "Bahasa",
     "select-language": "Pilih bahasa",
     "follow-system": "Ikuti sistem",

@@ -576,6 +576,10 @@ fn handle_run_event(app: &tauri::AppHandle, event: tauri::RunEvent) {
 pub fn run() {
     // Apply explicit Linux rendering overrides before any threads start.
     gpu_guard::pre_flight();
+    // GTK names the window after the program: its Wayland app ID and X11
+    // class, which shells match to `Rayburst.desktop` for the icon (#745).
+    #[cfg(target_os = "linux")]
+    gio::glib::set_prgname(Some("Rayburst"));
 
     let log_level = read_log_level();
     let log_control = log_policy::LogLevelControl::new(log_level);
@@ -827,6 +831,7 @@ pub fn run() {
             commands::float_window_ready,
             commands::float_window_set_mode,
             commands::float_panel_toggle,
+            commands::float_window_needs_relaunch,
             commands::float_panel_dismiss,
             commands::float_panel_present,
             commands::clipboard_baseline_wanted,

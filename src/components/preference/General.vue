@@ -9,6 +9,7 @@ import { usePreferenceStore } from '@/stores/preference'
 import { useAppStore } from '@/stores/app'
 import { usePreferenceForm } from '@/composables/usePreferenceForm'
 import { useEngineStore } from '@/stores/engine'
+import { useFloatWindowRelaunch } from '@/composables/useFloatWindowRelaunch'
 import { invoke } from '@tauri-apps/api/core'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { arch as osArch, version as osVersion } from '@tauri-apps/plugin-os'
@@ -89,6 +90,8 @@ function buildForm() {
   return buildGeneralForm(preferenceStore.config)
 }
 
+const offerFloatWindowRelaunch = useFloatWindowRelaunch()
+
 const { form, isDirty, handleSave, handleReset, patchSnapshot, resetSnapshot, commitInstant } = usePreferenceForm({
   buildForm,
   transformForStore: transformGeneralForStore,
@@ -142,6 +145,8 @@ const { form, isDirty, handleSave, handleReset, patchSnapshot, resetSnapshot, co
         logger.error('General.autostart', e)
       }
     }
+
+    if (f.floatWindow !== prevConfig.floatWindow) await offerFloatWindowRelaunch(f.floatWindow)
   },
 })
 

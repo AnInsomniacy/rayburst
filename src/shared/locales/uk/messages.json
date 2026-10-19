@@ -219,6 +219,7 @@
     "float-window-always": "Завжди",
     "float-window-downloading": "Під час завантаження",
     "float-window-off": "Вимкнено",
+    "float-window-restart-confirm": "У Wayland плаваюче вікно запрацює після перезапуску.",
     "language": "Мова",
     "select-language": "Вибрати мову",
     "follow-system": "Слідувати за системою",

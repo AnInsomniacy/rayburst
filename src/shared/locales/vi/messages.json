@@ -219,6 +219,7 @@
     "float-window-always": "Luôn hiện",
     "float-window-downloading": "Khi đang tải",
     "float-window-off": "Tắt",
+    "float-window-restart-confirm": "Trên Wayland, cửa sổ nổi hoạt động sau khi khởi động lại.",
     "language": "Ngôn ngữ",
     "select-language": "Chọn ngôn ngữ",
     "follow-system": "Theo hệ thống",

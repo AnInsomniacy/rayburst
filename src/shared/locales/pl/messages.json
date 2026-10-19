@@ -219,6 +219,7 @@
     "float-window-always": "Zawsze",
     "float-window-downloading": "Podczas pobierania",
     "float-window-off": "Wyłączone",
+    "float-window-restart-confirm": "W Wayland pływające okno działa po ponownym uruchomieniu.",
     "language": "Język",
     "select-language": "Wybierz język",
     "follow-system": "Podążaj za systemem",

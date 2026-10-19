@@ -219,6 +219,7 @@
     "float-window-always": "Altijd",
     "float-window-downloading": "Tijdens downloaden",
     "float-window-off": "Uit",
+    "float-window-restart-confirm": "Onder Wayland werkt het zwevende venster na een herstart.",
     "language": "Taal",
     "select-language": "Taal selecteren",
     "follow-system": "Systeem volgen",

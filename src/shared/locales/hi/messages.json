@@ -219,6 +219,7 @@
     "float-window-always": "हमेशा",
     "float-window-downloading": "डाउनलोड के दौरान",
     "float-window-off": "बंद",
+    "float-window-restart-confirm": "Wayland पर फ़्लोटिंग विंडो पुनः आरंभ करने के बाद काम करती है।",
     "language": "भाषा",
     "select-language": "भाषा चुनें",
     "follow-system": "System का पालन करें",

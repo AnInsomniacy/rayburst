@@ -219,6 +219,7 @@
     "float-window-always": "Alltid",
     "float-window-downloading": "Under nedlasting",
     "float-window-off": "Av",
+    "float-window-restart-confirm": "På Wayland fungerer det flytende vinduet etter en omstart.",
     "language": "Språk",
     "select-language": "Velg språk",
     "follow-system": "Følg systemet",

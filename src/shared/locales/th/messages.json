@@ -219,6 +219,7 @@
     "float-window-always": "ตลอดเวลา",
     "float-window-downloading": "ขณะดาวน์โหลด",
     "float-window-off": "ปิด",
+    "float-window-restart-confirm": "บน Wayland หน้าต่างลอยจะทำงานหลังจากรีสตาร์ต",
     "language": "ภาษา",
     "select-language": "เลือกภาษา",
     "follow-system": "ตามระบบ",

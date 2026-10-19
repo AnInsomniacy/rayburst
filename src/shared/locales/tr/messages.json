@@ -219,6 +219,7 @@
     "float-window-always": "Her zaman",
     "float-window-downloading": "İndirme sırasında",
     "float-window-off": "Kapalı",
+    "float-window-restart-confirm": "Wayland'de kayan pencere yeniden başlatmadan sonra çalışır.",
     "language": "Dil",
     "select-language": "Dil seçin",
     "follow-system": "Sistemi takip et",

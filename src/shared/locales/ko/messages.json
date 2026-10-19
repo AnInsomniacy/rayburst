@@ -219,6 +219,7 @@
     "float-window-always": "항상",
     "float-window-downloading": "다운로드 중에만",
     "float-window-off": "끄기",
+    "float-window-restart-confirm": "Wayland에서는 다시 시작한 후 플로팅 창이 작동합니다.",
     "language": "언어",
     "select-language": "언어 선택",
     "follow-system": "시스템 기본값",

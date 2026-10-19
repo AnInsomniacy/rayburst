@@ -219,6 +219,7 @@
     "float-window-always": "Always",
     "float-window-downloading": "While Downloading",
     "float-window-off": "Off",
+    "float-window-restart-confirm": "On Wayland, the floating window works after a restart.",
     "language": "Language",
     "select-language": "Select Language",
     "follow-system": "Follow System",

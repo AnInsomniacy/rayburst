@@ -219,6 +219,7 @@
     "float-window-always": "Винаги",
     "float-window-downloading": "По време на изтегляне",
     "float-window-off": "Изключен",
+    "float-window-restart-confirm": "Под Wayland плаващият прозорец работи след рестартиране.",
     "language": "Език",
     "select-language": "Избери език",
     "follow-system": "Следвай системата",

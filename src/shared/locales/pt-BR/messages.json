@@ -219,6 +219,7 @@
     "float-window-always": "Sempre",
     "float-window-downloading": "Durante downloads",
     "float-window-off": "Desativada",
+    "float-window-restart-confirm": "No Wayland, a janela flutuante funciona após reiniciar.",
     "language": "Idioma",
     "select-language": "Selecionar idioma",
     "follow-system": "Seguir sistema",
