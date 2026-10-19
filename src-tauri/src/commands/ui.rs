@@ -171,6 +171,12 @@ pub fn float_window_ready(app: AppHandle) {
     crate::services::pump::wake(&app);
 }
 
+/// Fits the non-resizable orb to the current interface scale.
+#[tauri::command]
+pub fn float_window_fit(app: AppHandle, width: u32, height: u32) -> Result<(), AppError> {
+    crate::services::float_window::fit_orb(&app, width, height)
+}
+
 /// Switches the floating window's mode from its menu.
 #[tauri::command]
 pub fn float_window_set_mode(
@@ -237,4 +243,10 @@ pub fn minimize_to_tray(app: AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         crate::handle_minimize_to_tray(&app, &window);
     }
+}
+
+/// Starts a header drag after capturing the floating windows' actual positions.
+#[tauri::command]
+pub fn float_panel_start_drag(app: AppHandle) -> Result<(), AppError> {
+    crate::services::float_window::start_panel_drag(&app)
 }

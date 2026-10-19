@@ -18,14 +18,14 @@ import { useI18n } from 'vue-i18n'
 import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { Menu } from '@tauri-apps/api/menu'
-import { LogicalSize } from '@tauri-apps/api/window'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { NIcon } from 'naive-ui'
 import { Add, ArrowDown, ArrowUp, Checkmark, Pause, TimeOutline } from '@vicons/ionicons5'
 import aria2Api from '@/api/aria2'
-import { cssPixelScale } from '@/composables/useCssPixelScale'
 import { useFloatUpdates, type FloatUpdate } from '@/composables/useFloatUpdates'
+import { useFloatDrag } from '@/composables/useFloatDrag'
 import { usePreferenceStore } from '@/stores/preference'
+import { useWindowScale } from '@/composables/useWindowScale'
 import { FLOAT_WINDOW_MODE_LABELS, FLOAT_WINDOW_MODES, TASK_STATUS } from '@shared/constants'
 import { bytesToSize } from '@shared/utils'
 import { createBatchItem, detectKind, encodeBase64, normalizeUriLines } from '@shared/utils/batchHelpers'
@@ -35,8 +35,6 @@ import { getErrorMessage } from '@shared/utils/errorMessage'
 import { logger } from '@shared/logger'
 import type { FloatWindowMode } from '@shared/types'
 
-/** Pointer travel that turns a press into a drag, in CSS pixels. */
-const DRAG_THRESHOLD = 4
 /** How long the check stays after the last download completed. */
 const DONE_MS = 1600
 /** Length of the flash greeting a new download. */
@@ -69,11 +67,10 @@ const unlisteners: UnlistenFn[] = []
 let known: Set<string> | null = null
 let pulseTimer: ReturnType<typeof setTimeout> | undefined
 let doneTimer: ReturnType<typeof setTimeout> | undefined
-let press: { x: number; y: number } | null = null
 
 const { update } = useFloatUpdates(greetNewDownloads)
 
-const zoom = computed(() => preferenceStore.config.uiScale || 1)
+const zoom = useWindowScale()
 const state = computed(() => floatOrbState(update.value, done.value))
 const face = computed<Face>(() => (dropping.value ? 'drop' : state.value.kind))
 const active = computed(() => state.value.kind === 'downloading' || state.value.kind === 'connecting')
@@ -149,42 +146,24 @@ function celebrate() {
 }
 
 /** Fits the window to the orb at the current interface and system text size. */
-async function fit() {
+function fit() {
   const element = root.value
   if (!element) return
   const rect = element.getBoundingClientRect()
-  const scale = await cssPixelScale(view, zoom.value)
-  view
-    .setSize(new LogicalSize(Math.ceil(rect.width * scale), Math.ceil(rect.height * scale)))
-    .catch((error: unknown) => logger.debug('FloatWindow.fit', getErrorMessage(error)))
+  invoke('float_window_fit', {
+    width: Math.ceil(rect.width * zoom.value),
+    height: Math.ceil(rect.height * zoom.value),
+  }).catch((error: unknown) => logger.debug('FloatWindow.fit', getErrorMessage(error)))
 }
 
-const resizeObserver = new ResizeObserver(() => void fit())
+const resizeObserver = new ResizeObserver(fit)
 // The interface size and the screen's scale change the orb's window without
 // changing its CSS size.
-watch(zoom, () => void fit())
+watch(zoom, fit)
 
-// ── Pointer ─────────────────────────────────────────────────────────
+// ── Mouse ─────────────────────────────────────────────────────────
 
-function onPointerDown(event: PointerEvent) {
-  if (event.button !== 0) return
-  press = { x: event.screenX, y: event.screenY }
-}
-
-function onPointerMove(event: PointerEvent) {
-  if (!press) return
-  if (Math.hypot(event.screenX - press.x, event.screenY - press.y) < DRAG_THRESHOLD) return
-  press = null
-  // The panel opens beside the orb's new place next time.
-  void invoke('float_panel_dismiss').catch(() => undefined)
-  view.startDragging().catch((error: unknown) => logger.debug('FloatWindow.drag', getErrorMessage(error)))
-}
-
-function onPointerUp() {
-  if (!press) return
-  press = null
-  togglePanel()
-}
+const { onMouseDown } = useFloatDrag(togglePanel)
 
 function togglePanel() {
   failed.value = false
@@ -304,7 +283,6 @@ onMounted(async () => {
     await listen('task-monitor:p2p-download-complete', celebrate),
     await listen('task-monitor:error', () => (failed.value = true)),
     await view.listen('float:leave', () => (leaving.value = true)),
-    await view.onScaleChanged(() => void fit()),
   )
 })
 
@@ -334,9 +312,7 @@ onBeforeUnmount(() => {
         tabindex="0"
         :title="tooltip"
         :aria-label="tooltip"
-        @pointerdown="onPointerDown"
-        @pointermove="onPointerMove"
-        @pointerup="onPointerUp"
+        @mousedown="onMouseDown"
         @keydown.enter.prevent="togglePanel"
         @contextmenu="showMenu"
       >
@@ -370,6 +346,7 @@ onBeforeUnmount(() => {
 /* The margin holds the orb's shadow and its hover growth inside the window. */
 .float-window {
   display: inline-flex;
+  width: max-content;
   padding: 8px;
   user-select: none;
 }

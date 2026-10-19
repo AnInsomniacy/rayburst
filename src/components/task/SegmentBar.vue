@@ -11,6 +11,8 @@ const props = defineProps<{ bitfield: string; pieces: number }>()
 const canvas = ref<HTMLCanvasElement>()
 const colorTokens = useAppColorTokens()
 let observer: ResizeObserver | null = null
+let frame: number | null = null
+let dirty = true
 
 function done(index: number): boolean {
   const nibble = parseInt(props.bitfield[index >> 2] ?? '0', 16)
@@ -18,14 +20,18 @@ function done(index: number): boolean {
 }
 
 function draw() {
+  frame = null
   const element = canvas.value
-  const context = element?.getContext('2d')
-  if (!element || !context) return
+  if (!element) return
   const ratio = window.devicePixelRatio || 1
   const width = Math.max(1, Math.round(element.clientWidth * ratio))
   const height = Math.max(1, Math.round(element.clientHeight * ratio))
-  element.width = width
-  element.height = height
+  if (!dirty && element.width === width && element.height === height) return
+  const context = element.getContext('2d')
+  if (!context) return
+  if (element.width !== width) element.width = width
+  if (element.height !== height) element.height = height
+  dirty = false
   context.clearRect(0, 0, width, height)
   const pieces = props.pieces || props.bitfield.length * 4
   if (pieces <= 0) return
@@ -42,15 +48,28 @@ function draw() {
   context.globalAlpha = 1
 }
 
-watch(() => [props.bitfield, props.pieces, colorTokens.value.statusActive], draw)
+function scheduleDraw() {
+  if (frame === null) frame = requestAnimationFrame(draw)
+}
+
+watch(
+  () => [props.bitfield, props.pieces, colorTokens.value.statusActive],
+  () => {
+    dirty = true
+    scheduleDraw()
+  },
+)
 onMounted(() => {
-  draw()
+  scheduleDraw()
   if (canvas.value) {
-    observer = new ResizeObserver(draw)
+    observer = new ResizeObserver(scheduleDraw)
     observer.observe(canvas.value)
   }
 })
-onBeforeUnmount(() => observer?.disconnect())
+onBeforeUnmount(() => {
+  observer?.disconnect()
+  if (frame !== null) cancelAnimationFrame(frame)
+})
 </script>
 
 <template>

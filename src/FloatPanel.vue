@@ -19,8 +19,7 @@ import SegmentBar from '@/components/task/SegmentBar.vue'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 import { useFloatUpdates } from '@/composables/useFloatUpdates'
 import { afterReveal, nextFrame, reducedMotion } from '@/composables/useWindowReveal'
-import { cssPixelScale } from '@/composables/useCssPixelScale'
-import { usePreferenceStore } from '@/stores/preference'
+import { useWindowScale } from '@/composables/useWindowScale'
 import { TASK_STATUS } from '@shared/constants'
 import {
   bytesToSize,
@@ -42,7 +41,6 @@ interface PanelSide {
 const LEAVE_MS = 170
 
 const { t } = useI18n()
-const preferenceStore = usePreferenceStore()
 const view = getCurrentWebviewWindow()
 const root = ref<HTMLElement | null>(null)
 const phase = ref<'hidden' | 'shown' | 'leaving'>('hidden')
@@ -54,7 +52,7 @@ let generation = 0
 
 const { update } = useFloatUpdates()
 
-const zoom = computed(() => preferenceStore.config.uiScale || 1)
+const zoom = useWindowScale()
 const tasks = computed(() => update.value?.tasks ?? [])
 const anyActive = computed(() => (update.value?.stat.numActive ?? 0) > 0)
 const origin = computed(() => `${side.value.above ? 'bottom' : 'top'} center`)
@@ -90,10 +88,9 @@ async function present(): Promise<PanelSide | null> {
   const element = root.value
   if (!element) return null
   const rect = element.getBoundingClientRect()
-  const scale = await cssPixelScale(view, zoom.value)
   return invoke<PanelSide>('float_panel_present', {
-    width: Math.ceil(rect.width * scale),
-    height: Math.ceil(rect.height * scale),
+    width: Math.ceil(rect.width * zoom.value),
+    height: Math.ceil(rect.height * zoom.value),
   }).catch((error: unknown) => {
     logger.warn('FloatPanel.present', getErrorMessage(error))
     return null
@@ -158,6 +155,11 @@ watch(zoom, scheduleRefit)
 
 // ── Actions ─────────────────────────────────────────────────────────
 
+function startDrag(event: MouseEvent) {
+  if (event.button !== 0) return
+  invoke('float_panel_start_drag').catch((error: unknown) => logger.warn('FloatPanel.drag', getErrorMessage(error)))
+}
+
 async function run(action: () => Promise<unknown>) {
   if (busy.value) return
   busy.value = true
@@ -194,7 +196,6 @@ onMounted(async () => {
   unlisteners.push(
     await view.listen('float-panel:open', () => void open()),
     await view.listen('float-panel:close', () => void close()),
-    await view.onScaleChanged(() => scheduleRefit()),
     await view.onFocusChanged(({ payload: focused }) => {
       if (!focused && phase.value !== 'hidden') dismiss()
     }),
@@ -211,14 +212,12 @@ onBeforeUnmount(() => {
 <template>
   <div ref="root" class="float-panel" :class="`float-panel--${phase}`">
     <section class="panel-card" :style="{ transformOrigin: origin }">
-      <header class="panel-header" data-tauri-drag-region>
-        <img class="panel-logo" src="/logo.svg" alt="" draggable="false" data-tauri-drag-region />
-        <span class="panel-title" data-tauri-drag-region>Rayburst</span>
-        <span v-if="update" class="panel-speeds" data-tauri-drag-region>
-          <span data-tauri-drag-region>↓ {{ bytesToSize(update.stat.downloadSpeed) }}/s</span>
-          <span v-if="update.stat.uploadSpeed > 0" data-tauri-drag-region
-            >↑ {{ bytesToSize(update.stat.uploadSpeed) }}/s</span
-          >
+      <header class="panel-header" @mousedown="startDrag">
+        <img class="panel-logo" src="/logo.svg" alt="" draggable="false" />
+        <span class="panel-title">Rayburst</span>
+        <span v-if="update" class="panel-speeds">
+          <span>↓ {{ bytesToSize(update.stat.downloadSpeed) }}/s</span>
+          <span v-if="update.stat.uploadSpeed > 0">↑ {{ bytesToSize(update.stat.uploadSpeed) }}/s</span>
         </span>
       </header>
 
@@ -296,6 +295,7 @@ onBeforeUnmount(() => {
  * `PANEL_INSET` in float_window.rs. */
 .float-panel {
   display: inline-flex;
+  width: max-content;
   padding: 12px;
   user-select: none;
 }

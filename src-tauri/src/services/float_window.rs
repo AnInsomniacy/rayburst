@@ -19,10 +19,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use tauri::{
-    AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewWindow,
-    WebviewWindowBuilder,
-};
+use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, WebviewWindow, WebviewWindowBuilder};
 use tauri_plugin_store::StoreExt;
 
 use super::stat::StatUpdate;
@@ -96,9 +93,25 @@ static RESIDENT: AtomicBool = AtomicBool::new(false);
 struct Panel {
     open: bool,
     closed_at: Option<Instant>,
-    /// Where the orb sits relative to the open panel, in physical pixels, so
-    /// dragging the panel takes the orb along.
+    /// Captured from actual window positions only when a header drag starts.
+    /// Programmatic panel placement must never move the orb.
     orb_offset: Option<(i32, i32)>,
+}
+
+impl Panel {
+    fn stop_drag(&mut self) {
+        self.orb_offset = None;
+    }
+
+    fn start_drag(&mut self, panel: PhysicalPosition<i32>, orb: PhysicalPosition<i32>) {
+        self.orb_offset = Some((orb.x - panel.x, orb.y - panel.y));
+    }
+
+    fn orb_position(&self, position: PhysicalPosition<i32>) -> Option<PhysicalPosition<i32>> {
+        let (dx, dy) = self.orb_offset?;
+        self.open
+            .then(|| PhysicalPosition::new(position.x + dx, position.y + dy))
+    }
 }
 
 static PANEL: Mutex<Panel> = Mutex::new(Panel {
@@ -482,20 +495,55 @@ fn floating_config(
     let mut config = super::add_window::secondary_window_config(app, label)?;
     config.center = false;
     config.decorations = false;
-    // GTK keeps a window the user cannot resize at least 200x200, which would
-    // leave a transparent square around the orb catching clicks (tauri#6125).
-    // Without borders the user cannot resize it anyway.
-    config.resizable = cfg!(target_os = "linux");
+    // Content sizing uses a GTK size request on Linux; enabling resizability
+    // would also enable Tao's border hit testing on these undecorated windows.
+    config.resizable = false;
     config.transparent = true;
     config.shadow = false;
     config.always_on_top = true;
     config.skip_taskbar = true;
     config.focus = false;
+    // macOS must deliver the first press even while the window is inactive.
+    config.accept_first_mouse = true;
     config.visible_on_all_workspaces = true;
     config.title_bar_style = tauri::TitleBarStyle::Visible;
     config.hidden_title = false;
     config.traffic_light_position = None;
     Ok(config)
+}
+
+/// Fits a fixed window to its content without enabling manual resizing.
+/// Main thread only: GTK widgets belong to the thread that created them.
+fn resize_to_content(window: &WebviewWindow, width: f64, height: f64) -> Result<(), AppError> {
+    let valid = 1.0..=f64::from(i32::MAX);
+    if !valid.contains(&width) || !valid.contains(&height) {
+        return Err(AppError::Io("float window: invalid content size".into()));
+    }
+    let failed = |error: tauri::Error| AppError::Io(format!("float window size: {error}"));
+    #[cfg(target_os = "linux")]
+    {
+        use gtk::prelude::{GtkWindowExt, WidgetExt};
+        let native = window.gtk_window().map_err(failed)?;
+        // gtk_window_resize alone ignores a non-resizable WebKit window's
+        // requested size and falls back to 200x200. A widget size request
+        // also updates its requisition, so content can both grow and shrink.
+        let (width, height) = (width.ceil() as i32, height.ceil() as i32);
+        native.set_size_request(width, height);
+        native.resize(width, height);
+    }
+    #[cfg(not(target_os = "linux"))]
+    window
+        .set_size(tauri::LogicalSize::new(width, height))
+        .map_err(failed)?;
+    Ok(())
+}
+
+/// Resizes the orb for the current interface scale. Main thread only.
+pub fn fit_orb(app: &AppHandle, width: u32, height: u32) -> Result<(), AppError> {
+    let window = app
+        .get_webview_window(LABEL)
+        .ok_or_else(|| AppError::NotFound("float window".into()))?;
+    resize_to_content(&window, f64::from(width), f64::from(height))
 }
 
 /// The orb appears without taking the focus from the window in use, at the
@@ -548,6 +596,9 @@ fn orb_corner(app: &AppHandle) -> Option<(f64, f64)> {
 fn restore_orb_position(app: &AppHandle, window: WebviewWindow) {
     use tauri_plugin_window_state::{StateFlags, WindowExt};
     let restored = app.run_on_main_thread(move || {
+        if let Err(error) = resize_to_content(&window, ORB_SIZE, ORB_SIZE) {
+            log::warn!("float_window:initial-size-failed error={error}");
+        }
         if let Err(error) = window.restore_state(StateFlags::POSITION) {
             log::warn!("float_window:restore-failed error={error}");
         }
@@ -646,7 +697,7 @@ pub fn close_panel(app: &AppHandle) {
     }
     state.open = false;
     state.closed_at = Some(Instant::now());
-    state.orb_offset = None;
+    state.stop_drag();
     drop(state);
     let _ = app.emit_to(PANEL_LABEL, PANEL_CLOSE_EVENT, ());
 }
@@ -689,9 +740,17 @@ pub fn present_panel(app: &AppHandle, width: f64, height: f64) -> Result<PanelSi
     let (panel_width, panel_height) = ((width * scale).round(), (height * scale).round());
     let (x, y, side) = place_panel(orb_rect, panel_width, panel_height, area_rect, scale);
     let at = PhysicalPosition::new(x.round() as i32, y.round() as i32);
-    panel().orb_offset = Some((position.x - at.x, position.y - at.y));
+    // GTK/X11 emits Moved for resizing, mapping and programmatic placement
+    // too, potentially before the requested position has been applied.
+    panel().stop_drag();
+    #[cfg(target_os = "linux")]
+    resize_to_content(&window, width, height)?;
+    #[cfg(not(target_os = "linux"))]
     window
-        .set_size(PhysicalSize::new(panel_width as u32, panel_height as u32))
+        .set_size(tauri::PhysicalSize::new(
+            panel_width as u32,
+            panel_height as u32,
+        ))
         .map_err(failed)?;
     window.set_position(at).map_err(failed)?;
     if !window.is_visible().unwrap_or(false) {
@@ -701,13 +760,39 @@ pub fn present_panel(app: &AppHandle, width: f64, height: f64) -> Result<PanelSi
     Ok(side)
 }
 
-/// Dragging the open panel by its header takes the orb along.
+/// Arms orb movement from the panel's actual position before native dragging.
+/// Main thread only, like present_panel, so placement cannot interleave.
+pub fn start_panel_drag(app: &AppHandle) -> Result<(), AppError> {
+    let missing = |label: &str| AppError::NotFound(format!("{label} window"));
+    let failed = |error: tauri::Error| AppError::Io(format!("float panel drag: {error}"));
+    let window = app
+        .get_webview_window(PANEL_LABEL)
+        .ok_or_else(|| missing(PANEL_LABEL))?;
+    let orb = app
+        .get_webview_window(LABEL)
+        .ok_or_else(|| missing(LABEL))?;
+    if !panel().open {
+        return Err(AppError::NotFound("open float panel".into()));
+    }
+    let panel_position = window.outer_position().map_err(failed)?;
+    let orb_position = orb.outer_position().map_err(failed)?;
+    panel().start_drag(panel_position, orb_position);
+    if let Err(error) = window.start_dragging() {
+        panel().stop_drag();
+        return Err(failed(error));
+    }
+    Ok(())
+}
+
+/// Only a header drag takes the orb along; layout events leave it in place.
 pub fn panel_moved(app: &AppHandle, position: PhysicalPosition<i32>) {
-    let Some((dx, dy)) = panel().orb_offset else {
+    let Some(position) = panel().orb_position(position) else {
         return;
     };
     if let Some(orb) = app.get_webview_window(LABEL) {
-        let _ = orb.set_position(PhysicalPosition::new(position.x + dx, position.y + dy));
+        if let Err(error) = orb.set_position(position) {
+            log::warn!("float_window:drag-failed error={error}");
+        }
     }
 }
 
@@ -728,9 +813,53 @@ pub fn main_window_created() {
 
 #[cfg(test)]
 mod tests {
-    use super::{fills, place_panel, queue, wants_orb, Mode, PanelSide, Rect, LINGER};
+    use super::{fills, place_panel, queue, wants_orb, Mode, Panel, PanelSide, Rect, LINGER};
     use crate::aria2::types::Aria2Task;
     use std::time::{Duration, Instant};
+    use tauri::PhysicalPosition;
+
+    #[test]
+    fn opening_and_refitting_the_panel_never_moves_the_orb() {
+        let mut panel = Panel {
+            open: true,
+            ..Panel::default()
+        };
+        let orb = PhysicalPosition::new(1800, 950);
+        let at = PhysicalPosition::new(1600, 650);
+        for _ in 0..20 {
+            panel.stop_drag();
+            // X11 can deliver the old position while applying a resize, then
+            // the requested position when mapping or moving the panel.
+            for event in [PhysicalPosition::new(0, 0), at] {
+                assert_eq!(panel.orb_position(event), None);
+            }
+            panel.start_drag(at, orb);
+            assert_eq!(panel.orb_position(at), Some(orb));
+        }
+    }
+
+    #[test]
+    fn a_header_drag_uses_actual_positions_and_stops_on_layout_or_close() {
+        let mut panel = Panel {
+            open: true,
+            ..Panel::default()
+        };
+        // A window manager may adjust the requested position, including on
+        // monitors with negative coordinates and at non-default scale factors.
+        let at = PhysicalPosition::new(-1800, 300);
+        let orb = PhysicalPosition::new(-1500, 750);
+        panel.start_drag(at, orb);
+        assert_eq!(panel.orb_position(at), Some(orb));
+        assert_eq!(
+            panel.orb_position(PhysicalPosition::new(-1680, 240)),
+            Some(PhysicalPosition::new(-1380, 690))
+        );
+        panel.stop_drag();
+        assert_eq!(panel.orb_position(at), None);
+        panel.start_drag(at, orb);
+        panel.open = false;
+        assert_eq!(panel.orb_position(at), None);
+    }
 
     #[test]
     fn only_a_window_filling_the_screen_hides_the_orb() {

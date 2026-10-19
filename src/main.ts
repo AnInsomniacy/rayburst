@@ -10,6 +10,7 @@ import { i18n, loadLocale } from '@/composables/useLocale'
 import { isSupportedLocale, SUPPORTED_LOCALES, type SupportedLocale } from '@shared/localeCatalog'
 import { setI18nLocale } from '@shared/utils/i18n'
 import { usePreferenceStore } from './stores/preference'
+import { SYSTEM_WINDOW_SCALE, systemWindowScale } from './composables/useWindowScale'
 import { useTaskStore } from './stores/task'
 import { useAppStore } from './stores/app'
 import { useHistoryStore } from './stores/history'
@@ -120,6 +121,8 @@ async function bootstrapSecondaryWindow(): Promise<void> {
   await usePreferenceStore().loadPreference()
   await applyStartupLocale()
   useTaskStore().setApi(aria2Api)
+  // Taken before AppProviders zooms the page by the interface size.
+  app.provide(SYSTEM_WINDOW_SCALE, await systemWindowScale())
   app.mount('#app')
 }
 
