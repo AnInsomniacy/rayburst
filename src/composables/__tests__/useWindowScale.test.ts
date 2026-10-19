@@ -4,7 +4,8 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent, h, provide, reactive, type ComputedRef } from 'vue'
 import { SYSTEM_WINDOW_SCALE, useWindowScale } from '../useWindowScale'
 
-const bridge = vi.hoisted(() => ({ innerSize: vi.fn(), scaleFactor: vi.fn() }))
+const bridge = vi.hoisted(() => ({ innerSize: vi.fn(), scaleFactor: vi.fn(), onScaleChanged: vi.fn() }))
+const stopScaleEvents = vi.fn()
 vi.mock('@tauri-apps/api/window', () => ({ getCurrentWindow: () => bridge }))
 vi.mock('@shared/logger', () => ({ logger: { debug: vi.fn() } }))
 vi.mock('@/stores/preference', () => ({ usePreferenceStore: () => ({ config }) }))
@@ -45,6 +46,7 @@ beforeEach(() => {
   vi.stubGlobal('innerWidth', 0)
   bridge.scaleFactor.mockResolvedValue(1)
   bridge.innerSize.mockResolvedValue({ width: 632, height: 560 })
+  bridge.onScaleChanged.mockResolvedValue(stopScaleEvents)
 })
 
 afterEach(() => {
@@ -148,5 +150,6 @@ describe('content window scale', () => {
     expect(scale.value).toBe(1.25)
     await resize()
     expect(bridge.innerSize).toHaveBeenCalledTimes(1)
+    expect(stopScaleEvents).toHaveBeenCalledTimes(1)
   })
 })
