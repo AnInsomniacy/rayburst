@@ -196,7 +196,7 @@ let settleTimer: ReturnType<typeof setTimeout> | undefined
 
 /** The card's scrolling content area. */
 function cardContent(): HTMLElement | null {
-  return root.value?.querySelector<HTMLElement>('.n-card__content') ?? null
+  return root.value?.querySelector<HTMLElement>('.n-card-content') ?? null
 }
 
 /** Height the content takes, including what the card scrolls, up to the cap. */
