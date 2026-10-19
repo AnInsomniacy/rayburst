@@ -829,6 +829,7 @@ pub fn run() {
             commands::float_panel_toggle,
             commands::float_panel_dismiss,
             commands::float_panel_present,
+            commands::float_panel_start_drag,
             commands::clipboard_baseline_wanted,
         ])
         // ── Window event interception ─────────────────────────────────

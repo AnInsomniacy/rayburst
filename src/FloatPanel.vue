@@ -155,6 +155,11 @@ watch(zoom, scheduleRefit)
 
 // ── Actions ─────────────────────────────────────────────────────────
 
+function startDrag(event: PointerEvent) {
+  if (event.button !== 0) return
+  invoke('float_panel_start_drag').catch((error: unknown) => logger.warn('FloatPanel.drag', getErrorMessage(error)))
+}
+
 async function run(action: () => Promise<unknown>) {
   if (busy.value) return
   busy.value = true
@@ -207,14 +212,12 @@ onBeforeUnmount(() => {
 <template>
   <div ref="root" class="float-panel" :class="`float-panel--${phase}`">
     <section class="panel-card" :style="{ transformOrigin: origin }">
-      <header class="panel-header" data-tauri-drag-region>
-        <img class="panel-logo" src="/logo.svg" alt="" draggable="false" data-tauri-drag-region />
-        <span class="panel-title" data-tauri-drag-region>Rayburst</span>
-        <span v-if="update" class="panel-speeds" data-tauri-drag-region>
-          <span data-tauri-drag-region>↓ {{ bytesToSize(update.stat.downloadSpeed) }}/s</span>
-          <span v-if="update.stat.uploadSpeed > 0" data-tauri-drag-region
-            >↑ {{ bytesToSize(update.stat.uploadSpeed) }}/s</span
-          >
+      <header class="panel-header" @pointerdown="startDrag">
+        <img class="panel-logo" src="/logo.svg" alt="" draggable="false" />
+        <span class="panel-title">Rayburst</span>
+        <span v-if="update" class="panel-speeds">
+          <span>↓ {{ bytesToSize(update.stat.downloadSpeed) }}/s</span>
+          <span v-if="update.stat.uploadSpeed > 0">↑ {{ bytesToSize(update.stat.uploadSpeed) }}/s</span>
         </span>
       </header>
 

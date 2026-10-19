@@ -232,3 +232,9 @@ pub fn minimize_to_tray(app: AppHandle) {
         crate::handle_minimize_to_tray(&app, &window);
     }
 }
+
+/// Starts a header drag after capturing the floating windows' actual positions.
+#[tauri::command]
+pub fn float_panel_start_drag(app: AppHandle) -> Result<(), AppError> {
+    crate::services::float_window::start_panel_drag(&app)
+}

@@ -96,9 +96,25 @@ static RESIDENT: AtomicBool = AtomicBool::new(false);
 struct Panel {
     open: bool,
     closed_at: Option<Instant>,
-    /// Where the orb sits relative to the open panel, in physical pixels, so
-    /// dragging the panel takes the orb along.
+    /// Captured from actual window positions only when a header drag starts.
+    /// Programmatic panel placement must never move the orb.
     orb_offset: Option<(i32, i32)>,
+}
+
+impl Panel {
+    fn stop_drag(&mut self) {
+        self.orb_offset = None;
+    }
+
+    fn start_drag(&mut self, panel: PhysicalPosition<i32>, orb: PhysicalPosition<i32>) {
+        self.orb_offset = Some((orb.x - panel.x, orb.y - panel.y));
+    }
+
+    fn orb_position(&self, position: PhysicalPosition<i32>) -> Option<PhysicalPosition<i32>> {
+        let (dx, dy) = self.orb_offset?;
+        self.open
+            .then(|| PhysicalPosition::new(position.x + dx, position.y + dy))
+    }
 }
 
 static PANEL: Mutex<Panel> = Mutex::new(Panel {
@@ -643,7 +659,7 @@ pub fn close_panel(app: &AppHandle) {
     }
     state.open = false;
     state.closed_at = Some(Instant::now());
-    state.orb_offset = None;
+    state.stop_drag();
     drop(state);
     let _ = app.emit_to(PANEL_LABEL, PANEL_CLOSE_EVENT, ());
 }
@@ -686,7 +702,9 @@ pub fn present_panel(app: &AppHandle, width: f64, height: f64) -> Result<PanelSi
     let (panel_width, panel_height) = ((width * scale).round(), (height * scale).round());
     let (x, y, side) = place_panel(orb_rect, panel_width, panel_height, area_rect, scale);
     let at = PhysicalPosition::new(x.round() as i32, y.round() as i32);
-    panel().orb_offset = Some((position.x - at.x, position.y - at.y));
+    // GTK/X11 emits Moved for resizing, mapping and programmatic placement
+    // too, potentially before the requested position has been applied.
+    panel().stop_drag();
     window
         .set_size(PhysicalSize::new(panel_width as u32, panel_height as u32))
         .map_err(failed)?;
@@ -698,13 +716,39 @@ pub fn present_panel(app: &AppHandle, width: f64, height: f64) -> Result<PanelSi
     Ok(side)
 }
 
-/// Dragging the open panel by its header takes the orb along.
+/// Arms orb movement from the panel's actual position before native dragging.
+/// Main thread only, like present_panel, so placement cannot interleave.
+pub fn start_panel_drag(app: &AppHandle) -> Result<(), AppError> {
+    let missing = |label: &str| AppError::NotFound(format!("{label} window"));
+    let failed = |error: tauri::Error| AppError::Io(format!("float panel drag: {error}"));
+    let window = app
+        .get_webview_window(PANEL_LABEL)
+        .ok_or_else(|| missing(PANEL_LABEL))?;
+    let orb = app
+        .get_webview_window(LABEL)
+        .ok_or_else(|| missing(LABEL))?;
+    if !panel().open {
+        return Err(AppError::NotFound("open float panel".into()));
+    }
+    let panel_position = window.outer_position().map_err(failed)?;
+    let orb_position = orb.outer_position().map_err(failed)?;
+    panel().start_drag(panel_position, orb_position);
+    if let Err(error) = window.start_dragging() {
+        panel().stop_drag();
+        return Err(failed(error));
+    }
+    Ok(())
+}
+
+/// Only a header drag takes the orb along; layout events leave it in place.
 pub fn panel_moved(app: &AppHandle, position: PhysicalPosition<i32>) {
-    let Some((dx, dy)) = panel().orb_offset else {
+    let Some(position) = panel().orb_position(position) else {
         return;
     };
     if let Some(orb) = app.get_webview_window(LABEL) {
-        let _ = orb.set_position(PhysicalPosition::new(position.x + dx, position.y + dy));
+        if let Err(error) = orb.set_position(position) {
+            log::warn!("float_window:drag-failed error={error}");
+        }
     }
 }
 
@@ -725,9 +769,53 @@ pub fn main_window_created() {
 
 #[cfg(test)]
 mod tests {
-    use super::{fills, place_panel, queue, wants_orb, Mode, PanelSide, Rect, LINGER};
+    use super::{fills, place_panel, queue, wants_orb, Mode, Panel, PanelSide, Rect, LINGER};
     use crate::aria2::types::Aria2Task;
     use std::time::{Duration, Instant};
+    use tauri::PhysicalPosition;
+
+    #[test]
+    fn opening_and_refitting_the_panel_never_moves_the_orb() {
+        let mut panel = Panel {
+            open: true,
+            ..Panel::default()
+        };
+        let orb = PhysicalPosition::new(1800, 950);
+        let at = PhysicalPosition::new(1600, 650);
+        for _ in 0..20 {
+            panel.stop_drag();
+            // X11 can deliver the old position while applying a resize, then
+            // the requested position when mapping or moving the panel.
+            for event in [PhysicalPosition::new(0, 0), at] {
+                assert_eq!(panel.orb_position(event), None);
+            }
+            panel.start_drag(at, orb);
+            assert_eq!(panel.orb_position(at), Some(orb));
+        }
+    }
+
+    #[test]
+    fn a_header_drag_uses_actual_positions_and_stops_on_layout_or_close() {
+        let mut panel = Panel {
+            open: true,
+            ..Panel::default()
+        };
+        // A window manager may adjust the requested position, including on
+        // monitors with negative coordinates and at non-default scale factors.
+        let at = PhysicalPosition::new(-1800, 300);
+        let orb = PhysicalPosition::new(-1500, 750);
+        panel.start_drag(at, orb);
+        assert_eq!(panel.orb_position(at), Some(orb));
+        assert_eq!(
+            panel.orb_position(PhysicalPosition::new(-1680, 240)),
+            Some(PhysicalPosition::new(-1380, 690))
+        );
+        panel.stop_drag();
+        assert_eq!(panel.orb_position(at), None);
+        panel.start_drag(at, orb);
+        panel.open = false;
+        assert_eq!(panel.orb_position(at), None);
+    }
 
     #[test]
     fn only_a_window_filling_the_screen_hides_the_orb() {
