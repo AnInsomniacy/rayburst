@@ -30,6 +30,7 @@ import { useEscapeKey } from '@/composables/useEscapeKey'
 import { usePlatform } from '@/composables/usePlatform'
 import { listenForTorrentDrops } from '@/composables/useTorrentDrop'
 import { afterReveal, nextFrame, reducedMotion } from '@/composables/useWindowReveal'
+import { cssPixelScale } from '@/composables/useCssPixelScale'
 import { logger } from '@shared/logger'
 import { getErrorMessage } from '@shared/utils/errorMessage'
 import type { BatchItem, ExternalDownloadInput } from '@shared/types'
@@ -82,9 +83,24 @@ const zoom = computed(() => preferenceStore.config.uiScale || 1)
 // or motion there; the system animates the window instead.
 const framed = computed(() => !systemTitleBar.value && !isMac.value)
 const inset = computed(() => (framed.value ? PANEL_INSET : 0))
-const cardMaxHeight = computed(() =>
-  capHeight.value ? capHeight.value - 2 * inset.value - (systemTitleBar.value ? 0 : TITLE_BAR_HEIGHT) : 0,
-)
+/** Height around the card: the margin and the drawn title bar. */
+const chrome = computed(() => 2 * inset.value + (systemTitleBar.value ? 0 : TITLE_BAR_HEIGHT))
+const cardMaxHeight = computed(() => (capHeight.value ? capHeight.value - chrome.value : 0))
+// Once shown, the card also stays within the window, so its buttons remain
+// in view should the window come out smaller than asked. A hidden window is
+// left unbounded: WebKitGTK gives it almost no viewport (#731).
+const rootStyle = computed(() => {
+  const shown = phase.value !== 'hidden'
+  const cap = cardMaxHeight.value
+  return {
+    width: `${PANEL_WIDTH + 2 * inset.value}px`,
+    maxWidth: shown ? '100vw' : undefined,
+    padding: `${inset.value}px`,
+    ...(cap
+      ? { '--add-window-max-height': shown ? `min(${cap}px, calc(100vh - ${chrome.value}px))` : `${cap}px` }
+      : {}),
+  }
+})
 
 useEscapeKey(() => void addTask.value?.dismiss(), { fromEditable: true })
 
@@ -170,15 +186,21 @@ async function leave() {
 // animation frame by frame. When the content grows, the window grows at once to
 // the most the panel may take, so the panel expands smoothly inside its
 // transparent margin; once the content has stopped moving, the window shrinks
-// to fit it again.
+// to fit it again. Heights are kept in CSS pixels and converted only when the
+// window is resized.
 
 let appliedHeight = 0
 let wantedHeight = 0
 let sizing = false
 let settleTimer: ReturnType<typeof setTimeout> | undefined
 
+/** Height the content takes uncapped, including what the card scrolls. */
 function fitHeight(): number {
-  return root.value ? Math.ceil(root.value.getBoundingClientRect().height * zoom.value) : 0
+  const element = root.value
+  if (!element) return 0
+  const content = element.querySelector<HTMLElement>('.n-card__content')
+  const scrolled = content ? content.scrollHeight - content.clientHeight : 0
+  return Math.ceil(element.getBoundingClientRect().height + scrolled)
 }
 
 /** Sends one resize at a time, always ending on the latest wanted height. */
@@ -190,8 +212,9 @@ async function applyHeight(height: number) {
   try {
     while (wantedHeight !== appliedHeight) {
       const next = wantedHeight
-      const width = Math.round((PANEL_WIDTH + 2 * inset.value) * zoom.value)
-      await view.setSize(new LogicalSize(width, next))
+      const scale = await cssPixelScale(view, zoom.value)
+      const width = Math.round((PANEL_WIDTH + 2 * inset.value) * scale)
+      await view.setSize(new LogicalSize(width, Math.ceil(next * scale)))
       appliedHeight = next
     }
   } catch (error) {
@@ -206,10 +229,16 @@ function onContentResize() {
   const fit = fitHeight()
   // Without a transparent margin the window has to follow the content directly.
   if (fit > appliedHeight) {
-    void applyHeight(systemTitleBar.value ? fit : Math.max(fit, Math.round(capHeight.value * zoom.value)))
+    void applyHeight(systemTitleBar.value ? fit : Math.max(fit, capHeight.value))
   }
   clearTimeout(settleTimer)
   settleTimer = setTimeout(() => void applyHeight(fitHeight()), systemTitleBar.value ? 0 : SETTLE_MS)
+}
+
+/** Refits the window after it moved to a screen with another scale. */
+function onScaleChanged() {
+  appliedHeight = 0
+  void measureScreen().then(() => applyHeight(fitHeight()))
 }
 
 /**
@@ -221,11 +250,11 @@ async function measureScreen() {
   // crashes the app on X11 (#725).
   const height = await invoke<number | null>('add_window_screen_height').catch(() => null)
   const logical = height ?? window.screen.availHeight
-  const screenCap = Math.floor((logical * MAX_SCREEN_SHARE) / zoom.value)
+  const scale = await cssPixelScale(view, zoom.value)
+  const screenCap = Math.floor((logical * MAX_SCREEN_SHARE) / scale)
   // A measurement holding no more than the margin and title bar saw no
   // content; capping by it would leave the window too small to use (#712).
-  const chrome = 2 * inset.value + (systemTitleBar.value ? 0 : TITLE_BAR_HEIGHT)
-  capHeight.value = baseHeight > chrome ? Math.min(screenCap, Math.round(baseHeight * MAX_GROWTH)) : screenCap
+  capHeight.value = baseHeight > chrome.value ? Math.min(screenCap, Math.round(baseHeight * MAX_GROWTH)) : screenCap
 }
 
 const resizeObserver = new ResizeObserver(onContentResize)
@@ -274,6 +303,7 @@ onMounted(async () => {
       event.preventDefault()
       void addTask.value?.dismiss()
     }),
+    await view.onScaleChanged(onScaleChanged),
   )
   const queued = await invoke<AddWindowInputs>('add_window_attach')
   await receive(queued)
@@ -292,14 +322,7 @@ onBeforeUnmount(() => {
     ref="root"
     class="add-window"
     :class="[`add-window--${phase}`, { 'add-window--framed': framed }]"
-    :style="{
-      // WebKitGTK lays out a hidden window at zero width, which wraps every
-      // line and measured the content far too tall (#731); a fixed width keeps
-      // measurements taken before the first showing true.
-      width: `${PANEL_WIDTH + 2 * inset}px`,
-      padding: `${inset}px`,
-      ...(cardMaxHeight ? { '--add-window-max-height': `${cardMaxHeight}px` } : {}),
-    }"
+    :style="rootStyle"
   >
     <div class="add-window-panel">
       <header v-if="!systemTitleBar" class="add-window-titlebar" :class="{ mac: isMac }" data-tauri-drag-region>

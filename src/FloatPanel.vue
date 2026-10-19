@@ -19,6 +19,7 @@ import SegmentBar from '@/components/task/SegmentBar.vue'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 import { useFloatUpdates } from '@/composables/useFloatUpdates'
 import { afterReveal, nextFrame, reducedMotion } from '@/composables/useWindowReveal'
+import { cssPixelScale } from '@/composables/useCssPixelScale'
 import { usePreferenceStore } from '@/stores/preference'
 import { TASK_STATUS } from '@shared/constants'
 import {
@@ -89,9 +90,10 @@ async function present(): Promise<PanelSide | null> {
   const element = root.value
   if (!element) return null
   const rect = element.getBoundingClientRect()
+  const scale = await cssPixelScale(view, zoom.value)
   return invoke<PanelSide>('float_panel_present', {
-    width: Math.ceil(rect.width * zoom.value),
-    height: Math.ceil(rect.height * zoom.value),
+    width: Math.ceil(rect.width * scale),
+    height: Math.ceil(rect.height * scale),
   }).catch((error: unknown) => {
     logger.warn('FloatPanel.present', getErrorMessage(error))
     return null
@@ -192,6 +194,7 @@ onMounted(async () => {
   unlisteners.push(
     await view.listen('float-panel:open', () => void open()),
     await view.listen('float-panel:close', () => void close()),
+    await view.onScaleChanged(() => scheduleRefit()),
     await view.onFocusChanged(({ payload: focused }) => {
       if (!focused && phase.value !== 'hidden') dismiss()
     }),

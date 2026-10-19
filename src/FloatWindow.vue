@@ -23,6 +23,7 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { NIcon } from 'naive-ui'
 import { Add, ArrowDown, ArrowUp, Checkmark, Pause, TimeOutline } from '@vicons/ionicons5'
 import aria2Api from '@/api/aria2'
+import { cssPixelScale } from '@/composables/useCssPixelScale'
 import { useFloatUpdates, type FloatUpdate } from '@/composables/useFloatUpdates'
 import { usePreferenceStore } from '@/stores/preference'
 import { FLOAT_WINDOW_MODE_LABELS, FLOAT_WINDOW_MODES, TASK_STATUS } from '@shared/constants'
@@ -147,19 +148,21 @@ function celebrate() {
   doneTimer = setTimeout(() => (done.value = false), DONE_MS)
 }
 
-/** Fits the window to the orb at the current interface size. */
-function fit() {
+/** Fits the window to the orb at the current interface and system text size. */
+async function fit() {
   const element = root.value
   if (!element) return
   const rect = element.getBoundingClientRect()
+  const scale = await cssPixelScale(view, zoom.value)
   view
-    .setSize(new LogicalSize(Math.ceil(rect.width * zoom.value), Math.ceil(rect.height * zoom.value)))
+    .setSize(new LogicalSize(Math.ceil(rect.width * scale), Math.ceil(rect.height * scale)))
     .catch((error: unknown) => logger.debug('FloatWindow.fit', getErrorMessage(error)))
 }
 
-const resizeObserver = new ResizeObserver(fit)
-// The interface size scales the orb without changing its CSS size.
-watch(zoom, fit)
+const resizeObserver = new ResizeObserver(() => void fit())
+// The interface size and the screen's scale change the orb's window without
+// changing its CSS size.
+watch(zoom, () => void fit())
 
 // ── Pointer ─────────────────────────────────────────────────────────
 
@@ -301,6 +304,7 @@ onMounted(async () => {
     await listen('task-monitor:p2p-download-complete', celebrate),
     await listen('task-monitor:error', () => (failed.value = true)),
     await view.listen('float:leave', () => (leaving.value = true)),
+    await view.onScaleChanged(() => void fit()),
   )
 })
 
