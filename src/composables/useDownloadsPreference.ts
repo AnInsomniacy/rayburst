@@ -22,7 +22,6 @@ export interface DownloadsForm {
   sharingMode: 'stop-by-condition' | 'manual-stop'
   shareRatio: number
   shareTime: number
-  continue: boolean
   maxTries: number
   retryWait: number
   remoteTime: boolean
@@ -71,7 +70,6 @@ export function buildDownloadsForm(config: AppConfig, defaultDir: string = ''): 
     sharingMode: (config.keepSharing ?? D.keepSharing) ? 'manual-stop' : 'stop-by-condition',
     shareRatio: config.shareRatio ?? D.shareRatio,
     shareTime: config.shareTime ?? D.shareTime,
-    continue: config.continue ?? D.continue,
     maxTries: config.maxTries ?? D.maxTries,
     retryWait: config.retryWait ?? D.retryWait,
     remoteTime: config.remoteTime ?? D.remoteTime,
@@ -115,7 +113,6 @@ export function buildDownloadsSystemConfig(f: DownloadsForm): Record<string, str
     'max-connection-per-server': String(f.streamMaxConnections),
     'max-overall-download-limit': f.maxOverallDownloadLimit,
     'max-overall-upload-limit': f.maxOverallUploadLimit,
-    continue: String(f.continue !== false),
     'remote-time': String(!!f.remoteTime),
     'file-allocation': f.fileAllocation || D.fileAllocation,
     'incomplete-suffix': f.incompleteSuffix,

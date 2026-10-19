@@ -29,7 +29,6 @@
     "check-integrity",
     "checksum",
     "connect-timeout",
-    "continue",
     "detach-share-only",
     "dir",
     "dns-over-https",

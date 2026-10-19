@@ -584,7 +584,6 @@ export interface AppConfig {
   btTracker: string
   btEncryption: BtEncryptionMode
   magnetFileSelectionPolicy: MagnetFileSelectionPolicy
-  continue: boolean
   /** When true, aria2 applies the remote server's Last-Modified timestamp
    *  to the local file instead of using the download-completion time. */
   remoteTime: boolean

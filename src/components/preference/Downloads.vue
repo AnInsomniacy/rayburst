@@ -459,9 +459,6 @@ onMounted(async () => {
           />
           <NText depth="3" class="pref-inline-note">{{ t('preferences.unit-seconds') }}</NText>
         </NFormItem>
-        <NFormItem :label="t('preferences.continue')">
-          <NSwitch v-model:value="form.continue" />
-        </NFormItem>
 
         <!-- Media -->
         <NDivider title-placement="left">{{ t('preferences.media-downloads') }}</NDivider>

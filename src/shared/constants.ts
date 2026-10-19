@@ -267,7 +267,6 @@ export const DEFAULT_APP_CONFIG = {
   btLocalPeerDiscoveryEnabled: true,
   btEncryption: 'preferred' as const,
   magnetFileSelectionPolicy: 'prompt' as const,
-  continue: true, // aria2 default=true; resume incomplete downloads
   remoteTime: false, // aria2 default=false; file timestamp = download completion time
 
   // ── Interface & Behavior ──────────────────────────────────────
