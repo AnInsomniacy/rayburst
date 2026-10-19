@@ -252,7 +252,9 @@ function cardContent(): HTMLElement | null {
  * Height the content takes, up to the cap: the window around the card's
  * content area, plus the form's own height and the area's padding. That
  * counts what the card scrolls, and not what a card filling the window
- * stretches.
+ * stretches. The form's computed height is its layout height: the window is
+ * measured while the panel still has its entrance scale, which a bounding box
+ * would include.
  */
 function fitHeight(): number {
   const element = root.value
@@ -262,7 +264,10 @@ function fitHeight(): number {
   let natural = element.getBoundingClientRect().height
   if (content && form) {
     const style = getComputedStyle(content)
-    const own = form.getBoundingClientRect().height + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
+    const own =
+      (parseFloat(getComputedStyle(form).height) || 0) +
+      (parseFloat(style.paddingTop) || 0) +
+      (parseFloat(style.paddingBottom) || 0)
     natural += own - content.clientHeight
   }
   natural = Math.ceil(natural)
