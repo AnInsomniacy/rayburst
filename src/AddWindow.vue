@@ -194,13 +194,19 @@ let wantedHeight = 0
 let sizing = false
 let settleTimer: ReturnType<typeof setTimeout> | undefined
 
-/** Height the content takes uncapped, including what the card scrolls. */
+/** The card's scrolling content area. */
+function cardContent(): HTMLElement | null {
+  return root.value?.querySelector<HTMLElement>('.n-card__content') ?? null
+}
+
+/** Height the content takes, including what the card scrolls, up to the cap. */
 function fitHeight(): number {
   const element = root.value
   if (!element) return 0
-  const content = element.querySelector<HTMLElement>('.n-card__content')
+  const content = cardContent()
   const scrolled = content ? content.scrollHeight - content.clientHeight : 0
-  return Math.ceil(element.getBoundingClientRect().height + scrolled)
+  const natural = Math.ceil(element.getBoundingClientRect().height + scrolled)
+  return capHeight.value ? Math.min(natural, capHeight.value) : natural
 }
 
 /** Sends one resize at a time, always ending on the latest wanted height. */
@@ -291,6 +297,10 @@ onMounted(async () => {
     // Freshly mounted, nothing is expanded yet.
     baseHeight = root.value.getBoundingClientRect().height
     resizeObserver.observe(root.value)
+    // Held within the window, the card keeps its size while its form grows;
+    // watching the form lets the window grow first.
+    const form = cardContent()?.firstElementChild
+    if (form) resizeObserver.observe(form)
   }
   appStore.setExternalInputErrorHandler((error) => {
     message.error(getErrorMessage(error, { fallback: t('task.error-unknown') }), { closable: true })

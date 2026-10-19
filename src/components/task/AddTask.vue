@@ -1073,20 +1073,6 @@ defineExpose({ dismiss: () => handleClose() })
               }}</NButton>
             </NInputGroup>
           </NFormItem>
-          <NFormItem
-            :label="t('task.task-connections') + ':'"
-            v-bind="configFieldProps('streamMaxConnections', form.streamMaxConnections)"
-          >
-            <NInputNumber
-              v-model:value="form.streamMaxConnections"
-              :min="constraint('streamMaxConnections').min"
-              :max="siteCap?.maxConnectionPerServer ?? constraint('streamMaxConnections').max"
-              style="width: 120px"
-            />
-            <NText v-if="siteCap" depth="3" class="site-rule-note">
-              {{ t('task.ua-source-rule', { host: siteCap.hostPattern }) }}
-            </NText>
-          </NFormItem>
           <NFormItem :label="dirLabel + ':'">
             <div style="width: 100%">
               <NInputGroup>
@@ -1146,7 +1132,24 @@ defineExpose({ dismiss: () => handleClose() })
             "
             @update:user-agent="onUserAgentInput"
             @select-user-agent-profile="selectUserAgentProfile"
-          />
+          >
+            <template #connections>
+              <NFormItem
+                :label="t('task.task-connections') + ':'"
+                v-bind="configFieldProps('streamMaxConnections', form.streamMaxConnections)"
+              >
+                <NInputNumber
+                  v-model:value="form.streamMaxConnections"
+                  :min="constraint('streamMaxConnections').min"
+                  :max="siteCap?.maxConnectionPerServer ?? constraint('streamMaxConnections').max"
+                  style="width: 120px"
+                />
+                <NText v-if="siteCap" depth="3" class="site-rule-note">
+                  {{ t('task.ua-source-rule', { host: siteCap.hostPattern }) }}
+                </NText>
+              </NFormItem>
+            </template>
+          </AdvancedOptions>
         </div>
       </NForm>
       <template #footer>

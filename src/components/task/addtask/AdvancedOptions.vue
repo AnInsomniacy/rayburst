@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** @fileoverview Advanced task options panel (UA, auth, referer, cookie, proxy checkbox). */
+/** @fileoverview Advanced task options panel (UA, speed, connections, auth, referer, cookie, proxy checkbox). */
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -153,6 +153,8 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
           @update:value="$emit('update:speedLimit', $event)"
         />
       </NFormItem>
+      <!-- The connections field: validated and capped by the add task form. -->
+      <slot name="connections" />
       <NFormItem
         class="checksum-item"
         :label="t('task.checksum') + ':'"
