@@ -946,8 +946,9 @@ async function handleSubmit() {
 // The card takes its natural height, up to the cap the add window sets once it
 // knows the screen. Until then it is not capped at all: the window measures it
 // while hidden, when WebKitGTK reports a viewport of almost no height, so
-// `100vh` would collapse it.
+// `100vh` would collapse it. A window without a margin also has the card fill it.
 const cardStyle = {
+  minHeight: 'var(--add-window-min-height, auto)',
   maxHeight: 'var(--add-window-max-height, none)',
   display: 'flex',
   flexDirection: 'column',

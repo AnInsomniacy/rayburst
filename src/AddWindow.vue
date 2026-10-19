@@ -12,13 +12,14 @@
  * margin around it. Motion stays inside the page, where it runs on the
  * compositor: the panel is lifted in with its content following in layers,
  * sinks away, and grows or shrinks with its content inside a window that is
- * resized once per change instead of on every frame.
+ * resized once per change instead of on every frame. On macOS the system
+ * frames the window around its traffic lights, and the window itself rises
+ * and sinks instead of the panel (`add_window/motion.rs`).
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { invoke } from '@tauri-apps/api/core'
 import { emit, type UnlistenFn } from '@tauri-apps/api/event'
-import { LogicalSize } from '@tauri-apps/api/window'
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
 import AddTask from '@/components/task/AddTask.vue'
 import WindowControls from '@/components/layout/WindowControls.vue'
@@ -82,8 +83,11 @@ const systemTitleBar = computed(() => isLinux.value && preferenceStore.config.sy
 const zoom = useWindowScale()
 // The system frames the window itself under a system title bar, and on macOS,
 // whose traffic lights would not follow a drawn panel: no panel shadow, margin
-// or motion there; the system animates the window instead.
+// or motion there. On macOS the window itself moves instead.
 const framed = computed(() => !systemTitleBar.value && !isMac.value)
+// Without a margin to hide it, the window's edge is the card's: the window
+// follows the content as it moves and the card fills the window.
+const follows = computed(() => !framed.value)
 const inset = computed(() => (framed.value ? PANEL_INSET : 0))
 /** Height around the card: the margin and the drawn title bar. */
 const chrome = computed(() => 2 * inset.value + (systemTitleBar.value ? 0 : TITLE_BAR_HEIGHT))
@@ -101,6 +105,7 @@ const rootStyle = computed(() => {
     ...(cap
       ? { '--add-window-max-height': shown ? `min(${cap}px, calc(100vh - ${chrome.value}px))` : `${cap}px` }
       : {}),
+    ...(shown && follows.value ? { '--add-window-min-height': `calc(100vh - ${chrome.value}px)` } : {}),
   }
 })
 
@@ -201,20 +206,26 @@ async function close() {
 
 // ── Motion ──────────────────────────────────────────────────────────
 
-/** Fades the panel out before the window is put away. */
+/** Fades the panel, or on macOS the window, out before the window is put away. */
 async function leave() {
   if (phase.value !== 'shown') return
   phase.value = 'leaving'
-  if (framed.value && !reducedMotion()) await new Promise((resolve) => setTimeout(resolve, LEAVE_MS))
+  if (reducedMotion()) return
+  if (framed.value) await new Promise((resolve) => setTimeout(resolve, LEAVE_MS))
+  else if (isMac.value)
+    await invoke('add_window_leave').catch((error: unknown) => logger.warn('AddWindow.leave', error))
 }
 
 // ── Size ────────────────────────────────────────────────────────────
-// Resizing the window relays out the whole webview, too slow to follow an
-// animation frame by frame. When the content grows, the window grows at once to
-// the most the panel may take, so the panel expands smoothly inside its
-// transparent margin; once the content has stopped moving, the window shrinks
-// to fit it again. Heights are kept in CSS pixels and converted only when the
-// window is resized.
+// With a transparent margin, the window is not resized frame by frame: that
+// relays out the whole webview, too slow for WebView2 and WebKitGTK. When the
+// content grows, the window grows at once to the most the panel may take, so
+// the panel expands smoothly inside the margin; once the content has stopped
+// moving, the window shrinks to fit it again. Without a margin (macOS, a
+// system title bar) the window's edge would show that, so the window follows
+// the content frame by frame, a frame behind at most, while the card fills it
+// and hides the difference. Heights are kept in CSS pixels and converted only
+// when the window is resized.
 
 let appliedHeight = 0
 let appliedScale = 0
@@ -227,13 +238,24 @@ function cardContent(): HTMLElement | null {
   return root.value?.querySelector<HTMLElement>('.n-card-content') ?? null
 }
 
-/** Height the content takes, including what the card scrolls, up to the cap. */
+/**
+ * Height the content takes, up to the cap: the window around the card's
+ * content area, plus the form's own height and the area's padding. That
+ * counts what the card scrolls, and not what a card filling the window
+ * stretches.
+ */
 function fitHeight(): number {
   const element = root.value
   if (!element) return 0
   const content = cardContent()
-  const scrolled = content ? content.scrollHeight - content.clientHeight : 0
-  const natural = Math.ceil(element.getBoundingClientRect().height + scrolled)
+  const form = content?.firstElementChild
+  let natural = element.getBoundingClientRect().height
+  if (content && form) {
+    const style = getComputedStyle(content)
+    const own = form.getBoundingClientRect().height + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
+    natural += own - content.clientHeight
+  }
+  natural = Math.ceil(natural)
   return capHeight.value ? Math.min(natural, capHeight.value) : natural
 }
 
@@ -249,7 +271,7 @@ async function applyHeight(height: number) {
       const next = wantedHeight
       const scale = zoom.value
       const width = Math.round((PANEL_WIDTH + 2 * inset.value) * scale)
-      await view.setSize(new LogicalSize(width, Math.ceil(next * scale)))
+      await invoke('add_window_fit', { width, height: Math.ceil(next * scale) })
       appliedHeight = next
       appliedScale = scale
     }
@@ -265,12 +287,13 @@ function onContentResize() {
   // Clearing the form can change its size during the leave animation.
   if (closing) return
   const fit = fitHeight()
-  // Without a transparent margin the window has to follow the content directly.
-  if (fit > appliedHeight) {
-    void applyHeight(systemTitleBar.value ? fit : Math.max(fit, capHeight.value))
-  }
   clearTimeout(settleTimer)
-  settleTimer = setTimeout(() => void applyHeight(fitHeight()), systemTitleBar.value ? 0 : SETTLE_MS)
+  if (follows.value) {
+    void applyHeight(fit)
+    return
+  }
+  if (fit > appliedHeight) void applyHeight(Math.max(fit, capHeight.value))
+  settleTimer = setTimeout(() => void applyHeight(fitHeight()), SETTLE_MS)
 }
 
 /** Refits the window after it moved to another screen, whose work area caps it. */
@@ -294,19 +317,6 @@ async function measureScreen() {
   capHeight.value = baseHeight > chrome.value ? Math.min(screenCap, Math.round(baseHeight * MAX_GROWTH)) : screenCap
 }
 
-/**
- * Names the window for the taskbar and window switchers, only when the name
- * changes. On macOS the title is hidden, and setting it puts the traffic
- * lights back in their default place above the title bar until the window
- * next resizes (tauri#13044); the window keeps the name it was built with.
- */
-async function retitle() {
-  if (isMac.value) return
-  const title = `${t('task.new-task')} - Rayburst`
-  if ((await view.title().catch(() => '')) === title) return
-  await view.setTitle(title).catch(() => undefined)
-}
-
 const resizeObserver = new ResizeObserver(onContentResize)
 
 watch([zoom, systemTitleBar], async () => {
@@ -325,7 +335,7 @@ watch(
       active = false
     })
     phase.value = 'hidden'
-    await retitle()
+    await view.setTitle(`${t('task.new-task')} - Rayburst`).catch(() => undefined)
     if (!active) return
     await measureScreen()
     if (!active) return
@@ -334,7 +344,7 @@ watch(
     clearTimeout(settleTimer)
     await applyHeight(fitHeight())
     if (!active) return
-    const presentation = invoke<void>('add_window_present').catch((error: unknown) =>
+    const presentation = invoke<void>('add_window_present', { animate: !reducedMotion() }).catch((error: unknown) =>
       logger.warn('AddWindow.present', error),
     )
     presenting = presentation
@@ -456,9 +466,8 @@ onBeforeUnmount(() => {
     transform var(--dialog-leave) var(--dialog-ease-leave);
 }
 
-/* The content follows the card in layers: the links, the settings, then the
- * buttons, each a short rise behind the last. On macOS, where the system
- * animates the window, this is the only motion. */
+/* The content follows the card, or on macOS the window, in layers: the
+ * links, the settings, then the buttons, each a short rise behind the last. */
 .add-window :deep([data-reveal]) {
   transition:
     opacity var(--add-window-layer-enter) cubic-bezier(0.2, 0, 0, 1),

@@ -61,8 +61,21 @@ pub fn add_window_park(app: tauri::AppHandle) -> crate::services::add_window::Ad
 
 /// Shows the add window once its content is sized.
 #[tauri::command]
-pub fn add_window_present(app: tauri::AppHandle) -> Result<(), AppError> {
-    crate::services::add_window::present(&app)
+pub fn add_window_present(app: tauri::AppHandle, animate: bool) -> Result<(), AppError> {
+    crate::services::add_window::present(&app, animate)
+}
+
+/// Sizes the add window to its content, in logical pixels. Synchronous, so
+/// it runs on the main thread, where macOS sizes the window at once.
+#[tauri::command]
+pub fn add_window_fit(app: tauri::AppHandle, width: f64, height: f64) -> Result<(), AppError> {
+    crate::services::add_window::fit(&app, width, height)
+}
+
+/// Returns once the add window has moved away, before it is put away.
+#[tauri::command]
+pub async fn add_window_leave(app: tauri::AppHandle) {
+    crate::services::add_window::leave(&app).await;
 }
 
 /// Logical height of the screen the add window opens on. Synchronous, so it

@@ -19,6 +19,9 @@ use tauri::{
 use super::external_input::ExternalDownloadInput;
 use crate::error::AppError;
 
+#[cfg(target_os = "macos")]
+mod motion;
+
 pub const LABEL: &str = "add";
 const INPUT_EVENT: &str = "add-window:inputs";
 /// How long a new window may take to load before it is given up.
@@ -122,19 +125,72 @@ pub fn prepare(app: &AppHandle) {
 }
 
 /// Shows the window, placed for this download, once its content is sized.
-/// Main thread only: placing it reads work areas, see [`screen_height`].
-pub fn present(app: &AppHandle) -> Result<(), AppError> {
+/// On macOS the window itself rises in unless `animate` is off; elsewhere the
+/// page animates its panel. Main thread only: placing it reads work areas,
+/// see [`screen_height`].
+pub fn present(app: &AppHandle, animate: bool) -> Result<(), AppError> {
     let window = app
         .get_webview_window(LABEL)
         .ok_or_else(|| AppError::NotFound("add window".into()))?;
-    if !window.is_visible().unwrap_or(false) {
+    let hidden = !window.is_visible().unwrap_or(false);
+    if hidden {
         place(app, &window);
     }
+    #[cfg(target_os = "macos")]
+    let entrance = hidden.then(|| motion::stage(&window, animate)).flatten();
+    #[cfg(not(target_os = "macos"))]
+    let _ = animate;
     let failed = |error: tauri::Error| AppError::Io(format!("add window: {error}"));
     window.show().map_err(failed)?;
     let _ = window.unminimize();
     window.set_focus().map_err(failed)?;
+    #[cfg(target_os = "macos")]
+    if let Some(entrance) = entrance {
+        entrance.run();
+    }
     Ok(())
+}
+
+/// Gives the window's content `width` × `height` logical pixels, keeping its
+/// top edge. On macOS the window frames its content without a margin and
+/// follows it frame by frame, together with its entrance (`motion.rs`).
+pub fn fit(app: &AppHandle, width: f64, height: f64) -> Result<(), AppError> {
+    let window = app
+        .get_webview_window(LABEL)
+        .ok_or_else(|| AppError::NotFound("add window".into()))?;
+    #[cfg(target_os = "macos")]
+    motion::fit(&window, width, height);
+    #[cfg(not(target_os = "macos"))]
+    window
+        .set_size(tauri::LogicalSize::new(width, height))
+        .map_err(|error| AppError::Io(format!("add window: {error}")))?;
+    Ok(())
+}
+
+/// Lets the window move away before it is put away: on macOS the window
+/// fades out as it sinks, and this returns once it has. Elsewhere the page
+/// animates its panel and this returns at once.
+pub async fn leave(app: &AppHandle) {
+    #[cfg(target_os = "macos")]
+    {
+        let Some(window) = app.get_webview_window(LABEL) else {
+            return;
+        };
+        let (done, finished) = tokio::sync::oneshot::channel();
+        let dispatched = app.run_on_main_thread(move || {
+            motion::leave(&window, move || {
+                let _ = done.send(());
+            });
+        });
+        match dispatched {
+            Ok(()) => {
+                let _ = finished.await;
+            }
+            Err(error) => log::warn!("add_window:leave-failed error={error}"),
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = app;
 }
 
 /// Hands inputs to the add window, opening it when needed.
@@ -336,8 +392,11 @@ fn open(app: &AppHandle, source: &'static str) {
 ///
 /// macOS draws its traffic lights in the window, not in the page's panel, and
 /// they would not follow the panel's margin, motion or interface size. There
-/// the window is framed like the main window: the content fills it, and the
-/// system rounds it, shadows it and animates it in and out.
+/// the window is framed like the main window: the content fills it, the
+/// system rounds and shadows it, and the window itself moves in and out
+/// (`motion.rs`). Its traffic lights keep the system position, which AppKit
+/// restores whenever it lays out the title bar; a custom one is lost on each
+/// showing (tauri#13044) and redrawn only on resize.
 fn window_config(app: &AppHandle) -> tauri::Result<tauri::utils::config::WindowConfig> {
     let mut config = secondary_window_config(app, LABEL)?;
     config.width = 600.0 + 2.0 * PANEL_INSET;
@@ -348,11 +407,6 @@ fn window_config(app: &AppHandle) -> tauri::Result<tauri::utils::config::WindowC
     // GTK ignores programmatic resizes of a window the user cannot resize
     // (tao#545, tauri#6125), and this window follows its content (#731).
     config.resizable = cfg!(target_os = "linux");
-    // macOS: the traffic lights sit centered in the page's title bar.
-    config.traffic_light_position = Some(tauri::utils::config::LogicalPosition {
-        x: PANEL_INSET + 14.0,
-        y: PANEL_INSET + 10.0,
-    });
     Ok(config)
 }
 

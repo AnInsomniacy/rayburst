@@ -103,8 +103,10 @@ notify-rust = { version = "4.14", default-features = false, features = ["z-with-
 [target.'cfg(target_os = "macos")'.dependencies]
 keepawake = "0.6"
 objc2 = "0.6"
-objc2-app-kit = { version = "0.3", features = ["NSWorkspace", "NSDockTile", "NSApplication"] }
+block2 = "0.6"
+objc2-app-kit = { version = "0.3", features = ["NSWorkspace", "NSDockTile", "NSApplication", "NSAnimation", "NSAnimationContext", "NSResponder", "NSWindow", "block2", "objc2-core-foundation", "objc2-quartz-core"] }
 objc2-foundation = { version = "0.3", features = ["NSURL", "NSString", "NSBundle"] }
+objc2-quartz-core = { version = "0.3", features = ["CAMediaTimingFunction"] }
 core-foundation = "0.10"
 system-configuration = "0.7.0"
 

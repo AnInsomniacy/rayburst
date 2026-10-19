@@ -101,14 +101,15 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
 </script>
 
 <template>
-  <!-- Closed, nothing follows the toggle, so it keeps no space for a message. -->
-  <NFormItem class="advanced-toggle" :show-label="false" :show-feedback="show">
+  <!-- The space below the toggle belongs to the options, so it opens and
+       closes with them instead of appearing at once. -->
+  <NFormItem class="advanced-toggle" :show-label="false" :show-feedback="false">
     <NCheckbox :checked="show" @update:checked="$emit('update:show', $event)">
       {{ t('task.show-advanced-options') }}
     </NCheckbox>
   </NFormItem>
   <NCollapseTransition :show="show">
-    <div>
+    <div class="advanced-options">
       <NFormItem :label="t('task.task-user-agent') + ':'">
         <div class="ua-field-wrapper">
           <NInputGroup class="ua-input-row">
@@ -277,6 +278,11 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
 }
 .advanced-toggle :deep(.n-form-item-blank) {
   min-height: 0;
+}
+/* The empty feedback line a form item keeps below itself (Naive's medium
+ * `feedbackHeight`), here inside the collapsing options. */
+.advanced-options {
+  padding-top: 24px;
 }
 
 /* ── UA field wrapper — stacks textarea + warning ────────────────── */

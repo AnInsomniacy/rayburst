@@ -753,6 +753,8 @@ pub fn run() {
             commands::add_window_attach,
             commands::add_window_detach,
             commands::add_window_open,
+            commands::add_window_fit,
+            commands::add_window_leave,
             commands::add_window_park,
             commands::add_window_prepare,
             commands::add_window_present,
