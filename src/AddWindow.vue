@@ -10,9 +10,9 @@
  *
  * The window is transparent and draws its panel, rounded and shadowed, with a
  * margin around it. Motion stays inside the page, where it runs on the
- * compositor: the panel rises in and sinks away, and
- * grows or shrinks with its content inside a window that is resized once per
- * change instead of on every frame.
+ * compositor: the panel is lifted in with its content following in layers,
+ * sinks away, and grows or shrinks with its content inside a window that is
+ * resized once per change instead of on every frame.
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -263,6 +263,19 @@ async function measureScreen() {
   capHeight.value = baseHeight > chrome.value ? Math.min(screenCap, Math.round(baseHeight * MAX_GROWTH)) : screenCap
 }
 
+/**
+ * Names the window for the taskbar and window switchers, only when the name
+ * changes. On macOS the title is hidden, and setting it puts the traffic
+ * lights back in their default place above the title bar until the window
+ * next resizes (tauri#13044); the window keeps the name it was built with.
+ */
+async function retitle() {
+  if (isMac.value) return
+  const title = `${t('task.new-task')} - Rayburst`
+  if ((await view.title().catch(() => '')) === title) return
+  await view.setTitle(title).catch(() => undefined)
+}
+
 const resizeObserver = new ResizeObserver(onContentResize)
 
 watch(
@@ -270,7 +283,7 @@ watch(
   async (visible) => {
     if (!visible) return
     phase.value = 'hidden'
-    await view.setTitle(`${t('task.new-task')} - Rayburst`).catch(() => undefined)
+    await retitle()
     await measureScreen()
     await nextTick()
     clearTimeout(settleTimer)
@@ -357,10 +370,11 @@ onBeforeUnmount(() => {
   flex-direction: column;
   overflow: hidden;
   background: var(--main-bg);
-  transform-origin: center;
+  transform-origin: 50% 100%;
   transition:
-    opacity var(--dialog-fade) cubic-bezier(0.2, 0, 0, 1),
-    transform var(--dialog-enter) var(--dialog-ease-enter);
+    opacity var(--add-window-fade) cubic-bezier(0.2, 0, 0, 1),
+    transform var(--add-window-enter) var(--add-window-ease-enter),
+    box-shadow var(--add-window-enter) var(--add-window-ease-enter);
 }
 
 .add-window--framed .add-window-panel {
@@ -370,18 +384,45 @@ onBeforeUnmount(() => {
     0 0 0 1px var(--m3-outline-variant);
 }
 
+/* At rest the card lies low and close to the desktop, its shadow tight. */
 .add-window--framed.add-window--hidden .add-window-panel {
   opacity: 0;
-  transform: translateY(12px) scale(0.95);
+  transform: translateY(14px) scale(0.96);
+  box-shadow:
+    0 1px 3px var(--m3-shadow),
+    0 0 0 1px var(--m3-outline-variant);
   transition: none;
 }
 
 .add-window--framed.add-window--leaving .add-window-panel {
   opacity: 0;
-  transform: translateY(6px) scale(0.97);
+  transform: translateY(6px) scale(0.98);
   transition:
     opacity var(--dialog-leave) var(--dialog-ease-leave),
     transform var(--dialog-leave) var(--dialog-ease-leave);
+}
+
+/* The content follows the card in layers: the links, the settings, then the
+ * buttons, each a short rise behind the last. On macOS, where the system
+ * animates the window, this is the only motion. */
+.add-window :deep([data-reveal]) {
+  transition:
+    opacity var(--add-window-layer-enter) cubic-bezier(0.2, 0, 0, 1),
+    transform var(--add-window-layer-enter) var(--add-window-ease-enter);
+}
+
+.add-window :deep([data-reveal='2']) {
+  transition-delay: var(--add-window-layer-delay);
+}
+
+.add-window :deep([data-reveal='3']) {
+  transition-delay: calc(2 * var(--add-window-layer-delay));
+}
+
+.add-window--hidden :deep([data-reveal]) {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: none;
 }
 
 .add-window-titlebar {
