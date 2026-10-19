@@ -4481,6 +4481,7 @@ dependencies = [
  "urlencoding",
  "uuid",
  "webkit2gtk",
+ "windows 0.61.3",
  "windows-sys 0.59.0",
  "winreg 0.56.0",
  "zip 2.4.2",

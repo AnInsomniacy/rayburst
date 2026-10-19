@@ -513,6 +513,73 @@ fn open_target(app: &tauri::AppHandle, target: &NotificationTarget) {
     crate::tray::request_main_window(app, "notification", true);
 }
 
+/// Whether the system shows this app's notifications. Each platform reports
+/// only the states it can tell apart.
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum NotificationAccess {
+    Allowed,
+    /// Turned off for this app in the system's notification settings.
+    BlockedForApp,
+    /// Turned off for every app.
+    BlockedForUser,
+    /// Turned off by an administrator's policy.
+    BlockedByPolicy,
+    /// No notification service is running.
+    Unavailable,
+    /// The system does not say.
+    Unknown,
+}
+
+/// Asks the system whether notifications from this app will show. Windows
+/// otherwise accepts a toast it will never display, and the download simply
+/// finishes silently (#742).
+#[cfg(windows)]
+pub fn notification_access(app: &tauri::AppHandle) -> NotificationAccess {
+    use windows::core::HSTRING;
+    use windows::UI::Notifications::{NotificationSetting, ToastNotificationManager};
+    if development_build() {
+        return NotificationAccess::Unknown;
+    }
+    let setting = ToastNotificationManager::CreateToastNotifierWithId(&HSTRING::from(
+        app.config().identifier.as_str(),
+    ))
+    .and_then(|notifier| notifier.Setting());
+    match setting {
+        Ok(NotificationSetting::Enabled) => NotificationAccess::Allowed,
+        Ok(NotificationSetting::DisabledForApplication) => NotificationAccess::BlockedForApp,
+        Ok(NotificationSetting::DisabledForUser) => NotificationAccess::BlockedForUser,
+        Ok(
+            NotificationSetting::DisabledByGroupPolicy | NotificationSetting::DisabledByManifest,
+        ) => NotificationAccess::BlockedByPolicy,
+        Ok(_) => NotificationAccess::Unknown,
+        Err(error) => {
+            log::debug!("notification:access-unknown error={error}");
+            NotificationAccess::Unknown
+        }
+    }
+}
+
+/// Without a notification server, nothing shows.
+#[cfg(target_os = "linux")]
+pub fn notification_access(_app: &tauri::AppHandle) -> NotificationAccess {
+    match notify_rust::get_server_information() {
+        Ok(_) => NotificationAccess::Allowed,
+        Err(error) => {
+            log::debug!("notification:access-unavailable error={error}");
+            NotificationAccess::Unavailable
+        }
+    }
+}
+
+/// macOS asks the user itself on the first notification and keeps no answer
+/// an unbundled check can read.
+#[cfg(target_os = "macos")]
+pub fn notification_access(_app: &tauri::AppHandle) -> NotificationAccess {
+    NotificationAccess::Unknown
+}
+
 /// Development builds run from Cargo's target directory without an
 /// installed application identity.
 #[cfg(windows)]
@@ -568,6 +635,12 @@ pub fn register_app_identity(app: &tauri::AppHandle) {
         Ok(()) => log::debug!("notification:identity-registered"),
         Err(error) => log::warn!("notification:identity-failed error={error}"),
     }
+    let access = notification_access(app);
+    if access == NotificationAccess::Allowed {
+        log::debug!("notification:access {access:?}");
+    } else {
+        log::warn!("notification:access {access:?}");
+    }
 }
 
 #[cfg(windows)]
@@ -576,6 +649,15 @@ async fn send_platform_notification(
     content: &TaskNotificationContent,
 ) -> Result<NotificationDispatchResult, String> {
     use tauri_winrt_notification::Toast;
+    let access = notification_access(app);
+    if !matches!(
+        access,
+        NotificationAccess::Allowed | NotificationAccess::Unknown
+    ) {
+        return Err(format!(
+            "Windows does not show this app's notifications: {access:?}"
+        ));
+    }
     let app_id = if development_build() {
         Toast::POWERSHELL_APP_ID.to_owned()
     } else {

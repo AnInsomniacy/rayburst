@@ -708,6 +708,8 @@ pub fn run() {
             commands::update_progress_bar,
             commands::update_dock_badge,
             commands::send_app_system_notification,
+            commands::notification_access_state,
+            commands::open_notification_settings,
             commands::check_for_update,
             commands::download_update,
             commands::apply_update,

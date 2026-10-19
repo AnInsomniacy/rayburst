@@ -50,6 +50,7 @@ import type { UpdateChannel } from '@shared/types'
 import PreferenceHintLabel from './PreferenceHintLabel.vue'
 import PreferenceCheckboxGrid from './PreferenceCheckboxGrid.vue'
 import PreferenceAssociations from './PreferenceAssociations.vue'
+import NotificationAccess from './NotificationAccess.vue'
 import { UI_SCALE_STEPS } from '@/composables/useInterfaceScale'
 
 const { t, locale } = useI18n()
@@ -428,6 +429,7 @@ onMounted(async () => {
               class="pref-control-auto"
             />
           </NFormItem>
+          <NotificationAccess />
         </NCollapseTransition>
 
         <!-- ③ Auto Update -->
