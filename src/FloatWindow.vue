@@ -25,6 +25,7 @@ import { Add, ArrowDown, ArrowUp, Checkmark, Pause, TimeOutline } from '@vicons/
 import aria2Api from '@/api/aria2'
 import { useFloatUpdates, type FloatUpdate } from '@/composables/useFloatUpdates'
 import { usePreferenceStore } from '@/stores/preference'
+import { useWindowScale } from '@/composables/useWindowScale'
 import { FLOAT_WINDOW_MODE_LABELS, FLOAT_WINDOW_MODES, TASK_STATUS } from '@shared/constants'
 import { bytesToSize } from '@shared/utils'
 import { createBatchItem, detectKind, encodeBase64, normalizeUriLines } from '@shared/utils/batchHelpers'
@@ -72,7 +73,7 @@ let press: { x: number; y: number } | null = null
 
 const { update } = useFloatUpdates(greetNewDownloads)
 
-const zoom = computed(() => preferenceStore.config.uiScale || 1)
+const zoom = useWindowScale()
 const state = computed(() => floatOrbState(update.value, done.value))
 const face = computed<Face>(() => (dropping.value ? 'drop' : state.value.kind))
 const active = computed(() => state.value.kind === 'downloading' || state.value.kind === 'connecting')
@@ -366,6 +367,7 @@ onBeforeUnmount(() => {
 /* The margin holds the orb's shadow and its hover growth inside the window. */
 .float-window {
   display: inline-flex;
+  width: max-content;
   padding: 8px;
   user-select: none;
 }

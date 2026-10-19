@@ -25,6 +25,7 @@ import WindowControls from '@/components/layout/WindowControls.vue'
 import TorrentDropOverlay from '@/components/task/TorrentDropOverlay.vue'
 import { useAppStore } from '@/stores/app'
 import { usePreferenceStore } from '@/stores/preference'
+import { useWindowScale } from '@/composables/useWindowScale'
 import { useAppMessage } from '@/composables/useAppMessage'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 import { usePlatform } from '@/composables/usePlatform'
@@ -71,12 +72,14 @@ let baseHeight = 0
 const phase = ref<'hidden' | 'shown' | 'leaving'>('hidden')
 const unlisteners: UnlistenFn[] = []
 let closing = false
+let presenting: Promise<void> | undefined
+const pendingInputs: AddWindowInputs[] = []
 // Put away after an earlier download; preferences may have changed since.
 let parked = false
 
 // Window managers that force server-side decorations draw their own title bar (#533).
 const systemTitleBar = computed(() => isLinux.value && preferenceStore.config.systemTitleBar)
-const zoom = computed(() => preferenceStore.config.uiScale || 1)
+const zoom = useWindowScale()
 // The system frames the window itself under a system title bar, and on macOS,
 // whose traffic lights would not follow a drawn panel: no panel shadow, margin
 // or motion there; the system animates the window instead.
@@ -108,9 +111,18 @@ function submissionsSettled(): Promise<void> {
 
 async function receive(batch: AddWindowInputs) {
   if (isEmpty(batch)) return
+  if (closing) {
+    pendingInputs.push(batch)
+    return
+  }
   if (parked) {
     parked = false
     await preferenceStore.reloadPreferenceFromDisk()
+    // Closing may have started while preferences were being refreshed.
+    if (closing) {
+      pendingInputs.push(batch)
+      return
+    }
   }
   if (batch.manual && !appStore.addTaskVisible) appStore.showAddTaskDialog()
   if (batch.items.length > 0 && appStore.enqueueForwardedItems(batch.items) > 0) {
@@ -124,17 +136,33 @@ async function receive(batch: AddWindowInputs) {
   if (!appStore.addTaskVisible) await close()
 }
 
+/** Replays inputs only after the previous close has released the window. */
+async function resumeInputs(...inputs: AddWindowInputs[]) {
+  const batches = [...pendingInputs.splice(0), ...inputs]
+  closing = false
+  for (const batch of batches) await receive(batch)
+}
+
+/** Cancel a close when requests already delivered to this frontend still need it. */
+async function keepOpen(late?: AddWindowInputs): Promise<boolean> {
+  if ((!late || isEmpty(late)) && pendingInputs.length === 0) return false
+  // Detach may have stopped delivery. Reattach before replaying, including in
+  // tray mode, where parking would destroy this frontend and its pending inputs.
+  const queued = await invoke<AddWindowInputs>('add_window_attach')
+  await resumeInputs(...(late ? [late, queued] : [queued]))
+  return true
+}
+
 async function close() {
   if (closing) return
   closing = true
+  clearTimeout(settleTimer)
   appStore.hideAddTaskDialog()
+  // A native show already sent over IPC must finish before hide/destroy.
+  await presenting
   try {
     const late = await invoke<AddWindowInputs>('add_window_detach')
-    if (!isEmpty(late)) {
-      closing = false
-      await receive(late)
-      return
-    }
+    if (await keepOpen(late)) return
   } catch (error) {
     logger.warn('AddWindow.detach', getErrorMessage(error))
   }
@@ -146,10 +174,10 @@ async function close() {
   await nextFrame()
   await nextFrame()
   try {
+    if (await keepOpen()) return
     const late = await invoke<AddWindowInputs>('add_window_park')
     parked = true
-    closing = false
-    await receive(late)
+    await resumeInputs(late)
   } catch (error) {
     logger.warn('AddWindow.park', getErrorMessage(error))
     await view.destroy()
@@ -173,7 +201,9 @@ async function leave() {
 // to fit it again.
 
 let appliedHeight = 0
+let appliedWidth = 0
 let wantedHeight = 0
+let wantedWidth = 0
 let sizing = false
 let settleTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -185,14 +215,16 @@ function fitHeight(): number {
 async function applyHeight(height: number) {
   if (height <= 0) return
   wantedHeight = height
+  wantedWidth = Math.ceil((PANEL_WIDTH + 2 * inset.value) * zoom.value)
   if (sizing) return
   sizing = true
   try {
-    while (wantedHeight !== appliedHeight) {
+    while (!closing && (wantedHeight !== appliedHeight || wantedWidth !== appliedWidth)) {
       const next = wantedHeight
-      const width = Math.round((PANEL_WIDTH + 2 * inset.value) * zoom.value)
+      const width = wantedWidth
       await view.setSize(new LogicalSize(width, next))
       appliedHeight = next
+      appliedWidth = width
     }
   } catch (error) {
     appliedHeight = 0
@@ -203,6 +235,8 @@ async function applyHeight(height: number) {
 }
 
 function onContentResize() {
+  // Clearing the form can change its size during the leave animation.
+  if (closing) return
   const fit = fitHeight()
   // Without a transparent margin the window has to follow the content directly.
   if (fit > appliedHeight) {
@@ -230,21 +264,44 @@ async function measureScreen() {
 
 const resizeObserver = new ResizeObserver(onContentResize)
 
+watch([zoom, systemTitleBar], async () => {
+  if (closing) return
+  await measureScreen()
+  await nextTick()
+  if (!closing) await applyHeight(fitHeight())
+})
+
 watch(
   () => appStore.addTaskVisible,
-  async (visible) => {
-    if (!visible) return
+  async (visible, _previous, onCleanup) => {
+    if (!visible || closing) return
+    let active = true
+    onCleanup(() => {
+      active = false
+    })
     phase.value = 'hidden'
     await view.setTitle(`${t('task.new-task')} - Rayburst`).catch(() => undefined)
+    if (!active) return
     await measureScreen()
+    if (!active) return
     await nextTick()
+    if (!active) return
     clearTimeout(settleTimer)
     await applyHeight(fitHeight())
-    await invoke('add_window_present').catch((error: unknown) => logger.warn('AddWindow.present', error))
+    if (!active) return
+    const presentation = invoke<void>('add_window_present').catch((error: unknown) =>
+      logger.warn('AddWindow.present', error),
+    )
+    presenting = presentation
+    await presentation
+    if (presenting === presentation) presenting = undefined
+    if (!active) return
     // Let the shown window paint the panel's start state before it animates.
     await afterReveal()
-    phase.value = 'shown'
+    if (active) phase.value = 'shown'
   },
+  // Invalidate even when a close and reopen occur in the same Vue tick.
+  { flush: 'sync' },
 )
 
 watch(

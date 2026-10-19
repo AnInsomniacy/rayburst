@@ -19,7 +19,7 @@ import SegmentBar from '@/components/task/SegmentBar.vue'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 import { useFloatUpdates } from '@/composables/useFloatUpdates'
 import { afterReveal, nextFrame, reducedMotion } from '@/composables/useWindowReveal'
-import { usePreferenceStore } from '@/stores/preference'
+import { useWindowScale } from '@/composables/useWindowScale'
 import { TASK_STATUS } from '@shared/constants'
 import {
   bytesToSize,
@@ -41,7 +41,6 @@ interface PanelSide {
 const LEAVE_MS = 170
 
 const { t } = useI18n()
-const preferenceStore = usePreferenceStore()
 const view = getCurrentWebviewWindow()
 const root = ref<HTMLElement | null>(null)
 const phase = ref<'hidden' | 'shown' | 'leaving'>('hidden')
@@ -53,7 +52,7 @@ let generation = 0
 
 const { update } = useFloatUpdates()
 
-const zoom = computed(() => preferenceStore.config.uiScale || 1)
+const zoom = useWindowScale()
 const tasks = computed(() => update.value?.tasks ?? [])
 const anyActive = computed(() => (update.value?.stat.numActive ?? 0) > 0)
 const origin = computed(() => `${side.value.above ? 'bottom' : 'top'} center`)
@@ -293,6 +292,7 @@ onBeforeUnmount(() => {
  * `PANEL_INSET` in float_window.rs. */
 .float-panel {
   display: inline-flex;
+  width: max-content;
   padding: 12px;
   user-select: none;
 }

@@ -10,6 +10,7 @@ import { i18n, loadLocale } from '@/composables/useLocale'
 import { isSupportedLocale, SUPPORTED_LOCALES, type SupportedLocale } from '@shared/localeCatalog'
 import { setI18nLocale } from '@shared/utils/i18n'
 import { usePreferenceStore } from './stores/preference'
+import { SYSTEM_WINDOW_SCALE } from './composables/useWindowScale'
 import { useTaskStore } from './stores/task'
 import { useAppStore } from './stores/app'
 import { useHistoryStore } from './stores/history'
@@ -120,6 +121,15 @@ async function bootstrapSecondaryWindow(): Promise<void> {
   await usePreferenceStore().loadPreference()
   await applyStartupLocale()
   useTaskStore().setApi(aria2Api)
+  // Capture the system's CSS-to-logical scale before AppProviders applies page
+  // zoom. GNOME large text affects WebKitGTK independently of GTK window DPI.
+  const nativeScale = await getCurrentWindow()
+    .scaleFactor()
+    .catch((error: unknown) => {
+      logger.warn('main.windowScale', error)
+      return window.devicePixelRatio
+    })
+  app.provide(SYSTEM_WINDOW_SCALE, window.devicePixelRatio / nativeScale)
   app.mount('#app')
 }
 
