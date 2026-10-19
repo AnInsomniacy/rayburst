@@ -135,6 +135,8 @@ pub fn present(app: &AppHandle, animate: bool) -> Result<(), AppError> {
     let hidden = !window.is_visible().unwrap_or(false);
     if hidden {
         place(app, &window);
+        #[cfg(target_os = "linux")]
+        stack_over_main(app, &window);
     }
     #[cfg(target_os = "macos")]
     let entrance = hidden.then(|| motion::stage(&window, animate)).flatten();
@@ -149,6 +151,25 @@ pub fn present(app: &AppHandle, animate: bool) -> Result<(), AppError> {
         entrance.run();
     }
     Ok(())
+}
+
+/// Keeps the window over the main window while that is shown. Mutter stacks a
+/// newly shown window that it does not focus just below the focused one, and
+/// on Wayland it ignores focus requests without an activation token: opened
+/// from the main window, the add window stayed behind it. A transient window
+/// is kept above its parent and takes focus, like a dialog. With the main
+/// window put away, the add window stands alone. Main thread only.
+#[cfg(target_os = "linux")]
+fn stack_over_main(app: &AppHandle, window: &WebviewWindow) {
+    use gtk::prelude::GtkWindowExt;
+    let main = app
+        .get_webview_window("main")
+        .filter(|main| main.is_visible().unwrap_or(false))
+        .and_then(|main| main.gtk_window().ok());
+    match window.gtk_window() {
+        Ok(native) => native.set_transient_for(main.as_ref()),
+        Err(error) => log::warn!("add_window:transient-failed error={error}"),
+    }
 }
 
 /// Gives the window's content `width` × `height` logical pixels, keeping its
