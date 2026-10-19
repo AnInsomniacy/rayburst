@@ -270,7 +270,11 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
 
 <style scoped>
 /* The toggle holds no input, so it takes the checkbox's height rather than an
- * input's; the gap above it then matches the gap between fields. */
+ * input's. The free space hint above it and the checkbox's own line both add
+ * leading; pulling it up makes the visible gap match the gap between fields. */
+.advanced-toggle {
+  margin-top: -6px;
+}
 .advanced-toggle :deep(.n-form-item-blank) {
   min-height: 0;
 }
