@@ -1069,7 +1069,7 @@ defineExpose({ dismiss: () => handleClose() })
                   </Transition>
                 </template>
               </NInput>
-              <NButton :disabled="!canResolveFilename" :loading="resolvingFilename" @click="resolveFilename">{{
+              <NButton :disabled="!canResolveFilename || resolvingFilename" @click="resolveFilename">{{
                 t('task.refresh-download')
               }}</NButton>
             </NInputGroup>
