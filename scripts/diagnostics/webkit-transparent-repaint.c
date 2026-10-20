@@ -8,7 +8,10 @@
  *
  * Run with the rendering environment under investigation. A working renderer
  * preserves the shadow alpha across 20 show/hide cycles and clears every hidden
- * frame. Exit status: 0 = pass, 1 = pixel regression, 2 = diagnostic failure.
+ * frame. --policy=default leaves WebKit's policy unchanged; --policy=always
+ * (the default) and --policy=never request explicit policies. The effective
+ * policy is printed separately because WebKit may reject the request.
+ * Exit status: 0 = pass, 1 = pixel regression, 2 = diagnostic failure.
  */
 #include <gtk/gtk.h>
 #include <stdint.h>
@@ -144,10 +147,52 @@ static gboolean timed_out(gpointer data)
     return G_SOURCE_REMOVE;
 }
 
+static const char *policy_name(WebKitHardwareAccelerationPolicy policy)
+{
+    switch (policy) {
+    case WEBKIT_HARDWARE_ACCELERATION_POLICY_ON_DEMAND:
+        return "on-demand";
+    case WEBKIT_HARDWARE_ACCELERATION_POLICY_ALWAYS:
+        return "always";
+    case WEBKIT_HARDWARE_ACCELERATION_POLICY_NEVER:
+        return "never";
+    }
+    return "unknown";
+}
+
+static void process_terminated(WebKitWebView *web_view,
+    WebKitWebProcessTerminationReason reason, gpointer data)
+{
+    (void)web_view;
+    (void)data;
+    g_printerr("Web process terminated: reason=%d\n", reason);
+    fail("The web process terminated before repaint validation completed");
+}
+
 int main(int argc, char **argv)
 {
-    if (!gtk_init_check(&argc, &argv)) {
-        g_printerr("Diagnostic failed: GTK could not open the display\n");
+    gchar *requested_policy = NULL;
+    GOptionEntry options[] = {
+        {"policy", 0, 0, G_OPTION_ARG_STRING, &requested_policy,
+            "Acceleration policy: default, always, never", "POLICY"},
+        {NULL, 0, 0, 0, NULL, NULL, NULL}
+    };
+    GOptionContext *context = g_option_context_new(NULL);
+    g_option_context_add_main_entries(context, options, NULL);
+    g_option_context_add_group(context, gtk_get_option_group(TRUE));
+    GError *error = NULL;
+    gboolean initialized = g_option_context_parse(context, &argc, &argv, &error);
+    g_option_context_free(context);
+    if (!initialized) {
+        g_printerr("Diagnostic failed: %s\n", error ? error->message : "GTK initialization failed");
+        g_clear_error(&error);
+        g_free(requested_policy);
+        return 2;
+    }
+    if (requested_policy && g_strcmp0(requested_policy, "default")
+        && g_strcmp0(requested_policy, "always") && g_strcmp0(requested_policy, "never")) {
+        g_printerr("Diagnostic failed: Invalid policy '%s'\n", requested_policy);
+        g_free(requested_policy);
         return 2;
     }
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -156,18 +201,31 @@ int main(int argc, char **argv)
     GdkVisual *visual = gdk_screen_get_rgba_visual(gtk_widget_get_screen(window));
     if (!visual) {
         g_printerr("Diagnostic failed: The display has no RGBA visual\n");
+        gtk_widget_destroy(window);
+        g_free(requested_policy);
         return 2;
     }
     gtk_widget_set_visual(window, visual);
     gtk_widget_set_app_paintable(window, TRUE);
     g_signal_connect(window, "draw", G_CALLBACK(clear_parent), NULL);
-    view = WEBKIT_WEB_VIEW(webkit_web_view_new());
+    /* Parallel probes must not share persistent cookies or HSTS databases. */
+    WebKitWebContext *web_context = webkit_web_context_new_ephemeral();
+    view = WEBKIT_WEB_VIEW(webkit_web_view_new_with_context(web_context));
+    g_object_unref(web_context);
     GdkRGBA transparent = {0, 0, 0, 0};
     webkit_web_view_set_background_color(view, &transparent);
-    webkit_settings_set_hardware_acceleration_policy(
-        webkit_web_view_get_settings(view), WEBKIT_HARDWARE_ACCELERATION_POLICY_ALWAYS);
+    WebKitSettings *settings = webkit_web_view_get_settings(view);
+    if (!requested_policy || !g_strcmp0(requested_policy, "always"))
+        webkit_settings_set_hardware_acceleration_policy(settings, WEBKIT_HARDWARE_ACCELERATION_POLICY_ALWAYS);
+    else if (!g_strcmp0(requested_policy, "never"))
+        webkit_settings_set_hardware_acceleration_policy(settings, WEBKIT_HARDWARE_ACCELERATION_POLICY_NEVER);
+    g_print("acceleration_policy requested=%s effective=%s\n",
+        requested_policy ? requested_policy : "always",
+        policy_name(webkit_settings_get_hardware_acceleration_policy(settings)));
+    g_free(requested_policy);
     g_signal_connect(view, "load-changed", G_CALLBACK(loaded), NULL);
     g_signal_connect(view, "load-failed", G_CALLBACK(load_failed), NULL);
+    g_signal_connect(view, "web-process-terminated", G_CALLBACK(process_terminated), NULL);
     gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(view));
     webkit_web_view_load_html(view,
         "<!doctype html><style>html,body{margin:0;background:transparent;overflow:hidden}"

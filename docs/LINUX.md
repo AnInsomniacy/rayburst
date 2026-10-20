@@ -41,10 +41,21 @@ Try these in order, restarting Rayburst after each:
 2. **X11 instead of Wayland.** Some Wayland compositors (Hyprland in
    particular) fail to map the window. Start with `GDK_BACKEND=x11`.
 
-3. **NVIDIA.** With hardware compositing off, Rayburst selects the Mesa EGL
-   vendor without changing the display server's GLX vendor. This bypasses NVIDIA
-   DMA-BUF imports while retaining frame replacement. Mesa EGL must be installed
-   for this path. Without it, Rayburst retains the DMA-BUF-disabled fallback,
+3. **NVIDIA.** Some distribution builds of WebKitGTK disable NVIDIA compositing
+   even when the application requests it. With **WebKitGTK hardware compositing**
+   on, Rayburst explicitly enables the compositor and uses SHM frame transport
+   to avoid GBM buffer allocation and DMA-BUF import failures. This keeps the
+   system's graphics vendor and does not force CPU painting. The equivalent
+   native probe command, with the software rendering variables unset, is:
+
+   ```bash
+   WEBKIT_FORCE_DMABUF_RENDERER=1 WEBKIT_DMABUF_RENDERER_FORCE_SHM=1 \
+   /tmp/rayburst-webkit-repaint
+   ```
+
+   With hardware compositing off, Rayburst selects the Mesa EGL vendor without
+   changing the display server's GLX vendor. Mesa EGL must be installed for this
+   software path. Without it, Rayburst retains the DMA-BUF-disabled fallback,
    which can accumulate shadows on WebKitGTK 2.50.4; install your distribution's
    Mesa EGL package and restart Rayburst.
 
@@ -56,9 +67,14 @@ When reporting a display problem, include the WebKitGTK version
 (`pkg-config --modversion webkit2gtk-4.1`, or your package manager's version
 of `webkit2gtk4.1`), the GPU and driver, the session type
 (`echo $XDG_SESSION_TYPE`) and `~/.local/share/dev.aninsomniacy.rayburst/logs/rayburst.log`.
+The diagnostic export records the hardware rendering request separately from the
+main WebView's effective acceleration policy. `Never` means WebKit rejected
+compositing; `Always` permits it but does not prove that painting uses the GPU.
 
 The native regression probe in `scripts/diagnostics/webkit-transparent-repaint.c`
-checks shadow alpha and empty hidden frames across 20 show/hide cycles. Its header
-contains the build command; run it with the environment above, optionally under
-`xvfb-run -a` for an isolated display. This tests WebKit's native backing store,
-independently of Rayburst's UI and download services.
+checks shadow alpha and empty hidden frames across 20 show/hide cycles, and
+prints the requested and effective acceleration policies. Its header contains
+the build command; run it with the environment above, optionally under
+`xvfb-run -a` for an isolated display. `--policy=default` leaves WebKit's policy
+unchanged; `--policy=never` provides a non-composited control. This tests WebKit's
+native backing store, independently of Rayburst's UI and download services.
