@@ -585,8 +585,8 @@ onMounted(async () => {
         <NFormItem v-if="isLinux">
           <template #label>
             <PreferenceHintLabel
-              :label="t('preferences.hardware-compositing')"
-              :hint="t('preferences.hardware-compositing-hint')"
+              :label="t('preferences.gpu-acceleration')"
+              :hint="t('preferences.gpu-acceleration-hint')"
             />
           </template>
           <NSwitch v-model:value="form.hardwareRendering" />

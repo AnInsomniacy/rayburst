@@ -337,13 +337,16 @@ separate process group. Development builds do not register installed-app identit
 
 Windows are transparent and the page draws what it shows; Windows 11 and macOS add
 the main window's corners and shadow. Linux uses a native StatusNotifierItem tray with
-direct activation, speed tooltips and watcher reconnection. WebKitGTK hardware
-compositing is off by default (`WEBKIT_DISABLE_DMABUF_RENDERER`), as it freezes or
-blanks windows on many drivers and virtual GPUs; `hardwareRendering` in Advanced turns
-it on after a restart. Every webview disables WebKitGTK's damage-based compositing, so
-frames repaint in full. With the floating orb on, a Wayland session runs the app under
-XWayland, the only way the orb can place itself and stay on top. Diagnostics report the
-WebKitGTK version, whether hardware compositing is on, and the display backend.
+direct activation, speed tooltips and watcher reconnection. WebKitGTK always
+composites, handing frames over in shared memory (`WEBKIT_FORCE_DMABUF_RENDERER`,
+`WEBKIT_DMABUF_RENDERER_FORCE_SHM`); without compositing, WebKitGTK 2.50 leaves
+translucent shadows on screen. It paints on the CPU with Mesa's software GL by default,
+as the GPU path freezes or blanks windows on many drivers and virtual GPUs;
+`hardwareRendering` (GPU acceleration) in Advanced turns the GPU on after a restart.
+Every webview disables WebKitGTK's damage-based compositing, so frames repaint in full.
+With the floating orb on, a Wayland session runs the app under XWayland, the only way
+the orb can place itself and stay on top. Diagnostics report the WebKitGTK version,
+whether GPU acceleration is on, and the display backend.
 The tray icon carries a green dot while downloads run (macOS keeps its template image
 and the menu bar speedometer) and shows both speeds in its tooltip. Hiding the tray icon
 turns minimize-to-tray into a plain minimize, so the window always stays reachable.

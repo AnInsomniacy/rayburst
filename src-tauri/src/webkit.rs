@@ -1,12 +1,22 @@
 //! WebKitGTK setup on Linux.
 //!
-//! Hardware compositing stays off unless the user turns it on: on many drivers
-//! and virtual GPUs it freezes windows or leaves them blank. Every webview also
-//! repaints whole frames: WebKitGTK 2.54 composites only the damaged regions of
-//! a frame, and without DMA-BUF the rest of the window stays blank (#650, #705).
+//! The compositor always runs and hands frames over in shared memory. Turning
+//! DMA-BUF off instead turns compositing off, and WebKitGTK 2.50 then leaves
+//! translucent shadows and old frames on screen (#731); distribution builds
+//! also turn it off for NVIDIA unless forced. Painting stays on the CPU and
+//! Mesa's software GL unless the user turns GPU acceleration on: on many
+//! drivers and virtual GPUs the GPU path freezes windows or leaves them blank.
+//! Every webview also repaints whole frames: WebKitGTK 2.54 composites only
+//! the damaged regions of a frame, and the rest of the window stays blank
+//! (#650, #705).
 
 #[cfg(target_os = "linux")]
-const DISABLE_DMABUF: &str = "WEBKIT_DISABLE_DMABUF_RENDERER";
+const COMPOSITING: [&str; 2] = [
+    "WEBKIT_FORCE_DMABUF_RENDERER",
+    "WEBKIT_DMABUF_RENDERER_FORCE_SHM",
+];
+#[cfg(target_os = "linux")]
+const SOFTWARE: [&str; 2] = ["WEBKIT_SKIA_ENABLE_CPU_RENDERING", "LIBGL_ALWAYS_SOFTWARE"];
 
 /// Applies the `hardwareRendering` preference. The preference decides, over
 /// what a previous run of the app may have left in the environment. Must run
@@ -19,10 +29,16 @@ pub fn prepare() {
             .unwrap_or(false);
         // SAFETY: called first in `run`, before Tauri starts any thread.
         unsafe {
-            if hardware {
-                std::env::remove_var(DISABLE_DMABUF);
-            } else {
-                std::env::set_var(DISABLE_DMABUF, "1");
+            std::env::remove_var("WEBKIT_DISABLE_DMABUF_RENDERER");
+            for name in COMPOSITING {
+                std::env::set_var(name, "1");
+            }
+            for name in SOFTWARE {
+                if hardware {
+                    std::env::remove_var(name);
+                } else {
+                    std::env::set_var(name, "1");
+                }
             }
         }
     }
@@ -54,7 +70,7 @@ pub fn diagnostics() -> serde_json::Value {
         let variable = |name| std::env::var(name).ok();
         serde_json::json!({
             "webkitgtk_version": tauri::webview_version().ok(),
-            "hardware_compositing": variable(DISABLE_DMABUF).is_none(),
+            "gpu_acceleration": variable(SOFTWARE[0]).is_none(),
             "GDK_BACKEND": variable("GDK_BACKEND"),
             "XDG_SESSION_TYPE": variable("XDG_SESSION_TYPE"),
         })
