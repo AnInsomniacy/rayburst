@@ -1,12 +1,26 @@
 //! WebKitGTK setup on Linux.
 //!
-//! Hardware compositing stays off unless the user turns it on: on many drivers
-//! and virtual GPUs it freezes windows or leaves them blank. Every webview also
-//! repaints whole frames: WebKitGTK 2.54 composites only the damaged regions of
-//! a frame, and without DMA-BUF the rest of the window stays blank (#650, #705).
+//! Hardware rendering is opt-in. Software mode keeps Mesa's compositor alive
+//! with CPU painting and shared-memory frames: WebKitGTK 2.50.4's
+//! non-composited backing store accumulates translucent shadows instead of
+//! replacing them. Whole-frame repaints also prevent incomplete frames on
+//! WebKitGTK 2.54 (#650, #705).
+
+#[cfg(target_os = "linux")]
+use std::{collections::BTreeMap, ffi::OsString, path::Path};
 
 #[cfg(target_os = "linux")]
 const DISABLE_DMABUF: &str = "WEBKIT_DISABLE_DMABUF_RENDERER";
+#[cfg(target_os = "linux")]
+const DISABLE_COMPOSITING: &str = "WEBKIT_DISABLE_COMPOSITING_MODE";
+#[cfg(target_os = "linux")]
+const FORCE_SHM: &str = "WEBKIT_DMABUF_RENDERER_FORCE_SHM";
+#[cfg(target_os = "linux")]
+const CPU_RENDERING: &str = "WEBKIT_SKIA_ENABLE_CPU_RENDERING";
+#[cfg(target_os = "linux")]
+const SOFTWARE_GL: &str = "LIBGL_ALWAYS_SOFTWARE";
+#[cfg(target_os = "linux")]
+const EGL_VENDOR: &str = "__EGL_VENDOR_LIBRARY_FILENAMES";
 
 /// Applies the `hardwareRendering` preference. The preference decides, over
 /// what a previous run of the app may have left in the environment. Must run
@@ -17,15 +31,82 @@ pub fn prepare() {
         let hardware = crate::startup_preference("hardwareRendering")
             .and_then(|value| value.as_bool())
             .unwrap_or(false);
-        // SAFETY: called first in `run`, before Tauri starts any thread.
-        unsafe {
-            if hardware {
-                std::env::remove_var(DISABLE_DMABUF);
-            } else {
-                std::env::set_var(DISABLE_DMABUF, "1");
+        let mesa = mesa_egl_vendor(&[
+            Path::new("/etc/glvnd/egl_vendor.d"),
+            Path::new("/usr/share/glvnd/egl_vendor.d"),
+        ]);
+        if !hardware && mesa.is_none() {
+            eprintln!("[rayburst] webkit: Mesa EGL unavailable; legacy software rendering may retain transparent frames");
+        }
+        for (name, value) in rendering_environment(hardware, mesa.as_deref()) {
+            // SAFETY: called first in `run`, before Tauri starts any thread.
+            unsafe {
+                match value {
+                    Some(value) => std::env::set_var(name, value),
+                    None => std::env::remove_var(name),
+                }
             }
         }
     }
+}
+
+#[cfg(target_os = "linux")]
+fn mesa_egl_vendor(directories: &[&Path]) -> Option<std::path::PathBuf> {
+    directories.iter().find_map(|directory| {
+        let mut paths: Vec<_> = std::fs::read_dir(directory)
+            .ok()?
+            .filter_map(Result::ok)
+            .map(|entry| entry.path())
+            .filter(|path| {
+                path.extension()
+                    .is_some_and(|extension| extension == "json")
+            })
+            .collect();
+        paths.sort();
+        paths.into_iter().find(|path| {
+            let library = (|| -> Option<String> {
+                let json: serde_json::Value =
+                    serde_json::from_slice(&std::fs::read(path).ok()?).ok()?;
+                Some(json.get("ICD")?.get("library_path")?.as_str()?.into())
+            })();
+            library.is_some_and(|library| library.contains("libEGL_mesa"))
+        })
+    })
+}
+
+/// Every managed variable has an explicit value or removal, so switching the
+/// preference on a relaunch cannot inherit the previous rendering mode.
+#[cfg(target_os = "linux")]
+fn rendering_environment(
+    hardware: bool,
+    mesa_vendor: Option<&Path>,
+) -> BTreeMap<&'static str, Option<OsString>> {
+    let mut variables = [
+        DISABLE_DMABUF,
+        DISABLE_COMPOSITING,
+        FORCE_SHM,
+        CPU_RENDERING,
+        SOFTWARE_GL,
+        EGL_VENDOR,
+    ]
+    .into_iter()
+    .map(|name| (name, None))
+    .collect::<BTreeMap<_, _>>();
+    if hardware {
+        return variables;
+    }
+    let Some(mesa_vendor) = mesa_vendor else {
+        // Preserve the crash fallback on systems without a software EGL vendor.
+        variables.insert(DISABLE_DMABUF, Some("1".into()));
+        return variables;
+    };
+    for name in [FORCE_SHM, CPU_RENDERING, SOFTWARE_GL] {
+        variables.insert(name, Some("1".into()));
+    }
+    // Keep the display server's GLX vendor. Forcing Mesa GLX on NVIDIA can
+    // prevent GTK from creating an RGBA context and disable compositing again.
+    variables.insert(EGL_VENDOR, Some(mesa_vendor.as_os_str().into()));
+    variables
 }
 
 /// WebKit feature that limits compositing to a frame's damaged rectangles.
@@ -34,9 +115,17 @@ const DAMAGE_COMPOSITING: &str = "UseDamagingInformationForCompositing";
 
 #[cfg(target_os = "linux")]
 pub fn configure_webview<R: tauri::Runtime>(webview: &tauri::Webview<R>) {
-    let configured = webview.with_webview(|platform| {
-        use webkit2gtk::{glib::object::ObjectType, WebViewExt};
+    let enabled = |name| std::env::var(name).is_ok_and(|value| value != "0");
+    let shm = enabled(FORCE_SHM) && !enabled(DISABLE_DMABUF) && !enabled(DISABLE_COMPOSITING);
+    let configured = webview.with_webview(move |platform| {
+        use webkit2gtk::{
+            glib::object::ObjectType, HardwareAccelerationPolicy, SettingsExt, WebViewExt,
+        };
         if let Some(settings) = platform.inner().settings() {
+            if shm {
+                // Keep replacing complete frames after CSS animations finish.
+                settings.set_hardware_acceleration_policy(HardwareAccelerationPolicy::Always);
+            }
             // SAFETY: the settings are alive for the call, on the GTK thread
             // that owns them.
             unsafe { features::disable(settings.as_ptr().cast(), DAMAGE_COMPOSITING) };
@@ -54,7 +143,16 @@ pub fn diagnostics() -> serde_json::Value {
         let variable = |name| std::env::var(name).ok();
         serde_json::json!({
             "webkitgtk_version": tauri::webview_version().ok(),
-            "hardware_compositing": variable(DISABLE_DMABUF).is_none(),
+            "hardware_compositing": variable(DISABLE_DMABUF).is_none()
+                && variable(CPU_RENDERING).is_none(),
+            "rendering_environment": {
+                DISABLE_DMABUF: variable(DISABLE_DMABUF),
+                DISABLE_COMPOSITING: variable(DISABLE_COMPOSITING),
+                FORCE_SHM: variable(FORCE_SHM),
+                CPU_RENDERING: variable(CPU_RENDERING),
+                SOFTWARE_GL: variable(SOFTWARE_GL),
+                EGL_VENDOR: variable(EGL_VENDOR),
+            },
             "GDK_BACKEND": variable("GDK_BACKEND"),
             "XDG_SESSION_TYPE": variable("XDG_SESSION_TYPE"),
         })
@@ -111,5 +209,75 @@ mod features {
             set(settings, feature, 0);
         }
         unref(list);
+    }
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn software_frames_keep_the_compositor_and_use_cpu_mesa() {
+        let vendor = Path::new("/usr/share/glvnd/egl_vendor.d/50_mesa.json");
+        let variables = rendering_environment(false, Some(vendor));
+        for name in [DISABLE_DMABUF, DISABLE_COMPOSITING] {
+            assert_eq!(
+                variables[name], None,
+                "{name} must not disable frame replacement"
+            );
+        }
+        for name in [FORCE_SHM, CPU_RENDERING, SOFTWARE_GL] {
+            assert_eq!(variables[name].as_deref(), Some(std::ffi::OsStr::new("1")));
+        }
+        assert_eq!(variables[EGL_VENDOR].as_deref(), Some(vendor.as_os_str()));
+        assert!(!variables.contains_key("__GLX_VENDOR_LIBRARY_NAME"));
+    }
+
+    #[test]
+    fn hardware_mode_clears_every_software_override_on_relaunch() {
+        let vendor = Path::new("/usr/share/glvnd/egl_vendor.d/50_mesa.json");
+        let software = rendering_environment(false, Some(vendor));
+        let hardware = rendering_environment(true, Some(vendor));
+        assert_eq!(
+            software.keys().collect::<Vec<_>>(),
+            hardware.keys().collect::<Vec<_>>()
+        );
+        assert!(hardware.values().all(Option::is_none));
+        assert_eq!(hardware, rendering_environment(true, None));
+    }
+
+    #[test]
+    fn missing_mesa_keeps_the_legacy_fallback_and_clears_shm_overrides() {
+        let variables = rendering_environment(false, None);
+        assert_eq!(
+            variables[DISABLE_DMABUF].as_deref(),
+            Some(std::ffi::OsStr::new("1"))
+        );
+        for name in [
+            FORCE_SHM,
+            CPU_RENDERING,
+            SOFTWARE_GL,
+            EGL_VENDOR,
+            DISABLE_COMPOSITING,
+        ] {
+            assert_eq!(variables[name], None);
+        }
+    }
+
+    #[test]
+    fn mesa_discovery_reads_vendor_metadata_and_skips_invalid_entries() {
+        let directory = tempfile::tempdir().expect("temporary vendor directory");
+        let missing = directory.path().join("missing");
+        let vendor = directory.path().join("custom-mesa.json");
+        std::fs::write(directory.path().join("00-broken.json"), "{").unwrap();
+        std::fs::write(
+            directory.path().join("10-nvidia.json"),
+            r#"{"ICD":{"library_path":"libEGL_nvidia.so.0"}}"#,
+        )
+        .unwrap();
+        std::fs::write(directory.path().join("20-invalid.json"), r#"{"ICD":{}}"#).unwrap();
+        assert_eq!(mesa_egl_vendor(&[&missing, directory.path()]), None);
+        std::fs::write(&vendor, r#"{"ICD":{"library_path":"libEGL_mesa.so.0"}}"#).unwrap();
+        assert_eq!(mesa_egl_vendor(&[&missing, directory.path()]), Some(vendor));
     }
 }
