@@ -14,6 +14,7 @@
  */
 import type { VNodeChild } from 'vue'
 import type { Aria2Task } from '@shared/types'
+import type { SoundEvent } from '@shared/utils/sound'
 import { getTaskName } from '@shared/utils'
 import type { TaskSharingKind } from '@shared/utils/task'
 import { logger } from '@shared/logger'
@@ -27,6 +28,8 @@ export interface NotifyDeps {
   t: (key: string, params?: Record<string, unknown>) => string
   onOpenFile: (task: Aria2Task) => void
   onShowInFolder: (task: Aria2Task) => void
+  /** Optional sound hook — fired alongside the toast when the user enabled sound alerts. */
+  playSound?: (event: SoundEvent) => void
 }
 
 /**
@@ -49,6 +52,7 @@ export function handleTaskComplete(task: Aria2Task, deps: NotifyDeps): void {
     onShowInFolder: () => deps.onShowInFolder(task),
   })
   deps.messageSuccess(toastContent)
+  deps.playSound?.('complete')
   logger.debug('TaskNotify.complete', 'completion_toast_shown', { gid: task.gid, task_name: taskName })
 }
 
@@ -71,6 +75,7 @@ export function handleP2pDownloadComplete(task: Aria2Task, kind: TaskSharingKind
     onShowInFolder: () => deps.onShowInFolder(task),
   })
   deps.messageSuccess(toastContent)
+  deps.playSound?.('complete')
   logger.debug('TaskNotify.p2pDownloadComplete', 'p2p_completion_toast_shown', {
     gid: task.gid,
     kind,
@@ -82,10 +87,15 @@ export function handleP2pDownloadComplete(task: Aria2Task, kind: TaskSharingKind
  * Handle a download error.
  * Always sends in-app toast. Native OS notification is sent by Rust monitor.
  */
-export function handleTaskError(task: Aria2Task, reason: string, deps: Pick<NotifyDeps, 'messageError' | 't'>): void {
+export function handleTaskError(
+  task: Aria2Task,
+  reason: string,
+  deps: Pick<NotifyDeps, 'messageError' | 't' | 'playSound'>,
+): void {
   const taskName = getTaskName(task, { defaultName: 'Unknown' })
   const body = deps.t('task.download-fail-message', { taskName, reason })
   deps.messageError(body)
+  deps.playSound?.('error')
   logger.warn('TaskNotify.error', 'download_error_toast_shown', { gid: task.gid, reason })
 }
 
@@ -95,6 +105,8 @@ export function handleTaskError(task: Aria2Task, reason: string, deps: Pick<Noti
 export interface StartNotifyDeps {
   messageInfo: (content: string) => void
   t: (key: string, params?: Record<string, unknown>) => string
+  /** Optional sound hook — fired alongside the toast when the user enabled sound alerts. */
+  playSound?: (event: SoundEvent) => void
 }
 
 /**
@@ -118,6 +130,7 @@ export function handleTaskStart(taskNames: string[], deps: StartNotifyDeps): voi
         })
 
   deps.messageInfo(body)
+  deps.playSound?.('start')
   logger.info('TaskNotify.start', 'download_notification_started', {
     count: taskNames.length,
     first: /^(?:https?|sftp|magnet|ed2k|thunder):/i.test(firstName) ? summarizeExternalInput(firstName) : firstName,

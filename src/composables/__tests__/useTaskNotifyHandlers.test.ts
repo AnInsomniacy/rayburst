@@ -96,3 +96,29 @@ describe('Task notifications', () => {
     expect(deps.t).toHaveBeenCalledWith('task.download-start-message', { taskName: 'file.zip' })
   })
 })
+
+describe('sound alerts', () => {
+  it('invokes playSound("complete") after the completion toast', () => {
+    const playSound = vi.fn()
+    handleTaskComplete(task, { ...deps, playSound })
+    expect(playSound).toHaveBeenCalledWith('complete')
+  })
+
+  it('invokes playSound("error") after the error toast', () => {
+    const playSound = vi.fn()
+    handleTaskError(task, 'boom', { messageError: deps.messageError, t: deps.t, playSound })
+    expect(playSound).toHaveBeenCalledWith('error')
+  })
+
+  it('invokes playSound("start") after the start toast', () => {
+    const playSound = vi.fn()
+    handleTaskStart(['file.zip'], { messageInfo: deps.messageInfo, t: deps.t, playSound })
+    expect(playSound).toHaveBeenCalledWith('start')
+  })
+
+  it('stays silent when no playSound dep is provided', () => {
+    expect(() => handleTaskComplete(task, deps)).not.toThrow()
+    expect(() => handleTaskError(task, 'boom', { messageError: deps.messageError, t: deps.t })).not.toThrow()
+    expect(() => handleTaskStart(['file.zip'], { messageInfo: deps.messageInfo, t: deps.t })).not.toThrow()
+  })
+})
