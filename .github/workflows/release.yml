@@ -100,6 +100,24 @@ jobs:
           includeUpdaterJson: false
           args: ${{ matrix.args }} --config src-tauri/tauri.release.json
 
+      # The installer runs rayburst.exe from its temporary directory, and the
+      # browser starts the launcher; neither may need the Visual C++
+      # Redistributable (#756). A dynamically linked runtime leaves its DLL
+      # names in the import table.
+      - name: Check Windows runtime linkage
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          TARGET=$(echo '${{ matrix.args }}' | sed 's/.*--target \([^ ]*\).*/\1/')
+          for path in "src-tauri/target/$TARGET/release/rayburst.exe" \
+            "src-tauri/generated-binaries/rayburst-browser-launcher-$TARGET.exe"; do
+            test -f "$path"
+            if grep -aqiE 'vcruntime140|msvcp140' "$path"; then
+              echo "::error file=src-tauri/.cargo/config.toml::$path links the Visual C++ runtime dynamically"
+              exit 1
+            fi
+          done
+
       - name: Upload build artifacts (manual trigger only)
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v7

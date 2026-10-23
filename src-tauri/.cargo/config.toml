@@ -1,0 +1,6 @@
+# Link the MSVC C runtime statically. Windows binaries, including the copy the
+# installer runs from its temporary directory and the browser launcher, must start
+# without the Visual C++ Redistributable (#756). Tauri CLI 2.12 stopped setting
+# STATIC_VCRUNTIME for tauri-build, so this no longer depends on the CLI version.
+[target.'cfg(all(windows, target_env = "msvc"))']
+rustflags = ["-C", "target-feature=+crt-static"]
