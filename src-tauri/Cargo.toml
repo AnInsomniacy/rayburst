@@ -99,6 +99,7 @@ gio = "0.18.4"
 webkit2gtk = { version = "=2.0.2", features = ["v2_16"] }
 ashpd = { version = "0.13.13", default-features = false, features = ["tokio", "inhibit"] }
 notify-rust = { version = "4.14", default-features = false, features = ["z-with-tokio"] }
+zbus = { version = "5", default-features = false, features = ["tokio"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 keepawake = "0.6"

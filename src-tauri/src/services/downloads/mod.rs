@@ -6,7 +6,10 @@ mod native;
 pub(crate) mod preferences;
 
 use crate::aria2::types::Aria2Probe;
-use crate::{error::AppError, services::tasks::TaskServiceState};
+use crate::{
+    error::AppError,
+    services::tasks::{TaskService, TaskServiceState},
+};
 use contracts::{Ack, AddRequest, AddResponse, FallbackReason};
 pub use handoff::Handoffs;
 use std::time::Duration;
@@ -49,7 +52,7 @@ pub fn validate_filename(name: &str) -> Result<(), AppError> {
     Ok(())
 }
 
-pub async fn dispatch(app: &AppHandle, request: AddRequest) -> Result<AddResponse, AppError> {
+pub async fn dispatch(app: &AppHandle, mut request: AddRequest) -> Result<AddResponse, AppError> {
     let url = request.url.as_str();
     let parsed = url::Url::parse(url).ok();
     let engine_link = ["ed2k://", "thunder://"]
@@ -76,23 +79,28 @@ pub async fn dispatch(app: &AppHandle, request: AddRequest) -> Result<AddRespons
             .is_some_and(|url| matches!(url.scheme(), "http" | "https"))
     {
         let engine = app.state::<TaskServiceState>().0.clone();
-        let Ok(probe) =
-            tokio::time::timeout(VERIFY_TIMEOUT, engine.probe(url, options.clone())).await
-        else {
-            log::info!("downloads: browser keeps the download (the engine check took too long)");
-            return Ok(AddResponse::fallback(FallbackReason::Unreachable));
-        };
-        let probe = probe?;
-        if let Some(reason) = refusal(&probe, &request) {
-            log::info!(
-                "downloads: browser keeps the download ({reason:?}): status={} type={:?} size={:?} error={:?}",
-                probe.status,
-                probe.content_type,
-                probe.total_length,
-                probe.error
-            );
-            return Ok(AddResponse::fallback(reason));
+        let mut checked = check(&engine, &request.url, options.clone(), &request).await?;
+        // A link behind a page the browser got through, such as a CDN
+        // challenge (rayburst-connect#104), is fetched from the address the
+        // browser's download landed on.
+        if let (Err(FallbackReason::WebPage), Some(landed)) = (&checked, landed(&request)) {
+            let landed = landed.to_owned();
+            let options = for_landed(&request.url, &landed, options.clone());
+            if let Ok(probe) = check(&engine, &landed, options, &request).await? {
+                log::info!(
+                    "downloads: the engine takes the download from where the browser landed"
+                );
+                request.url = landed;
+                checked = Ok(probe);
+            }
         }
+        let probe = match checked {
+            Ok(probe) => probe,
+            Err(reason) => {
+                log::info!("downloads: browser keeps the download ({reason:?})");
+                return Ok(AddResponse::fallback(reason));
+            }
+        };
         size = probe
             .total_length
             .as_deref()
@@ -104,7 +112,7 @@ pub async fn dispatch(app: &AppHandle, request: AddRequest) -> Result<AddRespons
             probe.status,
             probe.total_length,
             probe.resumable,
-            probe.final_url != url
+            probe.final_url != request.url
         );
     }
     // Torrent files need native metainfo inspection and a file-selection dialog.
@@ -115,7 +123,13 @@ pub async fn dispatch(app: &AppHandle, request: AddRequest) -> Result<AddRespons
     {
         return confirm(app, &request, size).await;
     }
-    let gid = submit(app, TaskInput::Uris(vec![url.to_owned()]), options, None).await?;
+    let gid = submit(
+        app,
+        TaskInput::Uris(vec![request.url.clone()]),
+        options,
+        None,
+    )
+    .await?;
     if prefs.extension_download_behavior == preferences::ExtensionDownloadBehavior::Show {
         super::frontend_action::dispatch_frontend_action(
             app,
@@ -199,6 +213,60 @@ pub async fn preview(
 }
 
 /// Why the engine must not take over what the browser is downloading.
+/// Requests the first byte of `url` the way the task would, or names why the
+/// browser should keep the download.
+async fn check(
+    engine: &TaskService,
+    url: &str,
+    options: serde_json::Value,
+    request: &AddRequest,
+) -> Result<Result<Aria2Probe, FallbackReason>, AppError> {
+    let Ok(probe) = tokio::time::timeout(VERIFY_TIMEOUT, engine.probe(url, options)).await else {
+        log::info!("downloads: the engine check took too long");
+        return Ok(Err(FallbackReason::Unreachable));
+    };
+    let probe = probe?;
+    Ok(match refusal(&probe, request) {
+        None => Ok(probe),
+        Some(reason) => {
+            log::info!(
+                "downloads: the engine check failed ({reason:?}): status={} type={:?} size={:?} error={:?}",
+                probe.status,
+                probe.content_type,
+                probe.total_length,
+                probe.error
+            );
+            Err(reason)
+        }
+    })
+}
+
+/// The web address the browser's download ended at, when it is not the link.
+fn landed(request: &AddRequest) -> Option<&str> {
+    request.final_url.as_deref().filter(|landed| {
+        *landed != request.url
+            && url::Url::parse(landed).is_ok_and(|url| matches!(url.scheme(), "http" | "https"))
+    })
+}
+
+/// Options for fetching `landed` directly: the cookie the browser read for the
+/// link's site is not sent to another site.
+fn for_landed(link: &str, landed: &str, mut options: serde_json::Value) -> serde_json::Value {
+    let host = |url: &str| url::Url::parse(url).ok()?.host_str().map(str::to_owned);
+    if host(link) != host(landed) {
+        if let Some(headers) = options["header"].as_array_mut() {
+            headers.retain(|header| {
+                !header.as_str().is_some_and(|header| {
+                    header
+                        .split_once(':')
+                        .is_some_and(|(name, _)| name.trim().eq_ignore_ascii_case("cookie"))
+                })
+            });
+        }
+    }
+    options
+}
+
 fn refusal(probe: &Aria2Probe, request: &AddRequest) -> Option<FallbackReason> {
     if probe.status == "0" {
         return Some(FallbackReason::Unreachable);

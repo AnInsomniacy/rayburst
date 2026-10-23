@@ -614,6 +614,8 @@ watch(
         // pendingBatch after writing — use the flag instead.
         if (batchDidWrite) return
         if (text && detectResource(text, preferenceStore.config.clipboard)) {
+          // The main window must not offer this link again once it is here (#751).
+          void invoke('clipboard_offer', { text }).catch(() => {})
           // Copied .torrent links open their file lists at once (#737).
           const lines = normalizeUriLines(text)
           if (preferenceStore.config.bittorrentEnabled && lines.length > 0 && lines.every(isRemoteTorrentSource)) {

@@ -80,6 +80,39 @@ fn the_browser_keeps_downloads_the_engine_would_not_receive_identically() {
 }
 
 #[test]
+fn a_link_behind_a_page_is_retried_where_the_browser_landed_without_its_cookie() {
+    let mut request = request(None, None);
+    assert_eq!(landed(&request), None);
+    request.final_url = Some(request.url.clone());
+    assert_eq!(landed(&request), None);
+    request.final_url = Some("blob:https://example.test/id".into());
+    assert_eq!(landed(&request), None);
+    request.final_url = Some("https://files.example.net/file.zip?sig=1".into());
+    assert_eq!(
+        landed(&request),
+        Some("https://files.example.net/file.zip?sig=1")
+    );
+
+    let options = json!({"header":["Cookie: challenge=solved","Referer: https://example.test/"]});
+    assert_eq!(
+        for_landed(
+            &request.url,
+            "https://files.example.net/file.zip",
+            options.clone()
+        )["header"],
+        json!(["Referer: https://example.test/"])
+    );
+    assert_eq!(
+        for_landed(
+            &request.url,
+            "https://example.test/other.zip",
+            options.clone()
+        ),
+        options
+    );
+}
+
+#[test]
 fn a_preview_shows_only_the_size_the_download_would_write() {
     assert_eq!(
         previewed_size(&probe("206", "application/zip", Some("1000"))),

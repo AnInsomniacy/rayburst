@@ -118,6 +118,14 @@ pre,
 [data-tauri-drag-region] :is(button, a, input, select, textarea, [role='button'], [tabindex]) {
   app-region: no-drag;
 }
+/* A drag region keeps its area even under elements painted above it, so
+ * overlays must opt out explicitly: the fixed caption buttons (#755) and
+ * everything teleported to <body> (dialogs, menus, popovers). WebView2 152+
+ * also lets drag reach content that overflows a drag region. */
+.caption-bar,
+body > :not(#app) {
+  app-region: no-drag;
+}
 
 /* The floating orb and its panel: transparent around what they draw, sized
  * to it, and never scrolled. */

@@ -223,6 +223,22 @@ pub fn clipboard_baseline_wanted() -> bool {
     !TAKEN.swap(true, std::sync::atomic::Ordering::Relaxed)
 }
 
+/// Records clipboard text as offered for a new task and reports whether it
+/// was new. The process keeps the record, so a main page recreated from the
+/// tray and the add window share it and a link is offered once (#751).
+#[tauri::command]
+pub fn clipboard_offer(text: String) -> bool {
+    use std::hash::{DefaultHasher, Hash, Hasher};
+    static OFFERED: std::sync::Mutex<Option<u64>> = std::sync::Mutex::new(None);
+    let mut hasher = DefaultHasher::new();
+    text.trim().hash(&mut hasher);
+    let hash = Some(hasher.finish());
+    let mut offered = OFFERED
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    std::mem::replace(&mut *offered, hash) != hash
+}
+
 /// Programmatically triggers the minimize-to-tray flow from the frontend.
 ///
 /// Delegates entirely to [`handle_minimize_to_tray()`](crate::handle_minimize_to_tray)
@@ -249,4 +265,17 @@ pub fn minimize_to_tray(app: AppHandle) {
 #[tauri::command]
 pub fn float_panel_start_drag(app: AppHandle) -> Result<(), AppError> {
     crate::services::float_window::start_panel_drag(&app)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::clipboard_offer;
+
+    #[test]
+    fn clipboard_text_is_offered_once_until_it_changes() {
+        assert!(clipboard_offer("https://example.com/a.zip".into()));
+        assert!(!clipboard_offer(" https://example.com/a.zip\n".into()));
+        assert!(clipboard_offer("https://example.com/b.zip".into()));
+        assert!(clipboard_offer("https://example.com/a.zip".into()));
+    }
 }

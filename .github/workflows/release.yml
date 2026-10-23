@@ -83,6 +83,25 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # A prerelease RPM gets its own version and release (see rpm-version.sh),
+      # which tauri build cannot set without changing the app's version, so it
+      # is bundled separately after the build.
+      - name: Plan the prerelease RPM
+        id: rpm
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          VERSION=$(sed -n 's/^version = "\(.*\)"$/\1/p' src-tauri/Cargo.toml | head -1)
+          RPM=$(.github/scripts/rpm-version.sh "$VERSION")
+          if [ "$RPM" != "$VERSION-1" ]; then
+            {
+              echo "version=$VERSION"
+              echo "rpm=$RPM"
+              echo "config={\"version\":\"${RPM%%-*}\",\"bundle\":{\"linux\":{\"rpm\":{\"release\":\"${RPM#*-}\"}}}}"
+              echo "bundles=--bundles deb,appimage"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: tauri-apps/tauri-action@v0
         id: tauri
         env:
@@ -98,7 +117,26 @@ jobs:
           tagName: ${{ github.event.release.tag_name || '' }}
           releaseId: ${{ github.event_name == 'release' && github.event.release.id || '' }}
           includeUpdaterJson: false
-          args: ${{ matrix.args }} --config src-tauri/tauri.release.json
+          args: ${{ matrix.args }} ${{ steps.rpm.outputs.bundles }} --config src-tauri/tauri.release.json
+
+      - name: Bundle the prerelease RPM
+        if: steps.rpm.outputs.config
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          TARGET=$(echo '${{ matrix.args }}' | sed 's/.*--target \([^ ]*\).*/\1/')
+          pnpm tauri bundle --target "$TARGET" --bundles rpm \
+            --config src-tauri/tauri.release.json --config '${{ steps.rpm.outputs.config }}'
+          RPM="src-tauri/target/$TARGET/release/bundle/rpm/Rayburst-${{ steps.rpm.outputs.rpm }}.${TARGET%%-*}.rpm"
+          # The updater checks the signed version against the app's, not the RPM's.
+          pnpm tauri signer sign --app-version '${{ steps.rpm.outputs.version }}' "$RPM"
+          if [ -n "$TAG" ]; then
+            gh release upload "$TAG" "$RPM" "$RPM.sig" --clobber
+          fi
 
       # The installer runs rayburst.exe from its temporary directory, and the
       # browser starts the launcher; neither may need the Visual C++
@@ -123,7 +161,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: rayburst-${{ matrix.label }}
-          path: "${{ join(fromJSON(steps.tauri.outputs.artifactPaths), '\n') }}"
+          path: "${{ join(fromJSON(steps.tauri.outputs.artifactPaths), '\n') }}\nsrc-tauri/target/*/release/bundle/rpm/*.rpm*"
           retention-days: 7
 
   merge-updater-json:

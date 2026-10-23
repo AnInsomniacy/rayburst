@@ -9,6 +9,7 @@ use std::{
     time::Duration,
 };
 use tauri::AppHandle;
+use zbus::names::InterfaceName;
 
 use super::FloatMode;
 
@@ -33,6 +34,27 @@ struct Model {
 /// A panel restarting, after resume or unlock, brings the watcher back within
 /// moments; only a tray that stays gone leaves the window as the way back in.
 const WATCHER_GRACE: Duration = Duration::from_secs(10);
+
+/// Whether logind reports the user's session as locked; `None` when it cannot
+/// be asked, which leaves the grace as the only wait.
+async fn session_locked() -> Option<bool> {
+    let read = async {
+        let bus = zbus::Connection::system().await?;
+        // `session/auto` is this process's session or, for a process started
+        // outside one, the user's graphical session.
+        let properties = zbus::fdo::PropertiesProxy::builder(&bus)
+            .destination("org.freedesktop.login1")?
+            .path("/org/freedesktop/login1/session/auto")?
+            .build()
+            .await?;
+        let session = InterfaceName::from_static_str_unchecked("org.freedesktop.login1.Session");
+        let value = properties.get(session, "LockedHint").await?;
+        zbus::Result::Ok(bool::try_from(value)?)
+    };
+    read.await
+        .inspect_err(|error| log::warn!("tray:lock-state-unavailable error={error}"))
+        .ok()
+}
 
 struct NativeTray {
     app: AppHandle,
@@ -94,10 +116,25 @@ impl ksni::Tray for NativeTray {
         let change = self.watcher.fetch_add(1, Ordering::SeqCst) + 1;
         let (app, watcher) = (self.app.clone(), self.watcher.clone());
         tauri::async_runtime::spawn(async move {
-            tokio::time::sleep(WATCHER_GRACE).await;
-            if watcher.load(Ordering::SeqCst) == change {
-                super::request_main_window(&app, "tray-watcher-offline", true);
+            // GNOME drops the watcher while the screen is locked, so a locked
+            // session keeps the window hidden and the grace restarts on unlock.
+            let mut locked = false;
+            loop {
+                tokio::time::sleep(WATCHER_GRACE).await;
+                if watcher.load(Ordering::SeqCst) != change {
+                    return;
+                }
+                match (session_locked().await, locked) {
+                    (Some(true), false) => {
+                        log::info!("tray:watcher-offline-locked");
+                        locked = true;
+                    }
+                    (Some(true), true) => {}
+                    (_, true) => locked = false,
+                    (_, false) => break,
+                }
             }
+            super::request_main_window(&app, "tray-watcher-offline", true);
         });
         true
     }

@@ -12,6 +12,7 @@ if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
   exit 1
 fi
 VERSION="${TAG#v}"
+RPM_VERSION=$("$(dirname "$0")/rpm-version.sh" "$VERSION")
 REPO="${GITHUB_REPOSITORY:-AnInsomniacy/rayburst}"
 BASE="https://github.com/$REPO/releases/download/$TAG"
 
@@ -58,8 +59,8 @@ LINUX_X64_SIG=$(read_sig "Rayburst_${VERSION}_amd64.AppImage.sig")
 LINUX_ARM_SIG=$(read_sig "Rayburst_${VERSION}_aarch64.AppImage.sig")
 LINUX_X64_DEB_SIG=$(read_sig "Rayburst_${VERSION}_amd64.deb.sig")
 LINUX_ARM_DEB_SIG=$(read_sig "Rayburst_${VERSION}_arm64.deb.sig")
-LINUX_X64_RPM_SIG=$(read_sig "Rayburst-${VERSION}-1.x86_64.rpm.sig")
-LINUX_ARM_RPM_SIG=$(read_sig "Rayburst-${VERSION}-1.aarch64.rpm.sig")
+LINUX_X64_RPM_SIG=$(read_sig "Rayburst-${RPM_VERSION}.x86_64.rpm.sig")
+LINUX_ARM_RPM_SIG=$(read_sig "Rayburst-${RPM_VERSION}.aarch64.rpm.sig")
 
 jq -n \
   --arg version "$VERSION" \
@@ -82,9 +83,9 @@ jq -n \
   --arg ldebarm_sig "$LINUX_ARM_DEB_SIG" \
   --arg ldebarm_url "$BASE/Rayburst_${VERSION}_arm64.deb" \
   --arg lrpmx64_sig "$LINUX_X64_RPM_SIG" \
-  --arg lrpmx64_url "$BASE/Rayburst-${VERSION}-1.x86_64.rpm" \
+  --arg lrpmx64_url "$BASE/Rayburst-${RPM_VERSION}.x86_64.rpm" \
   --arg lrpmarm_sig "$LINUX_ARM_RPM_SIG" \
-  --arg lrpmarm_url "$BASE/Rayburst-${VERSION}-1.aarch64.rpm" \
+  --arg lrpmarm_url "$BASE/Rayburst-${RPM_VERSION}.aarch64.rpm" \
   '{
     version: $version,
     notes: $notes,

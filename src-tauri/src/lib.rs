@@ -13,6 +13,7 @@ mod log_policy;
 #[cfg(target_os = "macos")]
 mod menu;
 mod native_messaging;
+mod navigation;
 mod proxy_bypass;
 mod services;
 mod tray;
@@ -629,6 +630,7 @@ pub fn run() {
         )
         .manage(log_control)
         .plugin(tauri_plugin_opener::init())
+        .plugin(navigation::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
@@ -840,6 +842,7 @@ pub fn run() {
             commands::float_panel_present,
             commands::float_panel_start_drag,
             commands::clipboard_baseline_wanted,
+            commands::clipboard_offer,
         ])
         // ── Window event interception ─────────────────────────────────
         //

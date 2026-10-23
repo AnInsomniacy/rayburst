@@ -485,13 +485,15 @@ if (isFloatWindow) {
       }
     }
 
-    let lastClipboardText = ''
     // Only links copied after launch count, not what the clipboard held before (#738).
+    // The process remembers what was offered, so a page recreated from the tray
+    // or a link already taken in the add window is not offered again (#751).
     const { invoke: invokeCommand } = await import('@tauri-apps/api/core')
     if (await invokeCommand<boolean>('clipboard_baseline_wanted').catch(() => false)) {
       if (preferenceStore.config.clipboard?.enable) {
         const { readText } = await import('@tauri-apps/plugin-clipboard-manager')
-        lastClipboardText = ((await readText().catch(() => '')) || '').trim()
+        const text = ((await readText().catch(() => '')) || '').trim()
+        if (text) await invokeCommand('clipboard_offer', { text }).catch(() => {})
       }
     }
     getCurrentWindow().onFocusChanged(async ({ payload: focused }) => {
@@ -501,16 +503,10 @@ if (isFloatWindow) {
       try {
         const { readText } = await import('@tauri-apps/plugin-clipboard-manager')
         const text = ((await readText()) || '').trim()
-        if (!text || text === lastClipboardText) return
+        if (!text) return
         const { detectResource, shouldIgnoreClipboardTextForAutoDetect } = await import('@shared/utils')
-        if (shouldIgnoreClipboardTextForAutoDetect(text)) {
-          lastClipboardText = text
-          return
-        }
-        if (detectResource(text, clipboardConfig)) {
-          lastClipboardText = text
-          appStore.showAddTaskDialog()
-        }
+        if (shouldIgnoreClipboardTextForAutoDetect(text) || !detectResource(text, clipboardConfig)) return
+        if (await invokeCommand<boolean>('clipboard_offer', { text })) appStore.showAddTaskDialog()
       } catch (e) {
         logger.debug('Main.clipboardMonitor', e)
       }
