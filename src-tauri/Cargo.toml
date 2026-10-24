@@ -1,6 +1,6 @@
 [package]
 name = "rayburst"
-version = "4.1.0"
+version = "4.1.1-beta.1"
 description = "Redefining the open-source download manager"
 authors = ["AnInsomniacy"]
 license = "MIT"
