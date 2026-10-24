@@ -284,6 +284,9 @@ export const DEFAULT_APP_CONFIG = {
   taskNotification: true, // users expect download-complete notifications
   notifyOnStart: true,
   notifyOnComplete: true, // main value of OS notification: background completion alert
+  soundOnStart: false, // opt-in: never surprise the user with audio
+  soundOnComplete: false,
+  soundOnError: false,
   floatWindow: 'off' as const,
   floatWindowInLightweight: false, // lightweight mode frees every webview by default
   mediaSelectBeforeDownload: true,
