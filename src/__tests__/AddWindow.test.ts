@@ -28,6 +28,7 @@ const bridge = vi.hoisted(() => ({
   afterReveal: vi.fn(),
   reducedMotion: vi.fn(),
   reset: vi.fn(),
+  prepared: vi.fn(),
   resize: () => {},
 }))
 vi.mock('@tauri-apps/api/core', () => ({ invoke: bridge.invoke }))
@@ -60,7 +61,7 @@ vi.mock('@/components/task/AddTask.vue', () => ({
     name: 'AddTask',
     props: ['show'],
     emits: ['close', 'submitted'],
-    methods: { reset: bridge.reset },
+    methods: { reset: bridge.reset, prepared: bridge.prepared },
     template: '<div />',
   },
 }))
@@ -131,6 +132,7 @@ beforeEach(() => {
   bridge.setDecorations.mockResolvedValue(undefined)
   bridge.afterReveal.mockResolvedValue(undefined)
   bridge.reducedMotion.mockReturnValue(true)
+  bridge.prepared.mockResolvedValue(undefined)
   vi.stubGlobal(
     'ResizeObserver',
     class {
@@ -190,6 +192,28 @@ describe('add-window lifecycle', () => {
     await flushPromises()
     expect(bridge.invoke).not.toHaveBeenCalledWith('add_window_present')
     expect(host?.classes()).toContain('add-window--hidden')
+  })
+
+  it('presents once the form has read what it opens with', async () => {
+    const reading = deferred<void>()
+    await mountWindow()
+    bridge.prepared.mockReturnValueOnce(reading.promise)
+    await open()
+    expect(bridge.invoke).not.toHaveBeenCalledWith('add_window_present', expect.anything())
+    reading.resolve()
+    await flushPromises()
+    expect(bridge.invoke).toHaveBeenCalledWith('add_window_present', expect.anything())
+  })
+
+  it('presents a form still reading after a moment', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    await mountWindow()
+    bridge.prepared.mockReturnValueOnce(new Promise(() => {}))
+    await open()
+    expect(bridge.invoke).not.toHaveBeenCalledWith('add_window_present', expect.anything())
+    await vi.advanceTimersByTimeAsync(300)
+    await flushPromises()
+    expect(bridge.invoke).toHaveBeenCalledWith('add_window_present', expect.anything())
   })
 
   it('does not revive a closed panel when an earlier reveal finishes', async () => {

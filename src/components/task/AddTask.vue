@@ -561,75 +561,78 @@ function rememberRequests(items: BatchItem[]) {
   }
 }
 
+/** Settles once the opened form holds what it was opened with. */
+let opening: Promise<void> = Promise.resolve()
+
 watch(
   () => props.show,
-  async (visible, _, onCleanup) => {
-    let current = true
-    onCleanup(() => {
-      current = false
-    })
-    if (!visible) {
-      batchDidWrite = false
-      return
-    }
-    selectedBatchIndex.value = 0
-
-    if (hasBatch.value) {
-      rememberRequests(batch.value)
-      // Resolve file-based items
-      await localResolveUnresolvedItems()
-      if (!current) return
-      // Flush URI batch items into the editable textarea via normalized merge
-      const uriItems = batch.value.filter((i) => i.kind === 'uri')
-      if (uriItems.length > 0) {
-        form.value.uris = mergeRawUriLines(
-          form.value.uris,
-          uriItems.map((i) => i.payload),
-        )
-        form.value.uriRequestContexts = {
-          ...form.value.uriRequestContexts,
-          ...Object.fromEntries(uriItems.flatMap((i) => (i.browserContext ? [[i.payload, i.browserContext]] : []))),
-        }
-        appStore.pendingBatch = batch.value.filter((i) => i.kind !== 'uri')
-      }
-      // Auto-switch to Torrent tab when file items are present
-      if (fileItems.value.length > 0) {
-        switchTab(ADD_TASK_TYPE.TORRENT)
-      } else {
-        switchTab(ADD_TASK_TYPE.URI)
-      }
-    } else {
-      // Only reset tab if batchWatcher hasn't already handled a programmatic
-      // switch — otherwise we'd cause a rapid URI→TORRENT bounce that
-      // confuses NTabs' animation direction.
-      if (!batchDidWrite) switchTab(ADD_TASK_TYPE.URI)
-      // No batch — check clipboard for URIs
-      try {
-        const { readText } = await import('@tauri-apps/plugin-clipboard-manager')
-        const text = await readText()
-        if (!current) return
-        // Re-check: a deep-link/extension batch may have arrived and been
-        // processed (and drained) during the async readText() gap.
-        // `hasBatch` is unreliable here because batchWatcher drains
-        // pendingBatch after writing — use the flag instead.
-        if (batchDidWrite) return
-        if (text && detectResource(text, preferenceStore.config.clipboard)) {
-          // The main window must not offer this link again once it is here (#751).
-          void invoke('clipboard_offer', { text }).catch(() => {})
-          // Copied .torrent links open their file lists at once (#737).
-          const lines = normalizeUriLines(text)
-          if (preferenceStore.config.bittorrentEnabled && lines.length > 0 && lines.every(isRemoteTorrentSource)) {
-            appStore.enqueueBatch(lines.map((url) => createBatchItem('torrent', url)))
-          } else {
-            form.value.uris = text.trim()
-          }
-        }
-      } catch (e) {
-        logger.debug('AddTask.readClipboard', e)
-      }
-    }
+  (visible, _, onCleanup) => {
+    opening = prepare(visible, onCleanup)
   },
 )
+
+async function prepare(visible: boolean, onCleanup: (cleanup: () => void) => void) {
+  let current = true
+  onCleanup(() => {
+    current = false
+  })
+  if (!visible) {
+    batchDidWrite = false
+    return
+  }
+  selectedBatchIndex.value = 0
+
+  if (hasBatch.value) {
+    rememberRequests(batch.value)
+    // The form opens on the tab for its items, before their files are read.
+    switchTab(fileItems.value.length > 0 ? ADD_TASK_TYPE.TORRENT : ADD_TASK_TYPE.URI)
+    // Resolve file-based items
+    await localResolveUnresolvedItems()
+    if (!current) return
+    // Flush URI batch items into the editable textarea via normalized merge
+    const uriItems = batch.value.filter((i) => i.kind === 'uri')
+    if (uriItems.length > 0) {
+      form.value.uris = mergeRawUriLines(
+        form.value.uris,
+        uriItems.map((i) => i.payload),
+      )
+      form.value.uriRequestContexts = {
+        ...form.value.uriRequestContexts,
+        ...Object.fromEntries(uriItems.flatMap((i) => (i.browserContext ? [[i.payload, i.browserContext]] : []))),
+      }
+      appStore.pendingBatch = batch.value.filter((i) => i.kind !== 'uri')
+    }
+  } else {
+    // Only reset tab if batchWatcher hasn't already handled a programmatic
+    // switch — otherwise we'd cause a rapid URI→TORRENT bounce that
+    // confuses NTabs' animation direction.
+    if (!batchDidWrite) switchTab(ADD_TASK_TYPE.URI)
+    // No batch — check clipboard for URIs
+    try {
+      const { readText } = await import('@tauri-apps/plugin-clipboard-manager')
+      const text = await readText()
+      if (!current) return
+      // Re-check: a deep-link/extension batch may have arrived and been
+      // processed (and drained) during the async readText() gap.
+      // `hasBatch` is unreliable here because batchWatcher drains
+      // pendingBatch after writing — use the flag instead.
+      if (batchDidWrite) return
+      if (text && detectResource(text, preferenceStore.config.clipboard)) {
+        // The main window must not offer this link again once it is here (#751).
+        void invoke('clipboard_offer', { text }).catch(() => {})
+        // Copied .torrent links open their file lists at once (#737).
+        const lines = normalizeUriLines(text)
+        if (preferenceStore.config.bittorrentEnabled && lines.length > 0 && lines.every(isRemoteTorrentSource)) {
+          appStore.enqueueBatch(lines.map((url) => createBatchItem('torrent', url)))
+        } else {
+          form.value.uris = text.trim()
+        }
+      }
+    } catch (e) {
+      logger.debug('AddTask.readClipboard', e)
+    }
+  }
+}
 
 // Watch for new batch items added while dialog is already open (drag-drop, deep link).
 // Merge incoming requests without dropping the current draft or its receipts.
@@ -963,7 +966,7 @@ const cardStyle = {
   background: 'transparent',
 }
 
-defineExpose({ dismiss: () => handleClose(), reset })
+defineExpose({ dismiss: () => handleClose(), reset, prepared: () => opening })
 </script>
 
 <template>
@@ -1029,25 +1032,39 @@ defineExpose({ dismiss: () => handleClose(), reset })
                   {{ t('task.select-torrent') || 'Select torrent files' }}
                 </NButton>
 
-                <Transition name="content-fade" mode="out-in">
-                  <div
-                    v-if="selectedItem?.inspectionState === 'failed'"
-                    :key="`${selectedItem.id}-failed`"
-                    class="torrent-inspection-error"
-                  >
-                    <span>{{ selectedItem.error }}</span>
-                    <NButton size="tiny" type="primary" ghost @click="retryTorrent(selectedItem)">
-                      {{ t('app.retry') }}
-                    </NButton>
+                <!-- Files read after the panel shows open beneath it instead of pushing it taller at once. -->
+                <div
+                  class="height-collapse"
+                  :class="{
+                    'height-collapse--open': selectedItem?.inspectionState === 'failed' || !!selectedItem?.torrentMeta,
+                  }"
+                >
+                  <div class="height-collapse__inner">
+                    <Transition name="content-fade" mode="out-in">
+                      <div
+                        v-if="selectedItem?.inspectionState === 'failed'"
+                        :key="`${selectedItem.id}-failed`"
+                        class="torrent-inspection-error"
+                      >
+                        <span>{{ selectedItem.error }}</span>
+                        <NButton size="tiny" type="primary" ghost @click="retryTorrent(selectedItem)">
+                          {{ t('app.retry') }}
+                        </NButton>
+                      </div>
+                      <div
+                        v-else-if="selectedItem?.torrentMeta"
+                        :key="selectedItem.id"
+                        class="torrent-inspection-result"
+                      >
+                        <BtFileSelector
+                          v-model:selected-indices="selectedFileIndices"
+                          :files="selectedTorrentFiles"
+                          :max-height="200"
+                        />
+                      </div>
+                    </Transition>
                   </div>
-                  <div v-else-if="selectedItem?.torrentMeta" :key="selectedItem.id" class="torrent-inspection-result">
-                    <BtFileSelector
-                      v-model:selected-indices="selectedFileIndices"
-                      :files="selectedTorrentFiles"
-                      :max-height="200"
-                    />
-                  </div>
-                </Transition>
+                </div>
               </div>
 
               <!-- Upload zone: shown when no torrents loaded -->
@@ -1096,8 +1113,8 @@ defineExpose({ dismiss: () => handleClose(), reset })
                 </NButton>
                 <DirectoryPopover @select="onDirectorySelect" />
               </NInputGroup>
-              <div class="category-hint-collapse" :class="{ 'category-hint-collapse--open': !!categoryPreviewText }">
-                <div class="category-hint-collapse__inner">
+              <div class="height-collapse" :class="{ 'height-collapse--open': !!categoryPreviewText }">
+                <div class="height-collapse__inner">
                   <Transition name="category-hint" mode="out-in">
                     <div v-if="categoryPreviewText" :key="categoryPreviewText" class="category-hint-text">
                       ⓘ {{ categoryPreviewText }}
@@ -1297,18 +1314,20 @@ defineExpose({ dismiss: () => handleClose(), reset })
   opacity: 0;
 }
 
-/* ── Category hint below dir field ────────────────────────────────── */
-.category-hint-collapse {
+/* ── Height collapse: content that appears opens up instead of popping in ── */
+.height-collapse {
   display: grid;
   grid-template-rows: 0fr;
   transition: grid-template-rows 0.35s cubic-bezier(0.2, 0, 0, 1);
 }
-.category-hint-collapse--open {
+.height-collapse--open {
   grid-template-rows: 1fr;
 }
-.category-hint-collapse__inner {
+.height-collapse__inner {
   overflow: hidden;
 }
+
+/* ── Category hint below dir field ────────────────────────────────── */
 .category-hint-text,
 .space-hint {
   font-size: var(--font-size-sm);

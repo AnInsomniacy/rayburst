@@ -57,6 +57,8 @@ const MAX_SCREEN_SHARE = 0.9
 const SETTLE_MS = 400
 /** Duration of the leave animation: `--dialog-leave`. */
 const LEAVE_MS = 170
+/** Longest the window waits to show for the form to read what it opens with. */
+const PREPARE_MS = 300
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -228,6 +230,32 @@ async function leave() {
     await invoke('add_window_leave').catch((error: unknown) => logger.warn('AddWindow.leave', error))
 }
 
+/** Waits for the form to read what it opens with, such as a torrent's files, but not for long. */
+async function prepared() {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  await Promise.race([
+    addTask.value?.prepared(),
+    new Promise<void>((resolve) => {
+      timer = setTimeout(resolve, PREPARE_MS)
+    }),
+  ])
+  clearTimeout(timer)
+}
+
+/**
+ * Brings what moved while the window was hidden to rest, so the window is
+ * measured at the size it shows at and nothing grows as it appears.
+ */
+function settle() {
+  for (const animation of root.value?.getAnimations?.({ subtree: true }) ?? []) {
+    try {
+      animation.finish()
+    } catch {
+      // An endless animation, such as a spinner, has no end to jump to.
+    }
+  }
+}
+
 /** Resolves once the entrance's transitions have ended or been cancelled. */
 async function entranceFinished() {
   await nextTick()
@@ -367,8 +395,11 @@ watch(
     if (!current()) return
     await measureScreen()
     if (!current()) return
+    await prepared()
+    if (!current()) return
     await nextTick()
     if (!current()) return
+    settle()
     clearTimeout(settleTimer)
     await applyHeight(fitHeight())
     if (!current()) return
