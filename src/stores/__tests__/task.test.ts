@@ -124,7 +124,9 @@ describe('TaskStore', () => {
     mockHistoryFns.recordTaskBirth.mockResolvedValue(undefined)
     mockHttpAuthFns.findByUrl.mockResolvedValue(null)
     mockHttpAuthFns.markUsed.mockResolvedValue(undefined)
-  })
+    // Re-importing the store's module graph can outlast the default hook
+    // timeout when the whole suite runs in parallel.
+  }, 30_000)
 
   // ─── fetchList ──────────────────────────────────────────
   it('reuses terminal history during idle refreshes and reloads it after invalidation', async () => {
