@@ -19,6 +19,7 @@ pub mod aria2_events;
 pub mod bt_blocklist;
 pub mod config;
 pub mod deep_link;
+pub mod engine_fetch;
 pub mod external_input;
 pub mod float_window;
 pub mod frontend_action;
@@ -173,6 +174,8 @@ pub async fn on_engine_ready(app: &tauri::AppHandle) -> Result<(), AppError> {
     // 5–6. Stop old services, spawn fresh ones.
     // On first start the handles are None; on restart they hold the old handles.
     spawn_background_services(app).await;
+    // Fetches an earlier run left behind; running ones are kept.
+    engine_fetch::purge_stale(app).await;
 
     Ok(())
 }

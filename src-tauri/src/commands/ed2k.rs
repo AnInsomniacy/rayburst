@@ -153,9 +153,8 @@ pub async fn sync_ed2k_bootstrap_files(
         .ok_or_else(|| AppError::Io("Invalid ED2K bootstrap cache path".into()))?;
     std::fs::create_dir_all(dir)?;
 
-    let client = build_client(proxy)?;
-    let server_met = download_bootstrap_file(&client, &server_met_url).await?;
-    let nodes_dat = download_bootstrap_file(&client, &nodes_dat_url).await?;
+    let server_met = download_bootstrap_file(&app, &server_met_url, &proxy).await?;
+    let nodes_dat = download_bootstrap_file(&app, &nodes_dat_url, &proxy).await?;
     write_cache_file(&server_met_path, &server_met)?;
     write_cache_file(&nodes_dat_path, &nodes_dat)?;
 
@@ -164,48 +163,24 @@ pub async fn sync_ed2k_bootstrap_files(
     })
 }
 
-fn build_client(proxy: Option<String>) -> Result<reqwest::Client, AppError> {
-    let builder = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(30))
-        .redirect(reqwest::redirect::Policy::limited(5));
-    crate::commands::http_client::apply_explicit_proxy(builder, &proxy, "ed2k-bootstrap")
-        .build()
-        .map_err(|e| AppError::Io(format!("Failed to build ED2K bootstrap client: {e}")))
-}
-
-async fn download_bootstrap_file(client: &reqwest::Client, url: &str) -> Result<Vec<u8>, AppError> {
+async fn download_bootstrap_file(
+    app: &AppHandle,
+    url: &str,
+    proxy: &Option<String>,
+) -> Result<Vec<u8>, AppError> {
     validate_bootstrap_url(url)?;
-    let response = client
-        .get(url)
-        .send()
+    let request = crate::services::engine_fetch::FetchRequest::small(
+        url,
+        proxy.clone(),
+        MAX_BOOTSTRAP_FILE_SIZE,
+    );
+    let bytes = crate::services::engine_fetch::fetch(app, &request)
         .await
         .map_err(|e| AppError::Io(format!("Failed to fetch ED2K bootstrap file: {e}")))?;
-    if !response.status().is_success() {
-        return Err(AppError::Io(format!(
-            "ED2K bootstrap file returned HTTP {}",
-            response.status()
-        )));
+    if bytes.is_empty() {
+        return Err(AppError::Io("Invalid ED2K bootstrap file size: 0".into()));
     }
-    if let Some(length) = response.content_length() {
-        if length == 0 || length > MAX_BOOTSTRAP_FILE_SIZE {
-            return Err(AppError::Io(format!(
-                "Invalid ED2K bootstrap file size: {length}"
-            )));
-        }
-    }
-
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|e| AppError::Io(format!("Failed to read ED2K bootstrap file: {e}")))?;
-    if bytes.is_empty() || bytes.len() as u64 > MAX_BOOTSTRAP_FILE_SIZE {
-        return Err(AppError::Io(format!(
-            "Invalid ED2K bootstrap file size: {}",
-            bytes.len()
-        )));
-    }
-
-    Ok(bytes.to_vec())
+    Ok(bytes)
 }
 
 fn write_cache_file(target: &Path, bytes: &[u8]) -> Result<(), AppError> {

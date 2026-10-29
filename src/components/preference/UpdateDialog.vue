@@ -491,22 +491,21 @@ defineExpose({ open, present })
   flex: 0 0 auto;
   border-radius: 50%;
   place-items: center;
+  color: var(--status-color);
+  background: color-mix(in srgb, var(--status-color) 12%, transparent);
 }
+/* Each state tints the circle faintly with its color, quiet on any surface. */
 .update-status-icon--primary {
-  color: var(--m3-on-primary-container);
-  background: var(--m3-primary-container);
+  --status-color: var(--m3-primary);
 }
 .update-status-icon--success {
-  color: var(--m3-on-success-container);
-  background: var(--m3-success-container);
+  --status-color: var(--m3-success);
 }
 .update-status-icon--warning {
-  color: var(--m3-on-warning-container);
-  background: var(--m3-warning-container);
+  --status-color: var(--m3-warning);
 }
 .update-status-icon--error {
-  color: var(--m3-on-error-container);
-  background: var(--m3-error-container);
+  --status-color: var(--m3-error);
 }
 .update-copy h2 {
   margin: 0;

@@ -242,13 +242,26 @@ watch(
   },
 )
 
+// ── Closing the main window: ask, minimize to tray, or quit ─────────
+type CloseAction = 'ask' | 'tray' | 'quit'
+const closeAction = computed<CloseAction>({
+  get: () => (form.value.minimizeToTrayOnClose ? 'tray' : form.value.quitOnClose ? 'quit' : 'ask'),
+  set: (action) => {
+    form.value.minimizeToTrayOnClose = action === 'tray'
+    form.value.quitOnClose = action === 'quit'
+  },
+})
+const closeActionOptions = computed(() => [
+  { label: t('preferences.close-action-ask'), value: 'ask' },
+  { label: t('app.minimize-to-tray'), value: 'tray' },
+  { label: t('app.quit-app'), value: 'quit' },
+])
+
 // ── Lightweight mode ↔ Minimize-to-tray linkage ─────────────────────
 watch(
   () => form.value.lightweightMode,
   (enabled) => {
-    if (enabled && !form.value.minimizeToTrayOnClose) {
-      form.value.minimizeToTrayOnClose = true
-    }
+    if (enabled && !form.value.minimizeToTrayOnClose) closeAction.value = 'tray'
   },
 )
 watch(
@@ -593,8 +606,8 @@ onMounted(async () => {
           </template>
           <NSwitch v-model:value="form.showTrayIcon" />
         </NFormItem>
-        <NFormItem :label="t('preferences.minimize-to-tray-on-close')">
-          <NSwitch v-model:value="form.minimizeToTrayOnClose" />
+        <NFormItem :label="t('preferences.close-action')">
+          <NSelect v-model:value="closeAction" :options="closeActionOptions" class="pref-control-auto" />
         </NFormItem>
         <NFormItem v-if="isMac" :label="t('preferences.hide-dock-on-minimize')">
           <NSwitch v-model:value="form.hideDockOnMinimize" />

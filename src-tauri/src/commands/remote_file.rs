@@ -77,7 +77,7 @@ pub async fn preview_download(
     result
 }
 
-const MAX_TORRENT_SIZE: usize = 16 * 1024 * 1024;
+const MAX_TORRENT_SIZE: u64 = 16 * 1024 * 1024;
 
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -86,43 +86,60 @@ pub struct RemoteRequestHeader {
     pub value: String,
 }
 
-fn apply_download_request_headers(
-    mut req: reqwest::RequestBuilder,
-    referer: Option<&str>,
-    cookie: Option<&str>,
-) -> reqwest::RequestBuilder {
-    if let Some(referer) = referer.filter(|v| !v.trim().is_empty()) {
-        req = req.header(reqwest::header::REFERER, referer);
-    }
-    if let Some(cookie) = cookie.filter(|v| !v.trim().is_empty()) {
-        req = req.header(reqwest::header::COOKIE, cookie);
-    }
-    req
-}
-
-fn apply_remote_request_headers(
-    mut req: reqwest::RequestBuilder,
+/// Header lines for the request, the browser's own first. A header the
+/// browser sent as well as named here (Referer, Cookie, User-Agent) is sent
+/// once, with the named value. Lines that would not form one header are dropped.
+fn header_lines(
     referer: Option<&str>,
     cookie: Option<&str>,
     user_agent: Option<&str>,
     request_headers: &[RemoteRequestHeader],
-) -> reqwest::RequestBuilder {
-    for header in request_headers {
-        if let (Ok(name), Ok(value)) = (
-            reqwest::header::HeaderName::from_bytes(header.name.as_bytes()),
-            reqwest::header::HeaderValue::from_str(&header.value),
-        ) {
-            req = req.header(name, value);
+) -> Vec<String> {
+    let named = |value: Option<&str>| value.filter(|v| !v.trim().is_empty()).map(str::to_owned);
+    let (referer, cookie, user_agent) = (named(referer), named(cookie), named(user_agent));
+    let overridden = |name: &str| {
+        (name.eq_ignore_ascii_case("referer") && referer.is_some())
+            || (name.eq_ignore_ascii_case("cookie") && cookie.is_some())
+            || (name.eq_ignore_ascii_case("user-agent") && user_agent.is_some())
+    };
+    let valid = |name: &str, value: &str| {
+        reqwest::header::HeaderName::from_bytes(name.as_bytes()).is_ok()
+            && reqwest::header::HeaderValue::from_str(value).is_ok()
+    };
+    let mut lines: Vec<String> = request_headers
+        .iter()
+        .filter(|header| !overridden(&header.name) && valid(&header.name, &header.value))
+        .map(|header| format!("{}: {}", header.name, header.value))
+        .collect();
+    for (name, value) in [("Referer", referer), ("Cookie", cookie)] {
+        if let Some(value) = value.filter(|value| valid(name, value)) {
+            lines.push(format!("{name}: {value}"));
         }
     }
-    if let Some(user_agent) = user_agent.filter(|v| !v.trim().is_empty()) {
-        req = req.header(reqwest::header::USER_AGENT, user_agent);
-    }
-    apply_download_request_headers(req, referer, cookie)
+    lines
+}
+
+/// The request for a remote torrent, made the way its download would be.
+fn remote_request(
+    url: String,
+    proxy: Option<String>,
+    referer: Option<&str>,
+    cookie: Option<&str>,
+    user_agent: Option<&str>,
+    request_headers: &[RemoteRequestHeader],
+) -> crate::services::engine_fetch::FetchRequest {
+    let mut request =
+        crate::services::engine_fetch::FetchRequest::small(url, proxy, MAX_TORRENT_SIZE);
+    request.headers = header_lines(referer, cookie, user_agent, request_headers);
+    request.user_agent = user_agent
+        .filter(|value| reqwest::header::HeaderValue::from_str(value).is_ok())
+        .map(str::to_owned);
+    request
 }
 
 #[tauri::command]
 pub async fn fetch_remote_bytes(
+    app: tauri::AppHandle,
     url: String,
     proxy: Option<String>,
     referer: Option<String>,
@@ -131,53 +148,17 @@ pub async fn fetch_remote_bytes(
     request_headers: Vec<RemoteRequestHeader>,
 ) -> Result<Vec<u8>, AppError> {
     log::info!("fetch_remote_bytes: url={}", summarize_url_for_log(&url));
-
-    let builder = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(30))
-        .redirect(reqwest::redirect::Policy::limited(5));
-    let client =
-        crate::commands::http_client::apply_explicit_proxy(builder, &proxy, "fetch_remote_bytes")
-            .build()
-            .map_err(|e| AppError::Io(format!("GET client init failed: {e}")))?;
-
-    let req = apply_remote_request_headers(
-        client.get(&url),
+    let request = remote_request(
+        url,
+        proxy,
         referer.as_deref(),
         cookie.as_deref(),
         user_agent.as_deref(),
         &request_headers,
     );
-    let resp = req
-        .send()
-        .await
-        .map_err(|e| AppError::Io(format!("GET request failed: {e}")))?;
-    if !resp.status().is_success() {
-        return Err(AppError::Io(format!(
-            "GET request failed with HTTP {}",
-            resp.status()
-        )));
-    }
-    if let Some(len) = resp.content_length() {
-        if len as usize > MAX_TORRENT_SIZE {
-            return Err(AppError::Io(format!(
-                "Response too large: {len} bytes (max {MAX_TORRENT_SIZE})"
-            )));
-        }
-    }
-
-    let bytes = resp
-        .bytes()
-        .await
-        .map_err(|e| AppError::Io(format!("Failed to read response body: {e}")))?;
-    if bytes.len() > MAX_TORRENT_SIZE {
-        return Err(AppError::Io(format!(
-            "Response too large: {} bytes (max {MAX_TORRENT_SIZE})",
-            bytes.len()
-        )));
-    }
-
+    let bytes = crate::services::engine_fetch::fetch(&app, &request).await?;
     log::info!("fetch_remote_bytes: downloaded {} bytes", bytes.len());
-    Ok(bytes.to_vec())
+    Ok(bytes)
 }
 
 pub(crate) fn summarize_url_for_log(value: &str) -> String {
@@ -217,7 +198,7 @@ pub(crate) fn summarize_url_for_log(value: &str) -> String {
 mod tests {
     use super::*;
     #[tokio::test]
-    async fn fetch_remote_bytes_sends_browser_context_headers() {
+    async fn remote_torrent_requests_send_browser_context_headers() {
         use axum::{extract::State, http::HeaderMap, routing::get, Router};
         use std::net::SocketAddr;
         use std::sync::{Arc, Mutex};
@@ -266,19 +247,26 @@ mod tests {
             axum::serve(listener, app).await.unwrap();
         });
 
-        let bytes = fetch_remote_bytes(
+        let request = remote_request(
             format!("http://{addr}/linux.torrent"),
             None,
-            Some("https://example.com/page".to_string()),
-            Some("sid=1".to_string()),
-            Some("Mozilla/5.0".to_string()),
-            vec![RemoteRequestHeader {
-                name: "Accept-Language".to_string(),
-                value: "en-US".to_string(),
-            }],
-        )
-        .await
-        .unwrap();
+            Some("https://example.com/page"),
+            Some("sid=1"),
+            Some("Mozilla/5.0"),
+            &[
+                RemoteRequestHeader {
+                    name: "Accept-Language".to_string(),
+                    value: "en-US".to_string(),
+                },
+                RemoteRequestHeader {
+                    name: "Cookie".to_string(),
+                    value: "stale=1".to_string(),
+                },
+            ],
+        );
+        let bytes = crate::services::engine_fetch::fetch_direct(&request)
+            .await
+            .unwrap();
 
         assert_eq!(bytes, b"d4:infode");
         let captured = captured.lock().expect("captured headers mutex poisoned");

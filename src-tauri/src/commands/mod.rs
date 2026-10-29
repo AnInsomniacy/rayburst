@@ -10,7 +10,6 @@ pub mod geoip;
 pub mod history;
 pub mod http_api;
 pub mod http_auth;
-mod http_client;
 pub mod logging;
 pub mod notification;
 pub mod power;

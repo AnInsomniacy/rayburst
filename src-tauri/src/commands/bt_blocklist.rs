@@ -8,7 +8,7 @@ use std::net::IpAddr;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_store::StoreExt;
 
@@ -16,7 +16,6 @@ const BLOCKLIST_DIR: &str = "bt";
 const BLOCKLIST_FILE: &str = "peer-blocklist.txt";
 const BUNDLED_BLOCKLIST_FILE: &str = "data/bt-peer-blocklist.txt";
 const MAX_BLOCKLIST_SIZE: u64 = 16 * 1024 * 1024;
-const DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(30);
 const SOURCE_PREFIX: &str = "# Source: ";
 const SNAPSHOT_BUNDLED: &str = "# Snapshot: bundled";
 const DEFAULT_BLOCKLIST_URL: &str = "https://bcr.pbh-btn.com/combine/all.txt";
@@ -268,44 +267,21 @@ fn valid_http_url(value: &str) -> Result<url::Url, AppError> {
     }
 }
 
-async fn download_blocklist(url: &str, proxy: Option<String>) -> Result<String, AppError> {
+async fn download_blocklist(
+    app: &AppHandle,
+    url: &str,
+    proxy: Option<String>,
+) -> Result<String, AppError> {
     let url = valid_http_url(url)?;
-    let builder = reqwest::Client::builder()
-        .timeout(DOWNLOAD_TIMEOUT)
-        .redirect(reqwest::redirect::Policy::limited(5));
-    let client =
-        crate::commands::http_client::apply_explicit_proxy(builder, &proxy, "bt-peer-blocklist")
-            .build()
-            .map_err(|e| AppError::Io(format!("Failed to build BT peer blocklist client: {e}")))?;
-    let response = client
-        .get(url)
-        .send()
+    let request =
+        crate::services::engine_fetch::FetchRequest::small(url, proxy, MAX_BLOCKLIST_SIZE);
+    let bytes = crate::services::engine_fetch::fetch(app, &request)
         .await
         .map_err(|e| AppError::Io(format!("Failed to fetch BT peer blocklist: {e}")))?;
-    if !response.status().is_success() {
-        return Err(AppError::Io(format!(
-            "BT peer blocklist returned HTTP {}",
-            response.status()
-        )));
+    if bytes.is_empty() {
+        return Err(AppError::Io("Invalid BT peer blocklist size: 0".into()));
     }
-    if let Some(length) = response.content_length() {
-        if length == 0 || length > MAX_BLOCKLIST_SIZE {
-            return Err(AppError::Io(format!(
-                "Invalid BT peer blocklist size: {length}"
-            )));
-        }
-    }
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|e| AppError::Io(format!("Failed to read BT peer blocklist: {e}")))?;
-    if bytes.is_empty() || bytes.len() as u64 > MAX_BLOCKLIST_SIZE {
-        return Err(AppError::Io(format!(
-            "Invalid BT peer blocklist size: {}",
-            bytes.len()
-        )));
-    }
-    String::from_utf8(bytes.to_vec())
+    String::from_utf8(bytes)
         .map_err(|e| AppError::Io(format!("BT peer blocklist is not valid UTF-8: {e}")))
 }
 
@@ -351,7 +327,7 @@ async fn update_cache(
     config: &BtPeerBlocklistConfig,
 ) -> Result<BtPeerBlocklistStatus, AppError> {
     let source = config.url.trim();
-    let raw = download_blocklist(source, config.proxy.network_source_url()).await?;
+    let raw = download_blocklist(app, source, config.proxy.network_source_url()).await?;
     let (normalized, rule_count) = normalize_blocklist(&raw, source)?;
     let target = blocklist_path(app)?;
     write_cache(&target, &normalized)?;

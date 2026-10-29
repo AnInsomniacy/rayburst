@@ -1,4 +1,5 @@
 use crate::error::AppError;
+use crate::services::engine_fetch::{self, FetchRequest};
 use semver::Version;
 use serde::Serialize;
 use std::cmp::Ordering;
@@ -6,11 +7,15 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering as AtomicOrdering};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_updater::UpdaterExt;
-use tokio::sync::{Mutex, Notify};
+use tokio::sync::Mutex;
 use url::Url;
 
 /// Base URL for update JSON files on the fixed `updater` GitHub Release tag.
-const METADATA_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(15);
+const METADATA_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
+/// Largest accepted update metadata file.
+const METADATA_MAX_SIZE: u64 = 1024 * 1024;
+/// Largest accepted update package.
+const PACKAGE_MAX_SIZE: u64 = 1024 * 1024 * 1024;
 const UPDATER_BASE_URL: &str = "https://github.com/AnInsomniacy/rayburst/releases/download/updater";
 
 /// Serializable update metadata returned to the frontend.
@@ -42,15 +47,12 @@ pub enum UpdateProgressEvent {
 pub struct UpdateCancelState {
     /// Set to `true` when the user requests cancellation.
     cancelled: AtomicBool,
-    /// Notified when cancellation is requested, waking the `select!` branch.
-    notify: Notify,
 }
 
 impl UpdateCancelState {
     pub fn new() -> Self {
         Self {
             cancelled: AtomicBool::new(false),
-            notify: Notify::new(),
         }
     }
 
@@ -62,7 +64,6 @@ impl UpdateCancelState {
     /// Signals cancellation.
     fn cancel(&self) {
         self.cancelled.store(true, AtomicOrdering::SeqCst);
-        self.notify.notify_waiters();
     }
 
     /// Returns `true` if cancellation has been requested.
@@ -159,6 +160,8 @@ struct SelectedUpdate {
     channel: ReleaseChannel,
     requested_policy: UpdatePolicy,
     update: tauri_plugin_updater::Update,
+    /// The proxy the check used; the package is downloaded the same way.
+    proxy: Option<String>,
 }
 
 /// Returns the update endpoint URL for the given release channel.
@@ -235,16 +238,11 @@ fn redact_proxy_for_log(proxy: &Option<String>) -> String {
     }
 }
 
-/// Constructs a configured `Updater` ready to call `.check()`.
-///
-/// Resolve endpoint, proxy and version policy once per update check.
-///
-/// Proxy is applied via `UpdaterBuilder::proxy()` (per-request, thread-safe)
-/// rather than mutating process-level environment variables.
+/// Builds the updater that turns downloaded metadata into an update for
+/// this platform and installs its verified package. It makes no requests.
 fn build_updater(
     app: &AppHandle,
     channel: ReleaseChannel,
-    proxy: &Option<String>,
 ) -> Result<tauri_plugin_updater::Updater, AppError> {
     if app
         .config()
@@ -261,47 +259,39 @@ fn build_updater(
     }
     let endpoint =
         Url::parse(&endpoint_for_channel(channel)).map_err(|e| AppError::Updater(e.to_string()))?;
-
-    // Metadata is a few kilobytes; an unreachable host must not stall the
-    // check for the operating system's connect timeout. Downloads have none.
-    let mut builder = app
-        .updater_builder()
-        .timeout(METADATA_TIMEOUT)
+    app.updater_builder()
         .endpoints(vec![endpoint])
-        .map_err(|e| AppError::Updater(e.to_string()))?;
-
-    // Apply proxy at the HTTP client level — no env var mutation.
-    if let Some(p) = proxy {
-        if !p.is_empty() {
-            let proxy_url = Url::parse(p)
-                .map_err(|e| AppError::Updater(format!("Invalid update proxy config: {e}")))?;
-            builder = builder.proxy(proxy_url);
-        } else {
-            builder = builder.no_proxy();
-        }
-    } else {
-        builder = builder.no_proxy();
-    }
-
-    builder
+        .map_err(|e| AppError::Updater(e.to_string()))?
         .build()
         .map_err(|e| AppError::Updater(e.to_string()))
 }
 
+/// Reads a channel's metadata through the engine.
 async fn check_release_channel(
     app: &AppHandle,
     channel: ReleaseChannel,
     proxy: &Option<String>,
 ) -> Result<Option<tauri_plugin_updater::Update>, AppError> {
-    build_updater(app, channel, proxy)?
-        .check()
+    let failed = |e: String| {
+        AppError::Updater(format!(
+            "Update metadata ({}) failed: {e}",
+            channel.as_str()
+        ))
+    };
+    let mut request = FetchRequest::small(
+        endpoint_for_channel(channel),
+        proxy.clone(),
+        METADATA_MAX_SIZE,
+    );
+    request.deadline = Some(METADATA_TIMEOUT);
+    let bytes = engine_fetch::fetch(app, &request)
         .await
-        .map_err(|e| {
-            AppError::Updater(format!(
-                "Update metadata ({}) failed: {e}",
-                channel.as_str()
-            ))
-        })
+        .map_err(|e| failed(e.to_string()))?;
+    let metadata: serde_json::Value =
+        serde_json::from_slice(&bytes).map_err(|e| failed(e.to_string()))?;
+    build_updater(app, channel)?
+        .restore_update(metadata)
+        .map_err(|e| failed(e.to_string()))
 }
 
 async fn resolve_update(
@@ -350,6 +340,7 @@ async fn resolve_update(
         channel: candidate.channel,
         requested_policy,
         update,
+        proxy: proxy.clone(),
     }))
 }
 
@@ -431,53 +422,51 @@ pub async fn download_update(app: AppHandle, version: String) -> Result<(), AppE
         .ok_or_else(|| AppError::Updater("Check for updates again before downloading".into()))?;
     let update = selected.update;
 
-    // ── Download only (Aria2 Next stays alive) ───────────────────────────
+    // The engine downloads the package; it keeps serving the user's tasks.
     let app_handle = app.clone();
     let cancel = cancel_state.inner().clone();
-    let mut downloaded: u64 = 0;
-
-    let download_fut = update.download(
-        move |chunk_length, content_length| {
-            if cancel.is_cancelled() {
-                return;
-            }
-
-            downloaded += chunk_length as u64;
-
-            if downloaded == chunk_length as u64 {
+    let mut started = false;
+    let mut last = 0;
+    let mut progress = |downloaded: u64, total: Option<u64>| {
+        if !started {
+            if let Some(total) = total {
+                started = true;
                 let _ = app_handle.emit(
                     "update-progress",
                     UpdateProgressEvent::Started {
-                        content_length: content_length.unwrap_or(0),
+                        content_length: total,
                     },
                 );
             }
-
-            let _ = app_handle.emit(
-                "update-progress",
-                UpdateProgressEvent::Progress {
-                    chunk_length,
-                    downloaded,
-                },
-            );
-        },
-        || {},
-    );
-
-    // Race the download against cancellation.
-    let bytes = tokio::select! {
-        result = download_fut => {
-            if cancel_state.is_cancelled() {
-                log::warn!("updater:download cancelled by user");
-                return Err(AppError::Updater("Update cancelled by user".into()));
-            }
-            result.map_err(|e| AppError::Updater(format!("Update download or signature verification failed: {e}")))?
         }
-        _ = cancel_state.notify.notified() => {
-            log::warn!("updater:download cancelled by user (via notify)");
-            return Err(AppError::Updater("Update cancelled by user".into()));
-        }
+        let _ = app_handle.emit(
+            "update-progress",
+            UpdateProgressEvent::Progress {
+                chunk_length: downloaded.saturating_sub(last) as usize,
+                downloaded,
+            },
+        );
+        last = downloaded;
     };
+    let request = FetchRequest {
+        url: update.download_url.to_string(),
+        proxy: selected.proxy.clone(),
+        headers: Vec::new(),
+        user_agent: None,
+        max_size: PACKAGE_MAX_SIZE,
+        deadline: None,
+        single_connection: false,
+    };
+    let result =
+        engine_fetch::fetch_with(&app, &request, &mut progress, &|| cancel.is_cancelled()).await;
+    if cancel_state.is_cancelled() {
+        log::warn!("updater:download cancelled by user");
+        return Err(AppError::Updater("Update cancelled by user".into()));
+    }
+    let bytes = result.map_err(|e| AppError::Updater(format!("Update download failed: {e}")))?;
+    update
+        .verify(&bytes)
+        .map_err(|e| AppError::Updater(format!("Update signature verification failed: {e}")))?;
 
     // Installation must not depend on a second network request.
     let dl_state = app.state::<Arc<DownloadedUpdate>>();

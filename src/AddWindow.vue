@@ -10,11 +10,11 @@
  *
  * The window is transparent and draws its panel, rounded and shadowed, with a
  * margin around it. Motion stays inside the page, where it runs on the
- * compositor: the panel is lifted in with its content following in layers,
- * sinks away, and grows or shrinks with its content inside a window that is
- * resized once per change instead of on every frame. On macOS the system
- * frames the window around its traffic lights, and the window itself rises
- * and sinks instead of the panel (`add_window/motion.rs`).
+ * compositor: the panel appears in place, fading in as it grows from slightly
+ * smaller, fades out quicker, and grows or shrinks with its content inside a
+ * window that is resized once per change instead of on every frame. On macOS
+ * the system frames the window around its traffic lights, and the window
+ * itself fades instead of the panel (`add_window/motion.rs`).
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -55,8 +55,8 @@ const MAX_GROWTH = 1.2
 const MAX_SCREEN_SHARE = 0.9
 /** Quiet time after which the content has finished animating; longer than its transitions. */
 const SETTLE_MS = 400
-/** Duration of the leave animation: `--dialog-leave`. */
-const LEAVE_MS = 170
+/** Duration of the leave animation: `--add-window-leave`. */
+const LEAVE_MS = 120
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -71,8 +71,6 @@ const capHeight = ref(0)
 /** Height of the freshly mounted window, links tab, advanced options closed, in CSS pixels. */
 let baseHeight = 0
 const phase = ref<'hidden' | 'shown' | 'leaving'>('hidden')
-/** Until its layers land, the card's content holds still instead of scrolling. */
-const entering = ref(false)
 const unlisteners: UnlistenFn[] = []
 let closing = false
 let presenting: Promise<void> | undefined
@@ -165,9 +163,17 @@ async function resumeInputs(...inputs: AddWindowInputs[]) {
   for (const batch of batches) await receive(batch)
 }
 
+/** Empties the form and the batch for the next showing. */
+function discard() {
+  appStore.hideAddTaskDialog()
+  addTask.value?.reset()
+}
+
 /** Cancel a close when requests already delivered to this frontend still need it. */
 async function keepOpen(late?: AddWindowInputs): Promise<boolean> {
   if ((!late || isEmpty(late)) && pendingInputs.length === 0) return false
+  // The dismissed form gives way to the new requests.
+  discard()
   // Detach may have stopped delivery. Reattach before replaying, including in
   // tray mode, where parking would destroy this frontend and its pending inputs.
   const queued = await invoke<AddWindowInputs>('add_window_attach')
@@ -179,7 +185,6 @@ async function close() {
   if (closing) return
   closing = true
   clearTimeout(settleTimer)
-  appStore.hideAddTaskDialog()
   // A native show already sent over IPC must finish before hide/destroy.
   await presenting
   try {
@@ -191,8 +196,11 @@ async function close() {
   // The main window keeps its own copy of the preferences this window may have saved.
   await emit('add-window:closed').catch(() => undefined)
   await leave()
-  // Paint the start state before hiding, so the next showing never flashes this one.
+  // The form stays as it was while the panel fades, and empties only once
+  // unseen. Paint that start state before hiding, so the next showing never
+  // flashes this one.
   phase.value = 'hidden'
+  discard()
   await nextFrame()
   await nextFrame()
   try {
@@ -213,17 +221,8 @@ async function leave() {
   if (phase.value !== 'shown') return
   phase.value = 'leaving'
   if (reducedMotion()) return
-  if (framed.value) await new Promise((resolve) => setTimeout(resolve, LEAVE_MS))
-  else if (isMac.value)
-    await invoke('add_window_leave').catch((error: unknown) => logger.warn('AddWindow.leave', error))
-}
-
-/** Resolves once the entrance's transitions have ended or been cancelled. */
-async function entranceFinished() {
-  await nextTick()
-  // Reading the animations flushes styles, so the entrance's have started.
-  const animations = root.value?.getAnimations?.({ subtree: true }) ?? []
-  await Promise.allSettled(animations.map((animation) => animation.finished))
+  if (isMac.value) await invoke('add_window_leave').catch((error: unknown) => logger.warn('AddWindow.leave', error))
+  else await new Promise((resolve) => setTimeout(resolve, LEAVE_MS))
 }
 
 // ── Size ────────────────────────────────────────────────────────────
@@ -349,30 +348,29 @@ watch(
     onCleanup(() => {
       active = false
     })
+    // A close started meanwhile ends this presentation too.
+    const current = () => active && !closing
     phase.value = 'hidden'
-    entering.value = true
     await view.setTitle(`${t('task.new-task')} - Rayburst`).catch(() => undefined)
-    if (!active) return
+    if (!current()) return
     await measureScreen()
-    if (!active) return
+    if (!current()) return
     await nextTick()
-    if (!active) return
+    if (!current()) return
     clearTimeout(settleTimer)
     await applyHeight(fitHeight())
-    if (!active) return
+    if (!current()) return
     const presentation = invoke<void>('add_window_present', { animate: !reducedMotion() }).catch((error: unknown) =>
       logger.warn('AddWindow.present', error),
     )
     presenting = presentation
     await presentation
     if (presenting === presentation) presenting = undefined
-    if (!active) return
+    if (!current()) return
     // Let the shown window paint the panel's start state before it animates.
     await afterReveal()
-    if (!active) return
+    if (!current()) return
     phase.value = 'shown'
-    await entranceFinished()
-    if (active) entering.value = false
   },
   // Invalidate even when a close and reopen occur in the same Vue tick.
   { flush: 'sync' },
@@ -427,7 +425,7 @@ onBeforeUnmount(() => {
   <div
     ref="root"
     class="add-window"
-    :class="[`add-window--${phase}`, { 'add-window--framed': framed, 'add-window--entering': entering }]"
+    :class="[`add-window--${phase}`, { 'add-window--framed': framed, 'add-window--mac': isMac }]"
     :style="rootStyle"
   >
     <div class="add-window-panel">
@@ -453,9 +451,8 @@ onBeforeUnmount(() => {
   flex-direction: column;
   overflow: hidden;
   background: var(--main-bg);
-  transform-origin: 50% 100%;
   transition:
-    opacity var(--add-window-fade) cubic-bezier(0.2, 0, 0, 1),
+    opacity var(--add-window-fade) var(--add-window-ease-enter),
     transform var(--add-window-enter) var(--add-window-ease-enter),
     box-shadow var(--add-window-enter) var(--add-window-ease-enter);
 }
@@ -467,50 +464,30 @@ onBeforeUnmount(() => {
     0 0 0 1px var(--m3-outline-variant);
 }
 
-/* At rest the card lies low and close to the desktop, its shadow tight. */
-.add-window--framed.add-window--hidden .add-window-panel {
+/* The card appears in place. On macOS the window itself fades instead. */
+.add-window:not(.add-window--mac).add-window--hidden .add-window-panel {
   opacity: 0;
-  transform: translateY(14px) scale(0.96);
+  transition: none;
+}
+
+.add-window:not(.add-window--mac).add-window--leaving .add-window-panel {
+  opacity: 0;
+  transition: opacity var(--add-window-leave) var(--add-window-ease-leave);
+}
+
+/* Drawn, it also grows from slightly smaller, its shadow lifting with it. */
+.add-window--framed.add-window--hidden .add-window-panel {
+  transform: scale(0.97);
   box-shadow:
     0 1px 3px var(--m3-shadow),
     0 0 0 1px var(--m3-outline-variant);
-  transition: none;
 }
 
 .add-window--framed.add-window--leaving .add-window-panel {
-  opacity: 0;
-  transform: translateY(6px) scale(0.98);
+  transform: scale(0.98);
   transition:
-    opacity var(--dialog-leave) var(--dialog-ease-leave),
-    transform var(--dialog-leave) var(--dialog-ease-leave);
-}
-
-/* The content follows the card, or on macOS the window, in layers: the
- * links, the settings, then the buttons, each a short rise behind the last. */
-.add-window :deep([data-reveal]) {
-  transition:
-    opacity var(--add-window-layer-enter) cubic-bezier(0.2, 0, 0, 1),
-    transform var(--add-window-layer-enter) var(--add-window-ease-enter);
-}
-
-.add-window :deep([data-reveal='2']) {
-  transition-delay: var(--add-window-layer-delay);
-}
-
-.add-window :deep([data-reveal='3']) {
-  transition-delay: calc(2 * var(--add-window-layer-delay));
-}
-
-/* A rising layer reaches below the content it lands in, which would scroll
- * the card for a moment. The window fits the landed content. */
-.add-window--entering :deep(.n-card-content) {
-  overflow-y: hidden !important;
-}
-
-.add-window--hidden :deep([data-reveal]) {
-  opacity: 0;
-  transform: translateY(6px);
-  transition: none;
+    opacity var(--add-window-leave) var(--add-window-ease-leave),
+    transform var(--add-window-leave) var(--add-window-ease-leave);
 }
 
 .add-window-titlebar {

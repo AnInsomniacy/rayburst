@@ -27,6 +27,7 @@ const bridge = vi.hoisted(() => ({
   destroy: vi.fn(),
   afterReveal: vi.fn(),
   reducedMotion: vi.fn(),
+  reset: vi.fn(),
   resize: () => {},
 }))
 vi.mock('@tauri-apps/api/core', () => ({ invoke: bridge.invoke }))
@@ -55,7 +56,13 @@ vi.mock('@/composables/useWindowReveal', () => ({
 }))
 vi.mock('@shared/logger', () => ({ logger: { warn: vi.fn(), debug: vi.fn() } }))
 vi.mock('@/components/task/AddTask.vue', () => ({
-  default: { name: 'AddTask', props: ['show'], emits: ['close', 'submitted'], template: '<div />' },
+  default: {
+    name: 'AddTask',
+    props: ['show'],
+    emits: ['close', 'submitted'],
+    methods: { reset: bridge.reset },
+    template: '<div />',
+  },
 }))
 vi.mock('@/components/layout/WindowControls.vue', () => ({ default: { template: '<div />' } }))
 vi.mock('@/components/task/TorrentDropOverlay.vue', () => ({ default: { template: '<div />' } }))
@@ -88,7 +95,7 @@ let receive: EventCallback<Inputs>
 let contentHeight = 560
 
 async function mountWindow() {
-  host = shallowMount(AddWindow)
+  host = shallowMount(AddWindow, { global: { stubs: { AddTask: false } } })
   await flushPromises()
   const listener = bridge.listen.mock.calls.find(([event]) => event === 'add-window:inputs')
   if (!listener) throw new Error('Input listener was not registered')
@@ -286,6 +293,23 @@ describe('add-window lifecycle', () => {
     await flushPromises()
     expect(bridge.invoke).not.toHaveBeenCalledWith('add_window_park')
     expect(host?.classes()).toContain('add-window--shown')
+  })
+
+  it('keeps the dismissed form while the panel leaves and empties it once hidden', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    await mountWindow()
+    await open()
+    bridge.reducedMotion.mockReturnValue(false)
+    await close()
+    expect(host?.classes()).toContain('add-window--leaving')
+    expect(store.addTaskVisible).toBe(true)
+    expect(bridge.reset).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(200)
+    await flushPromises()
+    expect(host?.classes()).toContain('add-window--hidden')
+    expect(store.addTaskVisible).toBe(false)
+    expect(bridge.reset).toHaveBeenCalledTimes(1)
+    expect(bridge.invoke).toHaveBeenCalledWith('add_window_park')
   })
 
   it('coalesces repeated close requests and skips layout resizing during the leave animation', async () => {

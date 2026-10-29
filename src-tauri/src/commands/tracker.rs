@@ -19,17 +19,44 @@ pub struct FetchTrackerSourcesResult {
     pub failures: Vec<FailedTrackerSource>,
 }
 
-/// Fetches tracker lists from external source URLs via the Rust HTTP client,
-/// bypassing browser CORS restrictions that block webview-based requests.
+/// Largest accepted tracker list.
+const MAX_TRACKER_LIST_SIZE: u64 = 4 * 1024 * 1024;
+
+/// Fetches tracker lists from external source URLs through the engine.
 ///
 /// Each URL is fetched sequentially (typical source count is 1–5).
 /// Failed URLs are logged individually and captured in `failures`;
 /// successful response bodies are returned in `data`.
 #[tauri::command]
 pub async fn fetch_tracker_sources(
+    app: tauri::AppHandle,
     urls: Vec<String>,
     proxy_server: Option<String>,
 ) -> Result<FetchTrackerSourcesResult, AppError> {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
+    collect_sources(urls, |url| {
+        let request = crate::services::engine_fetch::FetchRequest::small(
+            format!("{url}?t={now}"),
+            proxy_server.clone(),
+            MAX_TRACKER_LIST_SIZE,
+        );
+        let app = app.clone();
+        async move { crate::services::engine_fetch::fetch(&app, &request).await }
+    })
+    .await
+}
+
+async fn collect_sources<F, Fut>(
+    urls: Vec<String>,
+    fetch: F,
+) -> Result<FetchTrackerSourcesResult, AppError>
+where
+    F: Fn(String) -> Fut,
+    Fut: std::future::Future<Output = Result<Vec<u8>, AppError>>,
+{
     if urls.is_empty() {
         return Ok(FetchTrackerSourcesResult {
             data: vec![],
@@ -39,46 +66,12 @@ pub async fn fetch_tracker_sources(
 
     log::info!("TrackerSync: fetching from {} source(s)", urls.len());
 
-    let builder = reqwest::Client::builder().timeout(std::time::Duration::from_secs(30));
-    let client =
-        crate::commands::http_client::apply_explicit_proxy(builder, &proxy_server, "TrackerSync")
-            .build()
-            .map_err(|e| AppError::Io(format!("failed to build HTTP client: {}", e)))?;
-
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis();
-
     let mut data = Vec::new();
     let mut failures = Vec::new();
 
     for url in &urls {
-        let request_url = format!("{}?t={}", url, now);
-        match client.get(&request_url).send().await {
-            Ok(resp) => {
-                let status = resp.status();
-                if !status.is_success() {
-                    let reason = format!("HTTP {}", status.as_u16());
-                    log::warn!("TrackerSync: {} returned {}", url, reason);
-                    failures.push(FailedTrackerSource {
-                        url: url.clone(),
-                        reason,
-                    });
-                    continue;
-                }
-                match resp.text().await {
-                    Ok(body) => data.push(body),
-                    Err(e) => {
-                        let reason = e.to_string();
-                        log::warn!("TrackerSync: failed to read body from {}: {}", url, reason);
-                        failures.push(FailedTrackerSource {
-                            url: url.clone(),
-                            reason,
-                        });
-                    }
-                }
-            }
+        match fetch(url.clone()).await {
+            Ok(body) => data.push(String::from_utf8_lossy(&body).into_owned()),
             Err(e) => {
                 let reason = e.to_string();
                 log::warn!("TrackerSync: failed to fetch {}: {}", url, reason);
@@ -103,26 +96,35 @@ pub async fn fetch_tracker_sources(
 mod tests {
     use super::*;
 
-    // ── fetch_tracker_sources ───────────────────────────────────────
+    // ── collect_sources ─────────────────────────────────────────────
 
     #[test]
     fn test_fetch_empty_urls_returns_empty_result() {
         let rt = tokio::runtime::Runtime::new().expect("create tokio runtime");
         let result = rt
-            .block_on(fetch_tracker_sources(vec![], None))
+            .block_on(collect_sources(vec![], |_| async { Ok(Vec::new()) }))
             .expect("should succeed");
         assert!(result.data.is_empty());
         assert!(result.failures.is_empty());
     }
 
     #[test]
-    fn test_fetch_unreachable_url_returns_failure() {
-        let urls = vec!["http://192.0.2.1:1/trackers.txt".to_string()];
+    fn test_fetch_failures_are_captured_per_source() {
+        let urls = vec![
+            "http://192.0.2.1:1/trackers.txt".to_string(),
+            "https://example.com/best.txt".to_string(),
+        ];
         let rt = tokio::runtime::Runtime::new().expect("create tokio runtime");
         let result = rt
-            .block_on(fetch_tracker_sources(urls, None))
+            .block_on(collect_sources(urls, |url| async move {
+                if url.starts_with("http://192.0.2.1") {
+                    Err(AppError::Io("connection refused".into()))
+                } else {
+                    Ok(b"udp://tracker.example:80/announce\n".to_vec())
+                }
+            }))
             .expect("should succeed — individual failures are captured, not errors");
-        assert!(result.data.is_empty(), "no data from unreachable URL");
+        assert_eq!(result.data, vec!["udp://tracker.example:80/announce\n"]);
         assert_eq!(result.failures.len(), 1);
         assert_eq!(result.failures[0].url, "http://192.0.2.1:1/trackers.txt");
         assert!(
@@ -161,19 +163,5 @@ mod tests {
             .as_array()
             .expect("failures should be array")
             .is_empty());
-    }
-
-    #[test]
-    fn test_fetch_with_empty_proxy_ignores_proxy() {
-        // Should not error when proxy_server is Some("") — treated as no proxy
-        let rt = tokio::runtime::Runtime::new().expect("create tokio runtime");
-        let result = rt
-            .block_on(fetch_tracker_sources(
-                vec!["http://192.0.2.1:1/trackers.txt".to_string()],
-                Some("".to_string()),
-            ))
-            .expect("empty proxy should not cause error");
-        // URL itself will fail, but the command itself should succeed
-        assert_eq!(result.failures.len(), 1);
     }
 }

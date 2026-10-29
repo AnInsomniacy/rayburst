@@ -274,7 +274,8 @@ export const DEFAULT_APP_CONFIG = {
   keepWindowState: false, // first launch has no saved state
 
   autoHideWindow: false,
-  minimizeToTrayOnClose: false, // close=quit is default UX
+  minimizeToTrayOnClose: false, // closing asks by default
+  quitOnClose: false, // the user chose to quit without asking
   hideDockOnMinimize: false, // macOS: hide Dock icon when minimized to tray
   lightweightMode: false, // destroy WebView on minimize-to-tray to free ~300MB RAM
   showProgressBar: true,

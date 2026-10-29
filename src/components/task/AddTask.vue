@@ -751,6 +751,10 @@ async function handleClose(userDismiss = true) {
   }
   draftRequestIds.clear()
   emit('close')
+}
+
+/** Empties the form for the next showing; the window does so once it is hidden. */
+function reset() {
   Object.assign(form.value, {
     uris: '',
     out: '',
@@ -873,7 +877,7 @@ async function handleSubmit() {
     if (failedCount > 0) {
       message.warning(`${failedCount} ${t('task.failed') || 'failed'}`, { closable: true })
     } else {
-      // ── Collect task names BEFORE handleClose clears form state ──
+      // ── Collect task names before the window closes and clears the form ──
       const taskNames: string[] = []
       for (const item of batch.value) {
         if (item.status === 'submitted') {
@@ -959,7 +963,7 @@ const cardStyle = {
   background: 'transparent',
 }
 
-defineExpose({ dismiss: () => handleClose() })
+defineExpose({ dismiss: () => handleClose(), reset })
 </script>
 
 <template>
@@ -971,7 +975,7 @@ defineExpose({ dismiss: () => handleClose() })
       :segmented="{ footer: true }"
     >
       <NForm label-placement="left" label-width="110px">
-        <NTabs ref="tabsRef" data-reveal="1" :value="activeTab" type="line" animated @update:value="activateTab">
+        <NTabs ref="tabsRef" :value="activeTab" type="line" animated @update:value="activateTab">
           <!-- ── URI Tab ──────────────────────────────────────── -->
           <NTabPane :name="ADD_TASK_TYPE.URI" :tab="t('task.uri-task') || 'URL'">
             <div class="tab-pane-content">
@@ -1058,7 +1062,7 @@ defineExpose({ dismiss: () => handleClose() })
         </NTabs>
 
         <!-- ── Download settings: always visible ──────────────── -->
-        <div class="download-settings" data-reveal="2">
+        <div class="download-settings">
           <NFormItem :label="t('task.task-out') + ':'">
             <NInputGroup>
               <NInput v-model:value="filename" :placeholder="t('task.task-out-tips')" :autofocus="false">
@@ -1156,7 +1160,7 @@ defineExpose({ dismiss: () => handleClose() })
         </div>
       </NForm>
       <template #footer>
-        <NSpace justify="end" data-reveal="3">
+        <NSpace justify="end">
           <NButton @click="() => handleClose()">{{ t('app.cancel') }}</NButton>
           <NButton
             data-testid="submit-button"

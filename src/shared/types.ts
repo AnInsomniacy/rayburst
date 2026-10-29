@@ -489,6 +489,7 @@ export interface AppConfig {
   autoCheckUpdate: boolean
   autoHideWindow: boolean
   minimizeToTrayOnClose: boolean
+  quitOnClose: boolean
   hideDockOnMinimize: boolean
   lightweightMode: boolean
   btTrackerAutoSync: boolean

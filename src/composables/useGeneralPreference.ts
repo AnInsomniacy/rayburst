@@ -26,6 +26,7 @@ export interface GeneralForm {
   keepWindowState: boolean
   resumeAllWhenAppLaunched: boolean
   minimizeToTrayOnClose: boolean
+  quitOnClose: boolean
   showTrayIcon: boolean
   hideDockOnMinimize: boolean
   traySpeedometer: boolean
@@ -75,6 +76,7 @@ export function buildGeneralForm(config: AppConfig): GeneralForm {
     keepWindowState: config.keepWindowState,
     resumeAllWhenAppLaunched: config.resumeAllWhenAppLaunched,
     minimizeToTrayOnClose: config.minimizeToTrayOnClose,
+    quitOnClose: config.quitOnClose,
     showTrayIcon: config.showTrayIcon,
     hideDockOnMinimize: config.hideDockOnMinimize,
     traySpeedometer: config.traySpeedometer,

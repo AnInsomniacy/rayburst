@@ -502,8 +502,8 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 /// | Event | Handler |
 /// |-------|--------|
 /// | `CloseRequested` | `Builder::on_window_event()` (see [`run()`]) |
-/// | `ExitRequested` | Here — prevents process death on Wayland force-close |
-/// | `Exit` | Here — engine + UPnP cleanup |
+/// | `ExitRequested` | Here — prevents process death on Wayland force-close, and runs the shutdown off the main thread |
+/// | `Exit` | Here — the shutdown, if `ExitRequested` did not run it |
 /// | `Reopen` | Here — macOS Dock icon restore |
 ///
 /// ### Wayland force-close safety net
@@ -513,6 +513,15 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 /// destroyed, Tauri fires `ExitRequested` with `code: None`.  We intercept
 /// this and call `api.prevent_exit()` when minimize-to-tray is enabled,
 /// keeping the process alive so the tray can recreate the window later.
+///
+/// ### Shutdown off the main thread
+///
+/// Stopping the engine waits for runtime tasks that ask the main thread for
+/// window state. Waited for on the main thread, inside `Exit`, they could
+/// never get it, and quitting from the tray or the Dock hung (#774). An exit
+/// is held back once instead, the shutdown runs on the async runtime while
+/// the main thread keeps serving, and the exit is then repeated. A restart
+/// stops the engine before it asks to exit, so it goes through directly.
 fn handle_run_event(app: &tauri::AppHandle, event: tauri::RunEvent) {
     match event {
         // ── Wayland safety net ────────────────────────────────────────
@@ -529,6 +538,7 @@ fn handle_run_event(app: &tauri::AppHandle, event: tauri::RunEvent) {
             {
                 api.prevent_exit();
                 log::info!("app:exit-prevented reason=secondary-window-closed");
+                return;
             } else if code.is_none() {
                 let should_hide = read_pref_bool(app, "minimizeToTrayOnClose", false);
 
@@ -537,29 +547,29 @@ fn handle_run_event(app: &tauri::AppHandle, event: tauri::RunEvent) {
                 if should_hide {
                     api.prevent_exit();
                     log::info!("app:exit-prevented reason=minimize-to-tray");
+                    return;
                 }
             }
-        }
-        tauri::RunEvent::Exit => {
-            log::info!("app:exit — stopping engine and runtime services");
-
-            if let Some(supervisor) = app.try_state::<engine::supervisor::EngineSupervisor>() {
-                let clear_completed = read_pref_bool(app, "clearCompletedOnExit", false);
-                let _ = tauri::async_runtime::block_on(
-                    supervisor.stop_for_app_exit(app, clear_completed),
-                );
-            }
-            // Stop the extension HTTP API server gracefully.
-            if let Some(api_state) = app.try_state::<services::http_api::HttpApiState>() {
-                let _ = tauri::async_runtime::block_on(async {
-                    tokio::time::timeout(std::time::Duration::from_millis(500), async {
-                        if let Some(handle) = api_state.0.lock().await.take() {
-                            handle.stop().await;
-                        }
-                    })
-                    .await
+            if code != Some(tauri::RESTART_EXIT_CODE)
+                && !SHUTDOWN_STARTED.swap(true, std::sync::atomic::Ordering::SeqCst)
+            {
+                api.prevent_exit();
+                log::info!("app:exit-deferred reason=shutdown");
+                let app = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    shut_down(&app).await;
+                    app.exit(code.unwrap_or(0));
                 });
-                log::info!("http_api: stopped");
+            }
+        }
+        tauri::RunEvent::Exit if !SHUTDOWN_DONE.load(std::sync::atomic::Ordering::SeqCst) => {
+            // Bounded: on the main thread, a task waiting for it must not hang the exit.
+            let finished = tauri::async_runtime::block_on(tokio::time::timeout(
+                std::time::Duration::from_secs(5),
+                shut_down(app),
+            ));
+            if finished.is_err() {
+                log::warn!("app:exit — shutdown timed out");
             }
         }
         #[cfg(target_os = "macos")]
@@ -569,6 +579,29 @@ fn handle_run_event(app: &tauri::AppHandle, event: tauri::RunEvent) {
         }
         _ => {}
     }
+}
+
+static SHUTDOWN_STARTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+static SHUTDOWN_DONE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Stops the engine and the services that outlive it, once.
+async fn shut_down(app: &tauri::AppHandle) {
+    log::info!("app:exit — stopping engine and runtime services");
+    if let Some(supervisor) = app.try_state::<engine::supervisor::EngineSupervisor>() {
+        let clear_completed = read_pref_bool(app, "clearCompletedOnExit", false);
+        let _ = supervisor.stop_for_app_exit(app, clear_completed).await;
+    }
+    // Stop the extension HTTP API server gracefully.
+    if let Some(api_state) = app.try_state::<services::http_api::HttpApiState>() {
+        let _ = tokio::time::timeout(std::time::Duration::from_millis(500), async {
+            if let Some(handle) = api_state.0.lock().await.take() {
+                handle.stop().await;
+            }
+        })
+        .await;
+        log::info!("http_api: stopped");
+    }
+    SHUTDOWN_DONE.store(true, std::sync::atomic::Ordering::SeqCst);
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

@@ -292,13 +292,27 @@ watch(
   },
 )
 
+/** Saves the button the user chose as what closing does from now on. */
+async function rememberCloseAction(action: 'tray' | 'quit') {
+  if (!rememberChoice.value) return
+  preferenceStore.config.minimizeToTrayOnClose = action === 'tray'
+  preferenceStore.config.quitOnClose = action === 'quit'
+  await preferenceStore.savePreference()
+}
+
+/** Closing the main window asks first, unless the user chose to quit directly. */
+function requestClose() {
+  if (isExiting.value) return
+  if (preferenceStore.config.quitOnClose) void quitApp()
+  else showExitDialog.value = true
+}
+
 async function handleExitConfirm() {
-  // Checkbox means "always minimize to tray from now on" —
-  // save the setting even when quitting this time.
-  if (rememberChoice.value) {
-    preferenceStore.config.minimizeToTrayOnClose = true
-    await preferenceStore.savePreference()
-  }
+  await rememberCloseAction('quit')
+  await quitApp()
+}
+
+async function quitApp() {
   isExiting.value = true
   showExitDialog.value = false
   rememberChoice.value = false
@@ -316,10 +330,7 @@ async function handleExitConfirm() {
 }
 
 async function handleMinimizeToTray() {
-  if (rememberChoice.value) {
-    preferenceStore.config.minimizeToTrayOnClose = true
-    await preferenceStore.savePreference()
-  }
+  await rememberCloseAction('tray')
   // Defer window hide until NModal exit animation completes.
   // If we hide immediately, the GPU compositor caches the frame with
   // the dialog still visible, causing a flash when the window re-shows.
@@ -650,10 +661,7 @@ onMounted(async () => {
     // This JS path is a fallback for platforms where the Rust event may
     // not reliably fire (e.g. macOS traffic-light with overlay titlebar).
     if (preferenceStore.config.minimizeToTrayOnClose) return
-    if (!isExiting.value) {
-      rememberChoice.value = !!preferenceStore.config.minimizeToTrayOnClose
-      showExitDialog.value = true
-    }
+    requestClose()
   })
 
   // Rust emits "show-exit-dialog" when the native close is intercepted
@@ -661,11 +669,7 @@ onMounted(async () => {
   // JS onCloseRequested listener on Linux/Wayland with decorations:false,
   // where certain close paths (taskbar close, GNOME overview ×) do not
   // trigger the webview callback.
-  unlistenExitDialog = await listen('show-exit-dialog', () => {
-    if (!isExiting.value) {
-      showExitDialog.value = true
-    }
-  })
+  unlistenExitDialog = await listen('show-exit-dialog', requestClose)
   unlistenAddWindowSubmit = await listen('add-window:submitted', showDownloadsAfterSubmit)
   // The floating window's mode changed from its menu or the tray.
   unlistenFloatMode = await listen<FloatWindowMode>('float-window:mode', ({ payload }) => {
@@ -790,7 +794,7 @@ onUnmounted(() => {
       class="window-controls"
       :is-maximized="isMaximized"
       :platform="currentPlatform"
-      @close="showExitDialog = true"
+      @close="requestClose"
       @maximize-toggled="onMaximizeToggled"
     />
     <footer class="content-footer">
