@@ -125,7 +125,7 @@ pub fn prepare(app: &AppHandle) {
 }
 
 /// Shows the window, placed for this download, once its content is sized.
-/// On macOS the window itself fades in unless `animate` is off; elsewhere the
+/// On macOS the window itself rises in unless `animate` is off; elsewhere the
 /// page animates its panel. Main thread only: placing it reads work areas,
 /// see [`screen_height`].
 pub fn present(app: &AppHandle, animate: bool) -> Result<(), AppError> {
@@ -174,7 +174,7 @@ fn stack_over_main(app: &AppHandle, window: &WebviewWindow) {
 
 /// Gives the window's content `width` × `height` logical pixels, keeping its
 /// top edge. On macOS the window frames its content without a margin and
-/// follows it frame by frame (`motion.rs`).
+/// follows it frame by frame, together with its entrance (`motion.rs`).
 pub fn fit(app: &AppHandle, width: f64, height: f64) -> Result<(), AppError> {
     let window = app
         .get_webview_window(LABEL)
@@ -188,8 +188,8 @@ pub fn fit(app: &AppHandle, width: f64, height: f64) -> Result<(), AppError> {
     Ok(())
 }
 
-/// Lets the window fade before it is put away: on macOS the window itself
-/// fades out, and this returns once it has. Elsewhere the page
+/// Lets the window move away before it is put away: on macOS the window
+/// fades out as it sinks, and this returns once it has. Elsewhere the page
 /// animates its panel and this returns at once.
 pub async fn leave(app: &AppHandle) {
     #[cfg(target_os = "macos")]
@@ -414,7 +414,7 @@ fn open(app: &AppHandle, source: &'static str) {
 /// macOS draws its traffic lights in the window, not in the page's panel, and
 /// they would not follow the panel's margin, motion or interface size. There
 /// the window is framed like the main window: the content fills it, the
-/// system rounds and shadows it, and the window itself fades in and out
+/// system rounds and shadows it, and the window itself moves in and out
 /// (`motion.rs`). Its traffic lights keep the system position, which AppKit
 /// restores whenever it lays out the title bar; a custom one is lost on each
 /// showing (tauri#13044) and redrawn only on resize.

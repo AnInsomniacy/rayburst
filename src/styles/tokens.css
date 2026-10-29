@@ -141,15 +141,49 @@
   --dialog-leave: 170ms;
   --dialog-ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
   --dialog-ease-leave: cubic-bezier(0.4, 0, 1, 1);
-  /* The add window, a window of its own, appears in place: its card fades in
-   * while growing from slightly smaller, and fades out, shrinking a little,
-   * faster than it came. On macOS the window itself only fades, with the same
+  /* The add window, a window of its own, is lifted in: its card rises from
+   * rest with its shadow and settles on a spring that overshoots by under 1%,
+   * its fade lasting most of the rise; its content follows in layers. On
+   * macOS the window itself rises on the cubic fallback, with the same
    * durations (add_window/motion.rs). */
-  --add-window-enter: 220ms;
-  --add-window-fade: 180ms;
-  --add-window-leave: 120ms;
-  --add-window-ease-enter: cubic-bezier(0.2, 0, 0, 1);
-  --add-window-ease-leave: cubic-bezier(0.4, 0, 1, 1);
+  --add-window-enter: 480ms;
+  --add-window-fade: 300ms;
+  --add-window-ease-enter: cubic-bezier(0.25, 0.8, 0.25, 1);
+  --add-window-layer-enter: 360ms;
+  --add-window-layer-delay: 60ms;
+}
+
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    /* A spring damped at ζ 0.83, starting at rest. */
+    --add-window-ease-enter: linear(
+      0,
+      0.049,
+      0.163,
+      0.302,
+      0.443,
+      0.573,
+      0.685,
+      0.776,
+      0.848,
+      0.902,
+      0.941,
+      0.968,
+      0.987,
+      0.998,
+      1.005,
+      1.008,
+      1.009,
+      1.009,
+      1.008,
+      1.007,
+      1.006,
+      1.004,
+      1.003,
+      1.002,
+      1
+    );
+  }
 }
 
 /* ── Dark Theme ────────────────────────────────────────────────────── */

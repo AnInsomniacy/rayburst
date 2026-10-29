@@ -975,7 +975,7 @@ defineExpose({ dismiss: () => handleClose(), reset })
       :segmented="{ footer: true }"
     >
       <NForm label-placement="left" label-width="110px">
-        <NTabs ref="tabsRef" :value="activeTab" type="line" animated @update:value="activateTab">
+        <NTabs ref="tabsRef" data-reveal="1" :value="activeTab" type="line" animated @update:value="activateTab">
           <!-- ── URI Tab ──────────────────────────────────────── -->
           <NTabPane :name="ADD_TASK_TYPE.URI" :tab="t('task.uri-task') || 'URL'">
             <div class="tab-pane-content">
@@ -1062,7 +1062,7 @@ defineExpose({ dismiss: () => handleClose(), reset })
         </NTabs>
 
         <!-- ── Download settings: always visible ──────────────── -->
-        <div class="download-settings">
+        <div class="download-settings" data-reveal="2">
           <NFormItem :label="t('task.task-out') + ':'">
             <NInputGroup>
               <NInput v-model:value="filename" :placeholder="t('task.task-out-tips')" :autofocus="false">
@@ -1160,7 +1160,7 @@ defineExpose({ dismiss: () => handleClose(), reset })
         </div>
       </NForm>
       <template #footer>
-        <NSpace justify="end">
+        <NSpace justify="end" data-reveal="3">
           <NButton @click="() => handleClose()">{{ t('app.cancel') }}</NButton>
           <NButton
             data-testid="submit-button"
