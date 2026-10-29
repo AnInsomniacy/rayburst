@@ -513,6 +513,12 @@ export interface AppConfig {
   notifyOnStart: boolean
   /** OS notification when a download completes or BT enters seeding (gated by taskNotification). */
   notifyOnComplete: boolean
+  /** Play a short sound when a download starts (independent of OS notifications). */
+  soundOnStart: boolean
+  /** Play a short sound when a download completes or BT enters seeding. */
+  soundOnComplete: boolean
+  /** Play a short sound when a download fails. */
+  soundOnError: boolean
   /** When the floating window with speed and progress stays on top (#669, #718, #726). */
   floatWindow: FloatWindowMode
   /** Lightweight mode keeps the floating window in the tray instead of releasing it too. */

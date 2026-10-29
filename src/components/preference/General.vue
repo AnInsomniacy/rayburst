@@ -194,6 +194,24 @@ const selectedNotificationTypes = computed<string[]>({
   },
 })
 // Only Windows reports clicks on notifications.
+const soundTypeOptions = computed(() => [
+  { label: t('preferences.sound-on-start'), value: 'start' },
+  { label: t('preferences.sound-on-complete'), value: 'complete' },
+  { label: t('preferences.sound-on-error'), value: 'error' },
+])
+const selectedSoundTypes = computed<string[]>({
+  get: () => [
+    ...(form.value.soundOnStart ? ['start'] : []),
+    ...(form.value.soundOnComplete ? ['complete'] : []),
+    ...(form.value.soundOnError ? ['error'] : []),
+  ],
+  set: (types) => {
+    const selected = new Set(types)
+    form.value.soundOnStart = selected.has('start')
+    form.value.soundOnComplete = selected.has('complete')
+    form.value.soundOnError = selected.has('error')
+  },
+})
 const notificationClickOptions = computed(() => [
   { value: 'reveal', label: t('preferences.notification-click-reveal') },
   { value: 'open', label: t('preferences.notification-click-open') },
@@ -444,6 +462,9 @@ onMounted(async () => {
           </NFormItem>
           <NotificationAccess />
         </NCollapseTransition>
+        <NFormItem :label="t('preferences.notification-sound')">
+          <PreferenceCheckboxGrid v-model:value="selectedSoundTypes" :options="soundTypeOptions" />
+        </NFormItem>
 
         <!-- ③ Auto Update -->
         <NDivider title-placement="left">{{ t('preferences.auto-update') }}</NDivider>
