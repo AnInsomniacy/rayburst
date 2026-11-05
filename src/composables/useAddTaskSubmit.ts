@@ -10,7 +10,13 @@
 import { mediaEngineOptions, type MediaOptions } from '@shared/utils/media'
 import type { useTaskStore } from '@/stores/task'
 import { isEngineReady } from '@/api/aria2'
-import { parseAria2Input, extractDecodedFilename, type Aria2InputEntry } from '@shared/utils/batchHelpers'
+import {
+  parseAria2Input,
+  extractDecodedFilename,
+  joinInputSubdir,
+  takeInputSubdir,
+  type Aria2InputEntry,
+} from '@shared/utils/batchHelpers'
 import { buildOuts } from '@shared/utils/rename'
 import { logger } from '@shared/logger'
 import type {
@@ -360,6 +366,7 @@ export async function submitManualUris(
 
       if (entry.uris.length > 1) {
         const atomicOptions = { ...entryOptions }
+        const subdir = takeInputSubdir(atomicOptions)
         if (fileCategory?.enabled) {
           const candidate =
             getScalarOption(atomicOptions, 'out') ||
@@ -373,6 +380,7 @@ export async function submitManualUris(
             { urls: entry.uris },
           )
         }
+        atomicOptions.dir = joinInputSubdir(getScalarOption(atomicOptions, 'dir'), subdir)
         await taskStore.addUriAtomic({
           uris: entry.uris,
           options: atomicOptions,
@@ -423,6 +431,6 @@ export async function submitManualUris(
 }
 
 function resolveSubmittedTaskName(uri: string, outHint?: string): string {
-  const out = outHint ?? ''
+  const out = (outHint ?? '').split(/[\\/]/).pop()
   return out || extractDecodedFilename(uri) || uri
 }

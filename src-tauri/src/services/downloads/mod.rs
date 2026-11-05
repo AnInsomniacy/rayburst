@@ -4,6 +4,7 @@ pub mod contracts;
 mod handoff;
 mod native;
 pub(crate) mod preferences;
+mod unreachable;
 
 use crate::aria2::types::Aria2Probe;
 use crate::{
@@ -67,7 +68,8 @@ pub async fn dispatch(app: &AppHandle, mut request: AddRequest) -> Result<AddRes
     }
     let prefs = preferences::load(app)?;
     crate::commands::database_initialize(app.clone()).await?;
-    let options = preferences::options(&prefs, &request)?;
+    let mut options = preferences::options(&prefs, &request)?;
+    preferences::apply_system_proxy(&prefs, std::slice::from_ref(&request.url), &mut options);
     // Shown in the add dialog next to the free space of the chosen folder.
     let mut size = request
         .size
@@ -80,10 +82,11 @@ pub async fn dispatch(app: &AppHandle, mut request: AddRequest) -> Result<AddRes
     {
         let engine = app.state::<TaskServiceState>().0.clone();
         let mut checked = check(&engine, &request.url, options.clone(), &request).await?;
-        // A link behind a page the browser got through, such as a CDN
-        // challenge (rayburst-connect#104), is fetched from the address the
-        // browser's download landed on.
-        if let (Err(FallbackReason::WebPage), Some(landed)) = (&checked, landed(&request)) {
+        // A link the engine cannot fetch itself, such as one behind a CDN
+        // challenge the browser got through (rayburst-connect#104) or one
+        // that refuses a second request (#790), is fetched from the address
+        // the browser's download landed on.
+        if let (Err(_), Some(landed)) = (&checked, landed(&request)) {
             let landed = landed.to_owned();
             let options = for_landed(&request.url, &landed, options.clone());
             if let Ok(probe) = check(&engine, &landed, options, &request).await? {
@@ -98,6 +101,9 @@ pub async fn dispatch(app: &AppHandle, mut request: AddRequest) -> Result<AddRes
             Ok(probe) => probe,
             Err(reason) => {
                 log::info!("downloads: browser keeps the download ({reason:?})");
+                if reason == FallbackReason::Unreachable {
+                    unreachable::tell(app, &request.url, preferences::proxy_on(&prefs));
+                }
                 return Ok(AddResponse::fallback(reason));
             }
         };
@@ -182,6 +188,7 @@ pub async fn preview(
 ) -> Result<Preview, AppError> {
     let prefs = preferences::load(app)?;
     let uris = [url.to_owned()];
+    preferences::apply_system_proxy(&prefs, &uris, &mut options);
     preferences::apply_site_rules(&prefs, &uris, &mut options);
     native::apply_saved_credentials(
         &app.state::<crate::database::DatabaseState>().0,
@@ -378,6 +385,7 @@ pub async fn submit(
         ));
     }
     if let TaskInput::Uris(uris) = &input {
+        preferences::apply_system_proxy(&prefs, uris, &mut options);
         preferences::apply_site_rules(&prefs, uris, &mut options);
     }
     let automatic = if let TaskInput::Uris(uris) = &input {

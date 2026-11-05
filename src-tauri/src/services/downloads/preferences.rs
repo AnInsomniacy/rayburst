@@ -79,9 +79,45 @@ enum SiteProxy {
 #[derive(Default, Deserialize)]
 #[serde(default)]
 struct ProxySettings {
+    mode: String,
     server: String,
     username: Option<String>,
     password: Option<String>,
+    /// What the proxy is for; settings saved before scopes existed use it for everything.
+    scope: Option<Vec<String>>,
+}
+
+/// Whether downloads go through a proxy of the preferences.
+pub(super) fn proxy_on(prefs: &Preferences) -> bool {
+    !matches!(prefs.proxy.mode.as_str(), "" | "direct")
+}
+
+/// Under the `system` proxy setting, a download that names no proxy of its own
+/// goes through the proxy the system names when it starts, as a browser's
+/// request would (#784). Without one it connects directly.
+pub(super) fn apply_system_proxy(prefs: &Preferences, uris: &[String], options: &mut Value) {
+    let proxy = &prefs.proxy;
+    let web = |uri: &String| {
+        url::Url::parse(uri)
+            .is_ok_and(|url| matches!(url.scheme(), "http" | "https" | "ftp" | "sftp"))
+    };
+    if proxy.mode != "system"
+        || !uris.iter().all(web)
+        || proxy
+            .scope
+            .as_ref()
+            .is_some_and(|scope| !scope.iter().any(|scope| scope == "download"))
+        || !options.is_object()
+        || options.get("all-proxy").is_some()
+    {
+        return;
+    }
+    if let Some(system) = crate::commands::proxy::current() {
+        options["all-proxy"] = system.server.into();
+        if !system.bypass.is_empty() {
+            options["no-proxy"] = system.bypass.into();
+        }
+    }
 }
 
 pub(crate) fn load(app: &AppHandle) -> Result<Preferences, AppError> {
@@ -408,6 +444,39 @@ mod tests {
         );
         assert_eq!(direct["all-proxy"], "");
         assert_eq!(apply("https://other.org/a", json!({})), json!({}));
+    }
+
+    #[test]
+    fn the_system_proxy_leaves_downloads_that_choose_their_own() {
+        let prefs = |proxy: Value| -> Preferences {
+            serde_json::from_value(json!({ "proxy": proxy })).unwrap()
+        };
+        let apply = |prefs: &Preferences, uri: &str, options: Value| {
+            let mut options = options;
+            apply_system_proxy(prefs, &[uri.to_owned()], &mut options);
+            options
+        };
+        let system = prefs(json!({"mode":"system","scope":["download"]}));
+        let direct = json!({"all-proxy":""});
+        assert_eq!(
+            apply(&system, "https://a.example/f", direct.clone()),
+            direct
+        );
+        assert_eq!(
+            apply(&system, "magnet:?xt=urn:btih:abc", json!({})),
+            json!({})
+        );
+        for other in [
+            json!({"mode":"manual","server":"http://p:1","scope":["download"]}),
+            json!({"mode":"system","scope":["update-app"]}),
+        ] {
+            assert_eq!(
+                apply(&prefs(other), "https://a.example/f", json!({})),
+                json!({})
+            );
+        }
+        assert!(proxy_on(&system));
+        assert!(!proxy_on(&prefs(json!({}))));
     }
 
     #[test]

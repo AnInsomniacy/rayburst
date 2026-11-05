@@ -133,6 +133,7 @@ vi.mock('@vicons/ionicons5', () => ({
   SwapVerticalOutline: { template: '<i />' },
   ArrowUpOutline: { template: '<i />' },
   ArrowDownOutline: { template: '<i />' },
+  DocumentOutline: { template: '<i />' },
 }))
 
 vi.mock('@tauri-apps/api/core', () => ({

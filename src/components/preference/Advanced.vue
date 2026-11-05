@@ -310,10 +310,16 @@ const {
   resetSnapshot,
 })
 
+/** NVIDIA's proprietary driver freezes WebKitGTK's GPU path (#795). */
+const gpuAccelerationUnstable = ref(false)
+
 onMounted(async () => {
   loadForm()
   resetSnapshot()
   loadPaths()
+  if (isLinux.value) {
+    gpuAccelerationUnstable.value = await invoke<boolean>('gpu_acceleration_unstable').catch(() => false)
+  }
 })
 </script>
 
@@ -589,7 +595,12 @@ onMounted(async () => {
               :hint="t('preferences.gpu-acceleration-hint')"
             />
           </template>
-          <NSwitch v-model:value="form.hardwareRendering" />
+          <div class="gpu-acceleration">
+            <NSwitch v-model:value="form.hardwareRendering" />
+            <span v-if="gpuAccelerationUnstable" class="gpu-acceleration__warning">
+              {{ t('preferences.gpu-acceleration-nvidia') }}
+            </span>
+          </div>
         </NFormItem>
         <NFormItem :label="t('preferences.history-section')">
           <NSpace>
@@ -679,6 +690,17 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+.gpu-acceleration {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.gpu-acceleration__warning {
+  color: var(--m3-warning);
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+}
 .info-link {
   color: var(--m3-primary);
   text-decoration: none;

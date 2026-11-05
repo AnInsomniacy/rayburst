@@ -5,6 +5,7 @@ import type { ClipboardConfig } from '@shared/types'
 
 const allProtocols: ClipboardConfig = {
   enable: true,
+  background: false,
   http: true,
   sftp: true,
   magnet: true,

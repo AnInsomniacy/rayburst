@@ -4,6 +4,7 @@ import {
   buildDownloadProxyOptions,
   buildTaskProxyOptions,
   getDefaultTaskProxyMode,
+  getDownloadProxy,
   normalizeProxyMode,
   proxySwitchValueToMode,
   resolveAppProxyUrl,
@@ -14,9 +15,22 @@ describe('proxyPolicy', () => {
     expect(normalizeProxyMode('auto')).toBe('direct')
   })
 
-  it('uses manual mode when the proxy switch is enabled', () => {
-    expect(proxySwitchValueToMode(true)).toBe('manual')
-    expect(proxySwitchValueToMode(false)).toBe('direct')
+  it('follows the system proxy when switched on without a server', () => {
+    expect(proxySwitchValueToMode(true)).toBe('system')
+    expect(proxySwitchValueToMode(true, 'http://127.0.0.1:7890')).toBe('manual')
+    expect(proxySwitchValueToMode(false, 'http://127.0.0.1:7890')).toBe('direct')
+  })
+
+  it('leaves the system proxy to the backend', () => {
+    const proxy = { mode: 'system' as const, server: 'http://stale:1', scope: ['download', 'update-app'] }
+    expect(normalizeProxyMode('system')).toBe('system')
+    expect(buildDownloadProxyOptions(proxy)['all-proxy']).toBe('')
+    expect(buildTaskProxyOptions('system', '', proxy)).toEqual({})
+    expect(buildTaskProxyOptions('manual', '', proxy)['all-proxy']).toBe('')
+    expect(getDefaultTaskProxyMode(proxy)).toBe('system')
+    expect(getDownloadProxy(proxy)).toBe('system')
+    expect(resolveAppProxyUrl(proxy, PROXY_SCOPES.UPDATE_APP)).toBe('system')
+    expect(resolveAppProxyUrl(proxy, PROXY_SCOPES.UPDATE_TRACKERS)).toBeNull()
   })
 
   it('emits scoped HTTP download options', () => {

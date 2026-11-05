@@ -5,8 +5,14 @@ import type { Aria2EngineOptions, ProxyConfig } from '@shared/types'
 
 // ── Modes ───────────────────────────────────────────────────────────
 
-export const ENGINE_PROXY_MODES = ['direct', 'manual'] as const
+/** `system` follows the proxy the operating system names when a request is
+ * made, as browsers and other download managers do (#784). */
+export const ENGINE_PROXY_MODES = ['direct', 'manual', 'system'] as const
 export type EngineProxyMode = (typeof ENGINE_PROXY_MODES)[number]
+
+/** Stands for the system's proxy in a request the app makes; the backend
+ * resolves it when it connects. */
+export const SYSTEM_PROXY = 'system'
 
 export type TaskProxyMode = EngineProxyMode
 
@@ -14,8 +20,10 @@ export function normalizeProxyMode(mode: unknown): EngineProxyMode {
   return ENGINE_PROXY_MODES.includes(mode as EngineProxyMode) ? (mode as EngineProxyMode) : 'direct'
 }
 
-export function proxySwitchValueToMode(enabled: boolean): EngineProxyMode {
-  return enabled ? 'manual' : 'direct'
+/** Turning the proxy on follows the system's unless a server is already entered. */
+export function proxySwitchValueToMode(enabled: boolean, server = ''): EngineProxyMode {
+  if (!enabled) return 'direct'
+  return server.trim() ? 'manual' : 'system'
 }
 
 // ── URL helpers ─────────────────────────────────────────────────────
@@ -101,9 +109,9 @@ export type AppProxyScope = (typeof PROXY_SCOPES)[keyof typeof PROXY_SCOPES]
 /** Resolves the proxy URL for an app-side request (updater, tracker sync)
  * when the given scope is enabled; `null` means connect directly. */
 export function resolveAppProxyUrl(proxy: Partial<ProxyConfig> | undefined, scope: AppProxyScope): string | null {
-  if (!proxy || proxy.mode !== 'manual') return null
-  if (!proxy.server?.trim()) return null
-  if (!Array.isArray(proxy.scope) || !proxy.scope.includes(scope)) return null
+  if (!proxy || !Array.isArray(proxy.scope) || !proxy.scope.includes(scope)) return null
+  if (proxy.mode === 'system') return SYSTEM_PROXY
+  if (proxy.mode !== 'manual' || !proxy.server?.trim()) return null
   return buildProxyUrlWithCredentials(proxy)
 }
 
@@ -142,6 +150,7 @@ function addProxyCredentials(options: Aria2EngineOptions, username?: string, pas
 
 export function buildDownloadProxyOptions(proxy: ProxyConfig): Aria2EngineOptions {
   const mode = normalizeProxyMode(proxy.mode)
+  // The system's proxy is resolved for each new download, never stored.
   if (mode !== 'manual') return clearDownloadProxyOptions()
 
   const server = proxy.server.trim()
@@ -169,10 +178,16 @@ export function buildTaskProxyOptions(
   customProxyUsername?: string,
   customProxyPassword?: string,
 ): Aria2EngineOptions {
+  // Without proxy options the backend applies the system's proxy.
+  if (mode === 'system') return {}
   if (mode !== 'manual') return clearProxyOptions()
 
   const useCustomProxy = !!customProxy.trim()
-  const server = useCustomProxy ? customProxy.trim() : (appProxy ? getDownloadProxy(appProxy)?.trim() : '') || ''
+  const server = useCustomProxy
+    ? customProxy.trim()
+    : appProxy && isManualDownloadProxy(appProxy)
+      ? appProxy.server.trim()
+      : ''
   if (!server) return clearProxyOptions()
 
   const options: Aria2EngineOptions = {
@@ -193,12 +208,15 @@ export function isManualDownloadProxy(proxy: ProxyConfig): boolean {
   return normalizeProxyMode(proxy.mode) === 'manual' && hasDownloadScope(proxy) && !!proxy.server.trim()
 }
 
+/** The proxy for a request made the way downloads are, such as a remote torrent. */
 export function getDownloadProxy(proxy: ProxyConfig): string | undefined {
+  if (normalizeProxyMode(proxy.mode) === 'system' && hasDownloadScope(proxy)) return SYSTEM_PROXY
   return isManualDownloadProxy(proxy) ? proxy.server : undefined
 }
 
 export function getDefaultTaskProxyMode(proxy: ProxyConfig): TaskProxyMode {
-  return normalizeProxyMode(proxy.mode) === 'manual' && hasDownloadScope(proxy) ? 'manual' : 'direct'
+  const mode = normalizeProxyMode(proxy.mode)
+  return mode !== 'direct' && hasDownloadScope(proxy) ? mode : 'direct'
 }
 
 export function getDefaultTaskProxyServer(proxy: ProxyConfig): string {

@@ -5,7 +5,10 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useTaskStore } from '@/stores/task'
 
-import { batchFinishMedia, saveSession, isEngineReady } from '@/api/aria2'
+import { batchFinishMedia, saveSession, isEngineReady, removeTaskRecord } from '@/api/aria2'
+import { useHistoryStore } from '@/stores/history'
+import { runStaleRecordCleanup } from '@/composables/useStaleCleanup'
+import { extractHistoryFilePaths } from '@/composables/useTaskLifecycle'
 import { TASK_STATUS } from '@shared/constants'
 import type { Aria2Task } from '@shared/types'
 import type { I18nKey } from '@shared/i18nTypes'
@@ -35,6 +38,7 @@ import {
   TrashOutline,
   RefreshOutline,
   CloseOutline,
+  DocumentOutline,
   SwapVerticalOutline,
   ArrowUpOutline,
   ArrowDownOutline,
@@ -374,6 +378,40 @@ function purgeRecord() {
     },
   })
 }
+const purgingMissing = ref(false)
+
+/** Removes the records of completed downloads whose files are gone (#786). */
+async function purgeMissingRecords() {
+  if (purgingMissing.value) return
+  purgingMissing.value = true
+  try {
+    const historyStore = useHistoryStore()
+    const records = await historyStore.getRecords('complete')
+    const removed: string[] = []
+    await runStaleRecordCleanup(
+      records.map((record) => ({
+        gid: record.gid,
+        name: record.name,
+        dir: record.dir ?? '',
+        filePaths: extractHistoryFilePaths(record),
+      })),
+      async (gids) => {
+        await historyStore.removeStaleRecords(gids)
+        removed.push(...gids)
+      },
+    )
+    // Finished downloads the engine still lists would show again.
+    await Promise.allSettled(removed.map((gid) => removeTaskRecord({ gid })))
+    await taskStore.fetchList()
+    message.success(t('task.purge-missing-success', { count: removed.length }))
+  } catch (error) {
+    logger.warn('TaskActions.purgeMissing', getErrorMessage(error))
+    message.error(t('task.purge-record-fail'))
+  } finally {
+    purgingMissing.value = false
+  }
+}
+
 function menuIcon(icon: Component) {
   return () => h(NIcon, null, { default: () => h(icon) })
 }
@@ -511,6 +549,14 @@ const batchOptions = computed<BatchAction[]>(() => {
       icon: menuIcon(TrashOutline),
       disabled: !terminalTasks.value.length,
       action: purgeRecord,
+    })
+  if (showStoppedActions.value)
+    options.push({
+      key: 'purge-missing',
+      label: t('task.purge-missing'),
+      icon: menuIcon(DocumentOutline),
+      disabled: purgingMissing.value || !terminalTasks.value.some((task) => task.status === TASK_STATUS.COMPLETE),
+      action: purgeMissingRecords,
     })
   return options
 })

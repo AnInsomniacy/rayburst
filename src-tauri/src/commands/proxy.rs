@@ -62,6 +62,32 @@ pub fn get_system_proxy() -> Result<Option<SystemProxyDetection>, AppError> {
     })
 }
 
+/// The proxy the system names now, with the bypass entries downloads can
+/// use. The `system` proxy setting resolves to it for each request (#784).
+pub fn current() -> Option<SystemProxyInfo> {
+    match get_system_proxy_impl() {
+        Ok(proxy) => proxy.map(|mut proxy| {
+            proxy.bypass = crate::proxy_bypass::import_system(&proxy.bypass).0;
+            proxy
+        }),
+        Err(error) => {
+            log::warn!("proxy:system unavailable error={error:?}");
+            None
+        }
+    }
+}
+
+/// Stands for the system's proxy where a request names its proxy.
+pub const SYSTEM: &str = "system";
+
+/// The proxy server for a request that names `proxy`, resolving [`SYSTEM`].
+pub fn resolve(proxy: Option<String>) -> Option<String> {
+    if proxy.as_deref().map(str::trim) == Some(SYSTEM) {
+        return current().map(|proxy| proxy.server);
+    }
+    proxy
+}
+
 // ── Platform implementations ────────────────────────────────────────
 
 #[cfg(target_os = "windows")]

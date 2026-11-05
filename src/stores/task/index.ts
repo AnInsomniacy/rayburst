@@ -135,6 +135,9 @@ export const useTaskStore = defineStore('task', () => {
       clearChecked()
       const tab = currentTaskTab()
       if (taskPagination[tab].loaded) refreshCurrentTaskPageCount()
+      // The list keyed by the new tab renders in this tick: give it the tab's
+      // tasks from the last snapshot rather than the previous tab's (#781).
+      if (apiReady) publishSnapshot()
     }
     await fetchList()
   }

@@ -307,6 +307,7 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(database::DatabaseState(std::sync::Arc::new(
         database::Database::unavailable(),
     )));
+    services::clipboard_watch::spawn(app.handle().clone());
     let database_app = app.handle().clone();
     tauri::async_runtime::spawn(async move {
         if let Err(error) = commands::database_initialize(database_app).await {
@@ -757,6 +758,8 @@ pub fn run() {
             commands::minimize_to_tray,
             commands::fetch_tracker_sources,
             commands::is_autostart_launch,
+            commands::gpu_acceleration_unstable,
+            commands::start_file_drag,
             commands::clear_log_file,
             commands::set_app_log_level,
             commands::export_diagnostic_logs,

@@ -358,6 +358,7 @@ pub async fn check_for_update(
         "updater:check channel={channel} proxy={}",
         redact_proxy_for_log(&proxy)
     );
+    let proxy = crate::commands::proxy::resolve(proxy);
     let state = app.state::<Arc<DownloadedUpdate>>();
     let generation = state.check_generation.fetch_add(1, AtomicOrdering::SeqCst) + 1;
     let requested_policy = UpdatePolicy::from_input(&channel);

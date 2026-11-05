@@ -13,5 +13,8 @@
   "notification.ed2k-complete-title": "Download ED2K concluído",
   "notification.error-unknown": "Unknown error",
   "notification.selection-title": "Aguardando seleção de conteúdo",
-  "notification.selection-body": "%{task_name}"
+  "notification.selection-body": "%{task_name}",
+  "notification.browser-kept-title": "Download mantido no navegador",
+  "notification.browser-kept-body": "O Rayburst não conseguiu acessar %{host}.",
+  "notification.browser-kept-proxy-body": "O Rayburst não conseguiu acessar %{host}. Se o navegador usa um proxy, ative o proxy nas configurações de rede do Rayburst."
 }

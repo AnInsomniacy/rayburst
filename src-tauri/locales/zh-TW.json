@@ -13,5 +13,8 @@
   "notification.ed2k-complete-title": "ED2K 下載完成",
   "notification.error-unknown": "未知錯誤",
   "notification.selection-title": "等待選擇下載內容",
-  "notification.selection-body": "%{task_name}"
+  "notification.selection-body": "%{task_name}",
+  "notification.browser-kept-title": "下載已留在瀏覽器",
+  "notification.browser-kept-body": "Rayburst 無法連線到 %{host}。",
+  "notification.browser-kept-proxy-body": "Rayburst 無法連線到 %{host}。如果瀏覽器使用代理，請在 Rayburst 的網路設定中啟用代理。"
 }

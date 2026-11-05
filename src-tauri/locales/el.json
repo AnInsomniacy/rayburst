@@ -13,5 +13,8 @@
   "notification.ed2k-complete-title": "Η ED2K λήψη ολοκληρώθηκε",
   "notification.error-unknown": "Unknown error",
   "notification.selection-title": "Αναμονή επιλογής περιεχομένου",
-  "notification.selection-body": "%{task_name}"
+  "notification.selection-body": "%{task_name}",
+  "notification.browser-kept-title": "Η λήψη έμεινε στο πρόγραμμα περιήγησης",
+  "notification.browser-kept-body": "Το Rayburst δεν μπόρεσε να συνδεθεί στο %{host}.",
+  "notification.browser-kept-proxy-body": "Το Rayburst δεν μπόρεσε να συνδεθεί στο %{host}. Αν το πρόγραμμα περιήγησης χρησιμοποιεί proxy, ενεργοποιήστε το proxy στις ρυθμίσεις δικτύου του Rayburst."
 }

@@ -42,6 +42,8 @@ const props = defineProps<{
   customProxy: string
   customProxyUsername?: string
   customProxyPassword?: string
+  /** Turning the proxy on follows the system's, as the preferences say. */
+  followsSystemProxy?: boolean
   speedLimit?: string
   checksum?: string
   /** A checksum names one file, so it needs exactly one download. */
@@ -230,11 +232,19 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
       </NFormItem>
       <NFormItem :label="t('task.use-proxy') + ':'">
         <NSwitch
-          :value="proxyMode === 'manual'"
-          @update:value="$emit('update:proxyMode', $event ? 'manual' : 'direct')"
+          :value="proxyMode !== 'direct'"
+          @update:value="$emit('update:proxyMode', $event ? (followsSystemProxy ? 'system' : 'manual') : 'direct')"
         />
       </NFormItem>
       <NFormItem label=" " :show-feedback="false" class="proxy-options-item">
+        <NCollapseTransition :show="proxyMode === 'system'">
+          <div class="system-proxy">
+            <span>{{ t('task.proxy-follows-system') }}</span>
+            <NButton text type="primary" size="small" @click="$emit('update:proxyMode', 'manual')">
+              {{ t('task.proxy-custom') }}
+            </NButton>
+          </div>
+        </NCollapseTransition>
         <NCollapseTransition :show="proxyMode === 'manual'">
           <div class="proxy-radio-group">
             <div class="custom-proxy-input">
@@ -358,6 +368,13 @@ const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect(
 }
 
 /* ── Proxy radio group ──────────────────────────────────────────── */
+.system-proxy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-sm);
+  color: var(--m3-on-surface-variant);
+}
 .proxy-radio-group {
   display: flex;
   flex-direction: column;

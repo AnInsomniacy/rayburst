@@ -73,6 +73,27 @@ pub fn download_start(locale: &str, task_name: &str, remaining: usize) -> Native
     }
 }
 
+/// The browser keeps a download because the engine cannot reach `host`.
+pub fn browser_kept(locale: &str, host: &str, proxied: bool) -> NativeMessage {
+    let body = if proxied {
+        rust_i18n::t!(
+            "notification.browser-kept-body",
+            locale = locale,
+            host = host
+        )
+    } else {
+        rust_i18n::t!(
+            "notification.browser-kept-proxy-body",
+            locale = locale,
+            host = host
+        )
+    };
+    NativeMessage {
+        title: rust_i18n::t!("notification.browser-kept-title", locale = locale).into_owned(),
+        body: body.into_owned(),
+    }
+}
+
 pub fn download_complete(locale: &str, task_name: &str) -> NativeMessage {
     NativeMessage {
         title: rust_i18n::t!("notification.download-complete-title", locale = locale).into_owned(),

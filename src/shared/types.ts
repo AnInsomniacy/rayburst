@@ -347,6 +347,9 @@ export type ResolvedUpdateChannel = UpdateChannel
 export interface ClipboardConfig {
   /** Master switch — when false, clipboard detection is fully disabled. */
   enable: boolean
+  /** Links copied while Rayburst is in the background open the add window at
+   *  once, not when its window is next focused (#793). */
+  background: boolean
   /** Detect http:// and https:// URLs. */
   http: boolean
   /** Detect sftp:// URLs. */

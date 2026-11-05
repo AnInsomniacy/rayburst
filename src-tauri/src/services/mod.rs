@@ -17,6 +17,7 @@
 pub mod add_window;
 pub mod aria2_events;
 pub mod bt_blocklist;
+pub mod clipboard_watch;
 pub mod config;
 pub mod deep_link;
 pub mod engine_fetch;

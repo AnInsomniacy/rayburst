@@ -63,6 +63,17 @@ pub fn configure_webview<R: tauri::Runtime>(webview: &tauri::Webview<R>) {
     }
 }
 
+/// Whether NVIDIA's proprietary driver is loaded. WebKitGTK's GPU path often
+/// freezes the interface on it (#795), so the setting warns before turning on.
+pub fn nvidia_driver() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        std::path::Path::new("/proc/driver/nvidia/version").exists()
+    }
+    #[cfg(not(target_os = "linux"))]
+    false
+}
+
 /// What a bug report needs to know about the rendering setup.
 pub fn diagnostics() -> serde_json::Value {
     #[cfg(target_os = "linux")]
@@ -71,6 +82,7 @@ pub fn diagnostics() -> serde_json::Value {
         serde_json::json!({
             "webkitgtk_version": tauri::webview_version().ok(),
             "gpu_acceleration": variable(SOFTWARE[0]).is_none(),
+            "nvidia_driver": nvidia_driver(),
             "GDK_BACKEND": variable("GDK_BACKEND"),
             "XDG_SESSION_TYPE": variable("XDG_SESSION_TYPE"),
         })

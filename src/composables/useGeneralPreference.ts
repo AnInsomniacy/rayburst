@@ -33,6 +33,7 @@ export interface GeneralForm {
   lightweightMode: boolean
   // Links picked up from the clipboard.
   clipboardEnable: boolean
+  clipboardBackground: boolean
   clipboardHttp: boolean
   clipboardSftp: boolean
   clipboardMagnet: boolean
@@ -82,6 +83,7 @@ export function buildGeneralForm(config: AppConfig): GeneralForm {
     traySpeedometer: config.traySpeedometer,
     lightweightMode: config.lightweightMode,
     clipboardEnable: config.clipboard.enable,
+    clipboardBackground: config.clipboard.background,
     clipboardHttp: config.clipboard.http,
     clipboardSftp: config.clipboard.sftp,
     clipboardMagnet: config.clipboard.magnet,
@@ -100,6 +102,7 @@ export function buildGeneralForm(config: AppConfig): GeneralForm {
 export function transformGeneralForStore(form: GeneralForm): Partial<AppConfig> {
   const {
     clipboardEnable,
+    clipboardBackground,
     clipboardHttp,
     clipboardSftp,
     clipboardMagnet,
@@ -113,6 +116,7 @@ export function transformGeneralForStore(form: GeneralForm): Partial<AppConfig> 
     ...rest,
     clipboard: {
       enable: clipboardEnable,
+      background: clipboardBackground,
       http: clipboardHttp,
       sftp: clipboardSftp,
       magnet: clipboardMagnet,

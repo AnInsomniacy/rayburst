@@ -127,6 +127,7 @@ function normalizeClipboard(value: unknown): ClipboardConfig {
   const saved = isRecord(value) ? value : {}
   return {
     enable: typeof saved.enable === 'boolean' ? saved.enable : defaults.enable,
+    background: typeof saved.background === 'boolean' ? saved.background : defaults.background,
     http: typeof saved.http === 'boolean' ? saved.http : defaults.http,
     sftp: typeof saved.sftp === 'boolean' ? saved.sftp : defaults.sftp,
     magnet: typeof saved.magnet === 'boolean' ? saved.magnet : defaults.magnet,

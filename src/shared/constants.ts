@@ -336,6 +336,7 @@ export const DEFAULT_APP_CONFIG = {
   },
   clipboard: {
     enable: true,
+    background: false,
     http: true,
     sftp: true,
     magnet: true,

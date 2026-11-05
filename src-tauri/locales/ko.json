@@ -13,5 +13,8 @@
   "notification.ed2k-complete-title": "ED2K 다운로드 완료",
   "notification.error-unknown": "알 수 없는 오류",
   "notification.selection-title": "콘텐츠 선택 대기 중",
-  "notification.selection-body": "%{task_name}"
+  "notification.selection-body": "%{task_name}",
+  "notification.browser-kept-title": "다운로드를 브라우저에 두었습니다",
+  "notification.browser-kept-body": "Rayburst가 %{host}에 연결할 수 없습니다.",
+  "notification.browser-kept-proxy-body": "Rayburst가 %{host}에 연결할 수 없습니다. 브라우저가 프록시를 사용한다면 Rayburst 네트워크 설정에서 프록시를 켜세요."
 }

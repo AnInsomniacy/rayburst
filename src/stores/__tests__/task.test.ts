@@ -221,6 +221,15 @@ describe('TaskStore', () => {
     expect(store.isCurrentListEmpty).toBe(false)
   })
 
+  it('shows the new tab from the last snapshot before the refresh returns', async () => {
+    mockApi.fetchTaskList.mockResolvedValue([makeMockTask('active')])
+    await store.changeCurrentList('progress')
+    expect(store.taskList.map((task) => task.gid)).toEqual(['active'])
+    const pending = store.changeCurrentList('failed')
+    expect(store.taskList).toEqual([])
+    await pending
+  })
+
   it('updates the empty state when the last task disappears and a new task arrives', async () => {
     await store.fetchList()
     mockApi.fetchTaskList.mockResolvedValue([])
@@ -579,12 +588,11 @@ describe('TaskStore', () => {
 
   // ─── changeCurrentList ──────────────────────────────────
 
-  it('changeCurrentList keeps the current list visible until the target tab data arrives', async () => {
+  it('changeCurrentList loads the records of the target tab', async () => {
     store.taskList = [makeMockTask('old')]
-    mockHistoryFns.getRecords.mockImplementationOnce(async () => {
-      expect(store.taskList.map((task) => task.gid)).toEqual(['old'])
-      return [{ gid: 'fresh', name: 'fresh.zip', status: 'complete' } as HistoryRecord]
-    })
+    mockHistoryFns.getRecords.mockResolvedValueOnce([
+      { gid: 'fresh', name: 'fresh.zip', status: 'complete' } as HistoryRecord,
+    ])
     mockApi.fetchTaskList.mockResolvedValueOnce([])
 
     await store.changeCurrentList('completed')

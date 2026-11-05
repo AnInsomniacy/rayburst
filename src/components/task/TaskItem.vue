@@ -3,7 +3,8 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { TASK_STATUS } from '@shared/constants'
-import { NProgress, NIcon } from 'naive-ui'
+import { NIcon } from 'naive-ui'
+import LinearProgress from '@/components/common/LinearProgress.vue'
 import MTooltip from '@/components/common/MTooltip.vue'
 import {
   ArrowUpOutline,
@@ -19,7 +20,7 @@ import {
   ListOutline,
 } from '@vicons/ionicons5'
 import { useTaskCardModel } from '@/composables/useTaskCardModel'
-import { canOpenTaskContent } from '@/composables/useTaskContentOpen'
+import { canOpenTaskContent, dragTaskContent } from '@/composables/useTaskContentOpen'
 import { useTaskFileMissing } from '@/composables/useTaskFileMissing'
 import TaskDragHandle from './TaskDragHandle.vue'
 import TaskItemActions from './TaskItemActions.vue'
@@ -119,6 +120,10 @@ const statusBadgeIcon = computed(() => {
 })
 
 const { fileMissing, fileState } = useTaskFileMissing(taskRef)
+// The rail orders the list; the rest of a finished card drags its file out.
+const contentDraggable = computed(
+  () => !fileMissing.value && !props.actionPending && (props.task.status === TASK_STATUS.COMPLETE || isSharing.value),
+)
 </script>
 
 <template>
@@ -130,7 +135,7 @@ const { fileMissing, fileState } = useTaskFileMissing(taskRef)
     @dblclick="!fileMissing && !actionPending && canOpenTaskContent(task, $event) && emit('open-file', task)"
   >
     <TaskDragHandle class="task-drag-rail" />
-    <div class="task-body">
+    <div class="task-body" :draggable="contentDraggable" @dragstart="dragTaskContent(task, $event)">
       <div class="task-header">
         <MTooltip placement="bottom-start">
           <template #trigger>
@@ -178,17 +183,7 @@ const { fileMissing, fileState } = useTaskFileMissing(taskRef)
         </div>
       </div>
       <div class="task-progress">
-        <NProgress
-          v-if="!indeterminate"
-          type="line"
-          :percentage="percent"
-          :color="progressColor"
-          :rail-color="undefined"
-          :height="6"
-          :border-radius="3"
-          :show-indicator="false"
-          :processing="isActive"
-        />
+        <LinearProgress v-if="!indeterminate" :percentage="percent" :color="progressColor" :height="6" />
         <div class="task-progress-info">
           <div class="progress-left" :class="{ 'info-hidden': !hasSizeInfo }">
             <span>{{ indeterminate ? '' : `${percent}% · ` }}{{ completedSize }} / {{ totalSize }}</span>
@@ -318,12 +313,6 @@ const { fileMissing, fileState } = useTaskFileMissing(taskRef)
     opacity: 0.9;
     transform: translateY(0);
   }
-}
-/* M3 progress-bar transition between semantic status colors. */
-.task-progress :deep(.n-progress-graph-line-fill) {
-  transition:
-    max-width var(--task-motion-progress) var(--task-motion-ease),
-    background-color var(--task-motion-state) var(--task-motion-ease);
 }
 .task-progress {
   margin-top: 10px;

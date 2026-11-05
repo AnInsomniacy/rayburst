@@ -26,7 +26,6 @@ vi.mock('naive-ui', async (importOriginal) => {
   const { NEllipsis } = await importOriginal<typeof import('naive-ui')>()
   return {
     NEllipsis,
-    NProgress: { template: '<div class="progress-stub" />' },
     NIcon: { template: '<span><slot /></span>' },
     NTooltip: { template: '<span><slot name="trigger" /><slot /></span>' },
   }
@@ -207,7 +206,7 @@ describe('TaskItem', () => {
     })
 
     expect(wrapper.get('.compact-progress').element).toBe(progress)
-    expect(wrapper.get('.compact-progress').attributes('percentage')).toBe('100')
+    expect(wrapper.get('.compact-progress').attributes('aria-valuenow')).toBe('100')
     expect(wrapper.get('.compact-percent').text()).toBe('100%')
     expect(wrapper.get('.compact-meta').text()).toContain('100.00 MB / 100.00 MB')
     expect(wrapper.get('.compact-status').text()).toBe('task.seeding')

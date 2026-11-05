@@ -13,5 +13,8 @@
   "notification.ed2k-complete-title": "ED2K indirmesi tamamlandı",
   "notification.error-unknown": "Unknown error",
   "notification.selection-title": "İçerik seçimi bekleniyor",
-  "notification.selection-body": "%{task_name}"
+  "notification.selection-body": "%{task_name}",
+  "notification.browser-kept-title": "İndirme tarayıcıda kaldı",
+  "notification.browser-kept-body": "Rayburst %{host} adresine ulaşamadı.",
+  "notification.browser-kept-proxy-body": "Rayburst %{host} adresine ulaşamadı. Tarayıcı bir proxy kullanıyorsa Rayburst’ün ağ ayarlarında proxy’yi açın."
 }

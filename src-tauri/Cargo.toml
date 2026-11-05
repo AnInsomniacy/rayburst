@@ -58,6 +58,7 @@ chrono = "0.4"
 trash = "5"
 notify = "8.1"
 dunce = "1"
+drag = "2.1"
 os_info = "3"
 sys-locale = "0.3"
 rusqlite = { version = "0.31", features = ["bundled"] }
@@ -78,6 +79,7 @@ windows-sys = { version = "0.59", features = [
     "Win32_System_Registry",
     "Win32_System_Threading",
     "Win32_Storage_FileSystem",
+    "Win32_System_DataExchange",
     "Win32_System_Diagnostics_ToolHelp",
     "Win32_UI_HiDpi",
     "Win32_UI_Shell",
@@ -105,7 +107,7 @@ zbus = { version = "5", default-features = false, features = ["tokio"] }
 keepawake = "0.6"
 objc2 = "0.6"
 block2 = "0.6"
-objc2-app-kit = { version = "0.3", features = ["NSWorkspace", "NSDockTile", "NSApplication", "NSAnimation", "NSAnimationContext", "NSResponder", "NSWindow", "block2", "objc2-core-foundation", "objc2-quartz-core"] }
+objc2-app-kit = { version = "0.3", features = ["NSWorkspace", "NSDockTile", "NSPasteboard", "NSApplication", "NSAnimation", "NSAnimationContext", "NSResponder", "NSWindow", "block2", "objc2-core-foundation", "objc2-quartz-core"] }
 objc2-foundation = { version = "0.3", features = ["NSURL", "NSString", "NSBundle"] }
 objc2-quartz-core = { version = "0.3", features = ["CAMediaTimingFunction"] }
 core-foundation = "0.10"

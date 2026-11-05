@@ -3,11 +3,12 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { TASK_STATUS } from '@shared/constants'
-import { NEllipsis, NIcon, NProgress } from 'naive-ui'
+import { NEllipsis, NIcon } from 'naive-ui'
+import LinearProgress from '@/components/common/LinearProgress.vue'
 import MTooltip, { TOOLTIP_DEFAULTS } from '@/components/common/MTooltip.vue'
 import { ArrowDownOutline, ArrowUpOutline, AlertCircleOutline, RadioOutline, TimeOutline } from '@vicons/ionicons5'
 import { useTaskCardModel } from '@/composables/useTaskCardModel'
-import { canOpenTaskContent } from '@/composables/useTaskContentOpen'
+import { canOpenTaskContent, dragTaskContent } from '@/composables/useTaskContentOpen'
 import { useTaskFileMissing } from '@/composables/useTaskFileMissing'
 import TaskDragHandle from './TaskDragHandle.vue'
 import TaskItemActions from './TaskItemActions.vue'
@@ -52,6 +53,10 @@ const {
   transferSummary,
 } = useTaskCardModel(taskRef)
 const { fileMissing, fileState } = useTaskFileMissing(taskRef)
+// The rail orders the list; the rest of a finished card drags its file out.
+const contentDraggable = computed(
+  () => !fileMissing.value && !props.actionPending && (props.task.status === TASK_STATUS.COMPLETE || isSharing.value),
+)
 
 const statusColorMap: Record<string, string> = {
   active: 'var(--m3-status-active)',
@@ -97,7 +102,7 @@ const compactStatus = computed<{ label: string; tone: string; icon: Component } 
     @dblclick="!fileMissing && !actionPending && canOpenTaskContent(task, $event) && emit('open-file', task)"
   >
     <TaskDragHandle class="compact-drag-rail" />
-    <div class="compact-body">
+    <div class="compact-body" :draggable="contentDraggable" @dragstart="dragTaskContent(task, $event)">
       <div class="compact-header">
         <MTooltip placement="bottom-start">
           <template #trigger>
@@ -128,17 +133,12 @@ const compactStatus = computed<{ label: string; tone: string; icon: Component } 
         />
       </div>
       <div class="compact-progress-row">
-        <NProgress
+        <LinearProgress
           v-if="!indeterminate"
           class="compact-progress"
-          type="line"
           :percentage="percent"
           :color="progressColor"
-          :rail-color="undefined"
           :height="5"
-          :border-radius="3"
-          :show-indicator="false"
-          :processing="isActive"
         />
         <span v-if="!indeterminate" class="compact-percent">{{ indeterminate ? '—' : `${percent}%` }}</span>
         <div class="compact-meta">
@@ -244,11 +244,6 @@ const compactStatus = computed<{ label: string; tone: string; icon: Component } 
   line-height: 14px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-}
-.compact-progress :deep(.n-progress-graph-line-fill) {
-  transition:
-    max-width var(--task-motion-progress) var(--task-motion-ease),
-    background-color var(--task-motion-state) var(--task-motion-ease);
 }
 .compact-meta {
   min-width: 0;

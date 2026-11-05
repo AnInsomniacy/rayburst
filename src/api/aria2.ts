@@ -28,7 +28,7 @@ import type {
 } from '@shared/types'
 import { logger } from '@shared/logger'
 import { resolveDownloadDir } from '@shared/utils/fileCategory'
-import { extractDecodedFilename } from '@shared/utils/batchHelpers'
+import { extractDecodedFilename, joinInputSubdir, takeInputSubdir } from '@shared/utils/batchHelpers'
 import { summarizeAria2Options, summarizeExternalInput } from '@shared/utils/externalInputDiagnostics'
 import { useEngineStore } from '@/stores/engine'
 import { getActivePinia } from 'pinia'
@@ -158,6 +158,7 @@ export async function addUri(params: {
   const tasks = uris.map(async (uri, index) => {
     const opts: Record<string, string> = { ...engineOptions }
     if (outs[index]) opts.out = outs[index]
+    const subdir = takeInputSubdir(opts)
 
     // Smart file classification: resolve per-URI download directory
     if (fileCategory?.enabled && fileCategory.categories.length > 0) {
@@ -178,6 +179,7 @@ export async function addUri(params: {
       )
     }
 
+    if (opts.dir) opts.dir = joinInputSubdir(opts.dir, subdir)
     return invoke<string>('aria2_add_uri', {
       uris: [uri],
       options: opts,

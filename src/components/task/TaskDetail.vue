@@ -215,6 +215,8 @@ const allTabs: TabDef[] = [
 ]
 
 const isTerminal = computed(() => ['complete', 'error', 'removed'].includes(props.task?.status ?? ''))
+/** A failed download keeps its options page to retry from another source (#548). */
+const retriesFromSource = computed(() => props.task?.status === 'error' && optCanReplaceUri.value)
 
 const visibleTabs = computed(() =>
   allTabs.filter(
@@ -223,7 +225,7 @@ const visibleTabs = computed(() =>
       (!tab.btOnly || isBT.value) &&
       (!tab.protocolOnly || isBT.value || isED2K.value) &&
       (!tab.uriOnly || isURI.value || (tab.key === 'options' && Boolean(props.task?.media))) &&
-      (!tab.liveOnly || !isTerminal.value),
+      (!tab.liveOnly || !isTerminal.value || (tab.key === 'options' && retriesFromSource.value)),
   ),
 )
 
@@ -637,106 +639,108 @@ async function onFileRenamed() {
                   :placeholder="t('task.speed-limit-unlimited')"
                 />
               </NFormItem>
-              <NFormItem :label="t('task.task-user-agent') + ':'">
-                <NInputGroup class="detail-ua-row">
+              <template v-if="!isTerminal">
+                <NFormItem :label="t('task.task-user-agent') + ':'">
+                  <NInputGroup class="detail-ua-row">
+                    <NInput
+                      v-model:value="optForm.userAgent"
+                      type="textarea"
+                      :autosize="{ minRows: 1, maxRows: 3 }"
+                      :readonly="!optCanModify"
+                      :placeholder="t('task.task-user-agent-placeholder') || ''"
+                    />
+                    <UserAgentPopover
+                      :url="taskPrimaryUrl"
+                      :profiles="preferenceStore.config.userAgentProfiles"
+                      :rules="preferenceStore.config.userAgentRules"
+                      :recent-profile-ids="preferenceStore.config.recentUserAgentProfileIds"
+                      :disabled="!optCanModify"
+                      @select="selectTaskUserAgentProfile"
+                    />
+                  </NInputGroup>
+                </NFormItem>
+                <NFormItem :label="t('task.task-authorization') + ':'">
                   <NInput
-                    v-model:value="optForm.userAgent"
+                    v-model:value="optForm.authorization"
                     type="textarea"
                     :autosize="{ minRows: 1, maxRows: 3 }"
                     :readonly="!optCanModify"
-                    :placeholder="t('task.task-user-agent-placeholder') || ''"
+                    :placeholder="t('task.task-authorization-placeholder') || ''"
                   />
-                  <UserAgentPopover
-                    :url="taskPrimaryUrl"
-                    :profiles="preferenceStore.config.userAgentProfiles"
-                    :rules="preferenceStore.config.userAgentRules"
-                    :recent-profile-ids="preferenceStore.config.recentUserAgentProfileIds"
-                    :disabled="!optCanModify"
-                    @select="selectTaskUserAgentProfile"
-                  />
-                </NInputGroup>
-              </NFormItem>
-              <NFormItem :label="t('task.task-authorization') + ':'">
-                <NInput
-                  v-model:value="optForm.authorization"
-                  type="textarea"
-                  :autosize="{ minRows: 1, maxRows: 3 }"
-                  :readonly="!optCanModify"
-                  :placeholder="t('task.task-authorization-placeholder') || ''"
-                />
-              </NFormItem>
-              <NFormItem :label="t('task.task-http-auth') + ':'">
-                <div class="http-auth-fields">
-                  <NInput
-                    v-model:value="optForm.httpAuthUsername"
-                    :readonly="!optCanModify"
-                    :placeholder="t('task.task-http-auth-username-placeholder') || ''"
-                  />
-                  <NInput
-                    v-model:value="optForm.httpAuthPassword"
-                    type="password"
-                    show-password-on="click"
-                    :readonly="!optCanModify"
-                    :placeholder="t('task.task-http-auth-password-placeholder') || ''"
-                  />
-                </div>
-              </NFormItem>
-              <NFormItem :label="t('task.task-referer') + ':'">
-                <NInput
-                  v-model:value="optForm.referer"
-                  type="textarea"
-                  :autosize="{ minRows: 1, maxRows: 3 }"
-                  :readonly="!optCanModify"
-                  :placeholder="t('task.task-referer-placeholder') || ''"
-                />
-              </NFormItem>
-              <NFormItem :label="t('task.task-cookie') + ':'">
-                <NInput
-                  v-model:value="optForm.cookie"
-                  type="textarea"
-                  :autosize="{ minRows: 1, maxRows: 3 }"
-                  :readonly="!optCanModify"
-                  :placeholder="t('task.task-cookie-placeholder') || ''"
-                />
-              </NFormItem>
-              <NFormItem :label="t('task.use-proxy') + ':'">
-                <NSwitch
-                  :value="optForm.proxyMode === 'manual'"
-                  :disabled="!optCanModify"
-                  @update:value="optForm.proxyMode = $event ? 'manual' : 'direct'"
-                />
-              </NFormItem>
-              <NFormItem label=" " :show-feedback="false" class="proxy-options-item">
-                <NCollapseTransition :show="optForm.proxyMode === 'manual'">
-                  <div class="proxy-radio-group">
-                    <div class="custom-proxy-input">
-                      <NInput
-                        v-model:value="optForm.customProxy"
-                        :readonly="!optCanModify"
-                        :placeholder="'http://host:port'"
-                      />
-                      <NInput
-                        v-model:value="optForm.customProxyUsername"
-                        :readonly="!optCanModify"
-                        :placeholder="t('preferences.proxy-username') || ''"
-                      />
-                      <NInput
-                        v-model:value="optForm.customProxyPassword"
-                        type="password"
-                        show-password-on="click"
-                        :readonly="!optCanModify"
-                        :placeholder="t('preferences.proxy-password') || ''"
-                      />
-                      <NButton :loading="detectingProxy" :disabled="!optCanModify" size="small" @click="detectProxy">
-                        <template #icon>
-                          <NIcon><SearchOutline /></NIcon>
-                        </template>
-                        {{ t('preferences.detect-system-proxy') }}
-                      </NButton>
-                    </div>
+                </NFormItem>
+                <NFormItem :label="t('task.task-http-auth') + ':'">
+                  <div class="http-auth-fields">
+                    <NInput
+                      v-model:value="optForm.httpAuthUsername"
+                      :readonly="!optCanModify"
+                      :placeholder="t('task.task-http-auth-username-placeholder') || ''"
+                    />
+                    <NInput
+                      v-model:value="optForm.httpAuthPassword"
+                      type="password"
+                      show-password-on="click"
+                      :readonly="!optCanModify"
+                      :placeholder="t('task.task-http-auth-password-placeholder') || ''"
+                    />
                   </div>
-                </NCollapseTransition>
-              </NFormItem>
+                </NFormItem>
+                <NFormItem :label="t('task.task-referer') + ':'">
+                  <NInput
+                    v-model:value="optForm.referer"
+                    type="textarea"
+                    :autosize="{ minRows: 1, maxRows: 3 }"
+                    :readonly="!optCanModify"
+                    :placeholder="t('task.task-referer-placeholder') || ''"
+                  />
+                </NFormItem>
+                <NFormItem :label="t('task.task-cookie') + ':'">
+                  <NInput
+                    v-model:value="optForm.cookie"
+                    type="textarea"
+                    :autosize="{ minRows: 1, maxRows: 3 }"
+                    :readonly="!optCanModify"
+                    :placeholder="t('task.task-cookie-placeholder') || ''"
+                  />
+                </NFormItem>
+                <NFormItem :label="t('task.use-proxy') + ':'">
+                  <NSwitch
+                    :value="optForm.proxyMode === 'manual'"
+                    :disabled="!optCanModify"
+                    @update:value="optForm.proxyMode = $event ? 'manual' : 'direct'"
+                  />
+                </NFormItem>
+                <NFormItem label=" " :show-feedback="false" class="proxy-options-item">
+                  <NCollapseTransition :show="optForm.proxyMode === 'manual'">
+                    <div class="proxy-radio-group">
+                      <div class="custom-proxy-input">
+                        <NInput
+                          v-model:value="optForm.customProxy"
+                          :readonly="!optCanModify"
+                          :placeholder="'http://host:port'"
+                        />
+                        <NInput
+                          v-model:value="optForm.customProxyUsername"
+                          :readonly="!optCanModify"
+                          :placeholder="t('preferences.proxy-username') || ''"
+                        />
+                        <NInput
+                          v-model:value="optForm.customProxyPassword"
+                          type="password"
+                          show-password-on="click"
+                          :readonly="!optCanModify"
+                          :placeholder="t('preferences.proxy-password') || ''"
+                        />
+                        <NButton :loading="detectingProxy" :disabled="!optCanModify" size="small" @click="detectProxy">
+                          <template #icon>
+                            <NIcon><SearchOutline /></NIcon>
+                          </template>
+                          {{ t('preferences.detect-system-proxy') }}
+                        </NButton>
+                      </div>
+                    </div>
+                  </NCollapseTransition>
+                </NFormItem>
+              </template>
               <div v-if="optCanModify || optCanReplaceUri" class="options-apply-bar">
                 <NButton
                   :type="optDirty ? 'primary' : 'default'"

@@ -9,7 +9,7 @@ import { usePreferenceNumericValidation } from '@/composables/usePreferenceNumer
 import { useSystemProxyDetect } from '@/composables/useSystemProxyDetect'
 import { getErrorMessage } from '@shared/utils/errorMessage'
 import { useAppMessage } from '@/composables/useAppMessage'
-import { PROXY_SCOPE_OPTIONS } from '@shared/constants'
+import { PROXY_SCOPE_OPTIONS, PROXY_SCOPES } from '@shared/constants'
 import {
   buildNetworkForm,
   buildNetworkSystemConfig,
@@ -29,6 +29,8 @@ import {
   NInputGroup,
   NSwitch,
   NSelect,
+  NRadioGroup,
+  NRadioButton,
   NButton,
   NButtonGroup,
   NDivider,
@@ -57,17 +59,19 @@ const proxyScopeOptions = PROXY_SCOPE_OPTIONS.map((s: string) => ({
   value: s,
 }))
 
+// BitTorrent's proxy is set once for the engine, so it cannot follow the system's.
+const systemProxyScopeOptions = proxyScopeOptions.filter((option) => option.value !== PROXY_SCOPES.BITTORRENT)
+
 // ── Proxy detection ─────────────────────────────────────────────────
 const { detecting: detectingProxy, detect: detectProxy } = useSystemProxyDetect({
   onSuccess(info) {
     form.value.proxy.server = info.server
     form.value.proxy.bypass = info.bypass
     form.value.proxy.mode = 'manual'
+    // Rules such as Windows' <local> have no equivalent for downloads; leaving
+    // them out is the import working, not something to fix (#782).
     if (info.unsupportedBypass.length) {
-      message.warning(t('preferences.proxy-import-unsupported', { rules: info.unsupportedBypass.join(', ') }), {
-        closable: true,
-        duration: 0,
-      })
+      message.info(t('preferences.proxy-import-skipped', { rules: info.unsupportedBypass.join(', ') }))
     } else message.success(t('preferences.proxy-detected-success'))
   },
   onNotFound() {
@@ -137,7 +141,7 @@ async function handleUserAgentManagerSave(payload: {
 }
 
 function handleProxySwitch(value: boolean) {
-  form.value.proxy.mode = proxySwitchValueToMode(value)
+  form.value.proxy.mode = proxySwitchValueToMode(value, form.value.proxy.server)
 }
 
 onMounted(() => {
@@ -158,9 +162,21 @@ onMounted(() => {
           </template>
           <NSwitch :value="form.proxy.mode !== 'direct'" @update:value="handleProxySwitch" />
         </NFormItem>
-        <div class="proxy-collapse" :class="{ 'proxy-collapse--open': form.proxy.mode === 'manual' }">
+        <div class="proxy-collapse" :class="{ 'proxy-collapse--open': form.proxy.mode !== 'direct' }">
           <div class="proxy-collapse__inner collapse-indent">
             <NFormItem>
+              <template #label>
+                <PreferenceHintLabel
+                  :label="t('preferences.proxy-source')"
+                  :hint="t('preferences.proxy-source-system-hint')"
+                />
+              </template>
+              <NRadioGroup v-model:value="form.proxy.mode" size="small">
+                <NRadioButton value="system">{{ t('preferences.proxy-source-system') }}</NRadioButton>
+                <NRadioButton value="manual">{{ t('preferences.proxy-source-manual') }}</NRadioButton>
+              </NRadioGroup>
+            </NFormItem>
+            <NFormItem v-if="form.proxy.mode === 'manual'">
               <template #label>
                 <PreferenceHintLabel
                   :label="t('preferences.proxy-server')"
@@ -181,13 +197,13 @@ onMounted(() => {
                 </NButton>
               </NInputGroup>
             </NFormItem>
-            <NFormItem :label="t('preferences.proxy-username')">
+            <NFormItem v-if="form.proxy.mode === 'manual'" :label="t('preferences.proxy-username')">
               <NInput v-model:value="form.proxy.username" />
             </NFormItem>
-            <NFormItem :label="t('preferences.proxy-password')">
+            <NFormItem v-if="form.proxy.mode === 'manual'" :label="t('preferences.proxy-password')">
               <NInput v-model:value="form.proxy.password" type="password" show-password-on="click" />
             </NFormItem>
-            <NFormItem :label="t('preferences.proxy-bypass')">
+            <NFormItem v-if="form.proxy.mode === 'manual'" :label="t('preferences.proxy-bypass')">
               <NInput
                 v-model:value="form.proxy.bypass"
                 type="textarea"
@@ -198,7 +214,7 @@ onMounted(() => {
             <NFormItem :label="t('preferences.proxy-scope')">
               <NSelect
                 v-model:value="form.proxy.scope"
-                :options="proxyScopeOptions"
+                :options="form.proxy.mode === 'system' ? systemProxyScopeOptions : proxyScopeOptions"
                 multiple
                 class="pref-control-full"
               />

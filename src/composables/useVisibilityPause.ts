@@ -31,15 +31,46 @@ const PAUSED_CLASS = 'animations-paused'
  * lifecycle hooks (`onMounted` / `onUnmounted`) attach correctly.
  */
 export function useVisibilityPause(): void {
+  let windowHidden = false
+  let mounted = false
+  let unlisten: Array<() => void> = []
+
+  function apply(): void {
+    document.documentElement.classList.toggle(PAUSED_CLASS, document.hidden || windowHidden)
+  }
+
   function onVisibilityChange(): void {
-    document.documentElement.classList.toggle(PAUSED_CLASS, document.hidden)
+    apply()
+  }
+
+  // WebView2 can keep reporting a minimized or tray-hidden window's page as
+  // visible, so the window's own state counts too (#799).
+  async function watchWindow(): Promise<void> {
+    try {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window')
+      const appWindow = getCurrentWindow()
+      const check = async () => {
+        windowHidden = (await appWindow.isMinimized()) || !(await appWindow.isVisible())
+        if (mounted) apply()
+      }
+      const listeners = await Promise.all([appWindow.onResized(check), appWindow.onFocusChanged(check)])
+      if (mounted) unlisten = listeners
+      else listeners.forEach((stop) => stop())
+    } catch {
+      // Outside a Tauri window only the page's visibility is known.
+    }
   }
 
   onMounted(() => {
+    mounted = true
     document.addEventListener('visibilitychange', onVisibilityChange)
+    void watchWindow()
   })
 
   onUnmounted(() => {
+    mounted = false
     document.removeEventListener('visibilitychange', onVisibilityChange)
+    unlisten.forEach((stop) => stop())
+    unlisten = []
   })
 }

@@ -5,6 +5,57 @@ use std::path::Path;
 use tauri::AppHandle;
 use tauri::Manager;
 
+/// Whether turning GPU acceleration on is known to freeze windows on this
+/// system (#795).
+#[tauri::command]
+pub fn gpu_acceleration_unstable() -> bool {
+    crate::webkit::nvidia_driver()
+}
+
+/// Drags finished downloads out of the window to other applications, as from
+/// a file manager (#785). The page calls it from `dragstart`, while the
+/// mouse button that starts the drag is still held.
+#[tauri::command]
+pub async fn start_file_drag(
+    window: tauri::WebviewWindow,
+    paths: Vec<String>,
+) -> Result<(), AppError> {
+    const ICON: &[u8] = include_bytes!("../../icons/64x64.png");
+    let paths: Vec<std::path::PathBuf> = paths.into_iter().map(Into::into).collect();
+    if paths.is_empty() || !paths.iter().all(|path| path.is_absolute() && path.exists()) {
+        return Err(AppError::InvalidInput(
+            "Only existing files can be dragged".into(),
+        ));
+    }
+    let (sender, receiver) = tokio::sync::oneshot::channel();
+    let target = window.clone();
+    window
+        .run_on_main_thread(move || {
+            #[cfg(target_os = "linux")]
+            let source = target.gtk_window();
+            #[cfg(not(target_os = "linux"))]
+            let source: tauri::Result<_> = Ok(target);
+            let result = source
+                .map_err(|error| error.to_string())
+                .and_then(|source| {
+                    drag::start_drag(
+                        &source,
+                        drag::DragItem::Files(paths),
+                        drag::Image::Raw(ICON.to_vec()),
+                        |_, _| {},
+                        drag::Options::default(),
+                    )
+                    .map_err(|error| error.to_string())
+                });
+            let _ = sender.send(result);
+        })
+        .map_err(|error| AppError::Io(error.to_string()))?;
+    receiver
+        .await
+        .map_err(|error| AppError::Io(error.to_string()))?
+        .map_err(AppError::Io)
+}
+
 /// Returns `true` when the current process was launched by the OS
 /// autostart mechanism (the Tauri autostart plugin appends `--autostart`)
 /// **and** the app is still in the initial cold-start phase.

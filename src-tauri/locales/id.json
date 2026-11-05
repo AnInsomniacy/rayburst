@@ -13,5 +13,8 @@
   "notification.ed2k-complete-title": "Unduhan ED2K selesai",
   "notification.error-unknown": "Unknown error",
   "notification.selection-title": "Menunggu pemilihan konten",
-  "notification.selection-body": "%{task_name}"
+  "notification.selection-body": "%{task_name}",
+  "notification.browser-kept-title": "Unduhan tetap di browser",
+  "notification.browser-kept-body": "Rayburst tidak dapat menjangkau %{host}.",
+  "notification.browser-kept-proxy-body": "Rayburst tidak dapat menjangkau %{host}. Jika browser memakai proxy, aktifkan proxy di pengaturan jaringan Rayburst."
 }

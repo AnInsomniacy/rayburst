@@ -424,6 +424,15 @@ onMounted(async () => {
           <NFormItem v-if="form.clipboardHttp" :label="t('preferences.clipboard-http-files-only')">
             <NSwitch v-model:value="form.clipboardHttpFilesOnly" />
           </NFormItem>
+          <NFormItem>
+            <template #label>
+              <PreferenceHintLabel
+                :label="t('preferences.clipboard-background')"
+                :hint="t('preferences.clipboard-background-hint')"
+              />
+            </template>
+            <NSwitch v-model:value="form.clipboardBackground" />
+          </NFormItem>
         </NCollapseTransition>
 
         <!-- Notifications -->

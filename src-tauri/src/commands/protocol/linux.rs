@@ -5,6 +5,10 @@ use gio::{glib, prelude::*, AppInfo, DesktopAppInfo};
 use std::path::{Path, PathBuf};
 
 pub const DESKTOP_ID: &str = "Rayburst.desktop";
+/// The entry Rayburst writes for an executable no installed entry runs, such
+/// as an AppImage. A user entry named like the installed one would replace it,
+/// menu item included (rayburst-connect#106).
+const HANDLER_ID: &str = "rayburst-handler.desktop";
 pub const PROTOCOLS: [&str; 5] = [".torrent", "magnet", "ed2k", "thunder", "rayburst"];
 const DEFAULTS: &str = "Default Applications";
 
@@ -66,6 +70,7 @@ impl Associations {
     }
 
     fn entry(&self) -> Result<DesktopAppInfo, AppError> {
+        remove_shadowing_entry();
         if let Some(info) = DesktopAppInfo::new(DESKTOP_ID) {
             if self.owns(info.upcast_ref()) {
                 return Ok(info);
@@ -73,7 +78,7 @@ impl Associations {
         }
 
         // Portable builds need a persistent user entry, never an AppImage mount path.
-        let path = glib::user_data_dir().join("applications").join(DESKTOP_ID);
+        let path = glib::user_data_dir().join("applications").join(HANDLER_ID);
         if path
             .try_exists()
             .map_err(|error| failure("inspect desktop entry", error))?
@@ -137,10 +142,13 @@ impl Associations {
         };
         let before = default_handler(protocol).and_then(|info| info.id());
         let entry = self.entry()?;
+        let id = entry
+            .id()
+            .map_or_else(|| DESKTOP_ID.to_owned(), |id| id.to_string());
         entry
             .set_as_default_for_type(&mime)
             .map_err(|error| failure("set default application", error))?;
-        if !self.is_default(protocol)? && update_user_defaults(&mime, DESKTOP_ID)? {
+        if !self.is_default(protocol)? && update_user_defaults(&mime, &id)? {
             entry
                 .set_as_default_for_type(&mime)
                 .map_err(|error| failure("refresh default application", error))?;
@@ -148,11 +156,11 @@ impl Associations {
         let after = default_handler(protocol);
         let actual = after.as_ref().is_some_and(|info| self.owns(info));
         let after_id = after.and_then(|info| info.id());
-        log::info!("protocol:change scheme={protocol} expected={DESKTOP_ID} before={before:?} after={after_id:?} actual={actual}");
+        log::info!("protocol:change scheme={protocol} expected={id} before={before:?} after={after_id:?} actual={actual}");
         if !actual {
             return Err(failure(
                 "association unchanged",
-                format!("scheme={protocol}, handler={after_id:?}, expected={DESKTOP_ID}"),
+                format!("scheme={protocol}, handler={after_id:?}, expected={id}"),
             ));
         }
         Ok(())
@@ -178,6 +186,31 @@ impl Associations {
             "data_directory": glib::user_data_dir(),
             "protocols": protocols,
         })
+    }
+}
+
+/// Removes a hidden user entry earlier versions wrote under the installed
+/// entry's name, which hid the installed application. Associations naming
+/// it then reach the installed entry.
+fn remove_shadowing_entry() {
+    let path = glib::user_data_dir().join("applications").join(DESKTOP_ID);
+    let installed = glib::system_data_dirs()
+        .iter()
+        .any(|directory| directory.join("applications").join(DESKTOP_ID).is_file());
+    let saved = glib::KeyFile::new();
+    if !installed
+        || saved
+            .load_from_file(&path, glib::KeyFileFlags::NONE)
+            .is_err()
+        || !saved
+            .boolean("Desktop Entry", "X-Rayburst-Managed")
+            .unwrap_or(false)
+    {
+        return;
+    }
+    match std::fs::remove_file(&path) {
+        Ok(()) => log::info!("protocol:shadowing-entry-removed path={}", path.display()),
+        Err(error) => log::warn!("protocol:shadowing-entry-kept error={error}"),
     }
 }
 
@@ -336,7 +369,7 @@ mod tests {
     fn exercise(scenario: &str) {
         let root = PathBuf::from(std::env::var_os("HOME").unwrap());
         let config = root.join("config");
-        let user_entry = root.join("data/applications").join(DESKTOP_ID);
+        let user_entry = root.join("data/applications").join(HANDLER_ID);
         let desktop_defaults = config.join(format!(
             "{}-mimeapps.list",
             std::env::var("XDG_CURRENT_DESKTOP")
@@ -378,8 +411,15 @@ mod tests {
             format!("[Default Applications]\nx-scheme-handler/ed2k={DESKTOP_ID};\n"),
         )
         .unwrap();
+        let shadowing = root.join("data/applications").join(DESKTOP_ID);
         if scenario == "conflict" {
             std::fs::write(&user_entry, desktop_file("/usr/bin/false")).unwrap();
+        } else if scenario == "installed" {
+            std::fs::write(
+                &shadowing,
+                desktop_file("/usr/bin/true") + "NoDisplay=true\nX-Rayburst-Managed=true\n",
+            )
+            .unwrap();
         } else if scenario == "invalid-config" {
             std::fs::write(&desktop_defaults, "invalid key file").unwrap();
         }
@@ -415,11 +455,16 @@ mod tests {
         assert!(overrides.contains("# Keep this comment"));
         assert!(overrides.contains("x-scheme-handler/thunder=other.desktop;"));
         assert_eq!(user_entry.exists(), scenario == "portable");
+        assert!(!shadowing.exists());
         // Exercise actual GIO launching, including Desktop Entry escaping.
-        DesktopAppInfo::new(DESKTOP_ID)
-            .unwrap()
-            .launch_uris(&["magnet:?xt=test"], gio::AppLaunchContext::NONE)
-            .unwrap();
+        DesktopAppInfo::new(if scenario == "portable" {
+            HANDLER_ID
+        } else {
+            DESKTOP_ID
+        })
+        .unwrap()
+        .launch_uris(&["magnet:?xt=test"], gio::AppLaunchContext::NONE)
+        .unwrap();
         for protocol in PROTOCOLS {
             associations.set_default(protocol).unwrap();
             assert!(associations.is_default(protocol).unwrap());

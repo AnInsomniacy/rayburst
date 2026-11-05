@@ -241,6 +241,12 @@ function setMode(mode: FloatWindowMode) {
   )
 }
 
+/** Quits as the tray's Quit does: the app's exit handler saves and stops the engine. */
+async function quit() {
+  const { exit } = await import('@tauri-apps/plugin-process')
+  await exit(0)
+}
+
 async function showMenu(event: MouseEvent) {
   event.preventDefault()
   try {
@@ -266,6 +272,8 @@ async function showMenu(event: MouseEvent) {
             action: () => setMode(mode),
           })),
         },
+        { item: 'Separator' },
+        { id: 'quit', text: t('app.quit'), action: quit },
       ],
     })
     await menu.popup()

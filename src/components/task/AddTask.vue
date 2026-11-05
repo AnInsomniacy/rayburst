@@ -23,6 +23,7 @@ import {
   normalizeUriLines,
   extractDecodedFilename,
   extractMagnetDisplayName,
+  invalidInputOut,
 } from '@shared/utils/batchHelpers'
 import { resolveDownloadCategory, resolveFileSetCategory } from '@shared/utils/fileCategory'
 import { buildOuts } from '@shared/utils/rename'
@@ -839,6 +840,13 @@ async function handleSubmit() {
       }
     }
 
+    const outsideOut = invalidInputOut(form.value.uris)
+    if (outsideOut !== undefined) {
+      message.error(t('task.input-out-outside', { out: outsideOut }), { closable: true })
+      submitting.value = false
+      return
+    }
+
     if (
       !preferenceStore.config.bittorrentEnabled &&
       (fileItems.value.length > 0 || normalizeUriLines(form.value.uris).some(isMagnetUri))
@@ -1141,6 +1149,7 @@ defineExpose({ dismiss: () => handleClose(), reset, prepared: () => opening })
             v-model:custom-proxy-password="form.customProxyPassword"
             v-model:speed-limit="form.speedLimit"
             v-model:checksum="form.checksum"
+            :follows-system-proxy="defaultTaskProxyMode() === 'system'"
             :checksum-available="checksumAvailable"
             :source-url="firstRegularUri"
             :user-agent="form.userAgent"

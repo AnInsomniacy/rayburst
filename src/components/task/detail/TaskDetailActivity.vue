@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NDescriptions, NDescriptionsItem, NProgress } from 'naive-ui'
+import { NDescriptions, NDescriptionsItem } from 'naive-ui'
+import LinearProgress from '@/components/common/LinearProgress.vue'
 import { TASK_STATUS } from '@shared/constants'
 import { bytesToSize, calcProgress, getTaskCompletedLength, timeFormat, timeRemaining } from '@shared/utils'
 import type { Aria2Task } from '@shared/types'
@@ -41,7 +42,7 @@ const remainingText = computed(() => {
     <NDescriptions :column="1" label-placement="left" bordered size="small">
       <NDescriptionsItem :label="t('task.task-progress-info') || 'Progress'">
         <div class="progress-row">
-          <NProgress type="line" :percentage="percent" :height="10" :show-indicator="false" processing />
+          <LinearProgress :percentage="percent" :height="10" />
           <span class="progress-pct">{{ percent }}%</span>
         </div>
       </NDescriptionsItem>

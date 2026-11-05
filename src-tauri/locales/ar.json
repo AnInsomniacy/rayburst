@@ -13,5 +13,8 @@
   "notification.ed2k-complete-title": "اكتمل تنزيل ED2K",
   "notification.error-unknown": "Unknown error",
   "notification.selection-title": "بانتظار اختيار المحتوى",
-  "notification.selection-body": "%{task_name}"
+  "notification.selection-body": "%{task_name}",
+  "notification.browser-kept-title": "بقي التنزيل في المتصفح",
+  "notification.browser-kept-body": "تعذّر على Rayburst الوصول إلى %{host}.",
+  "notification.browser-kept-proxy-body": "تعذّر على Rayburst الوصول إلى %{host}. إذا كان المتصفح يستخدم وكيلًا، ففعّل الوكيل في إعدادات الشبكة في Rayburst."
 }

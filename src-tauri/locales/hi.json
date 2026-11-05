@@ -13,5 +13,8 @@
   "notification.ed2k-complete-title": "ED2K डाउनलोड पूरा हुआ",
   "notification.error-unknown": "अज्ञात त्रुटि",
   "notification.selection-title": "सामग्री चयन की प्रतीक्षा में",
-  "notification.selection-body": "%{task_name}"
+  "notification.selection-body": "%{task_name}",
+  "notification.browser-kept-title": "डाउनलोड ब्राउज़र में ही रहा",
+  "notification.browser-kept-body": "Rayburst %{host} तक नहीं पहुँच सका।",
+  "notification.browser-kept-proxy-body": "Rayburst %{host} तक नहीं पहुँच सका। अगर ब्राउज़र proxy इस्तेमाल करता है, तो Rayburst की नेटवर्क सेटिंग में proxy चालू करें।"
 }

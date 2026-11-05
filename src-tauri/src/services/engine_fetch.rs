@@ -49,7 +49,7 @@ impl FetchRequest {
     pub fn small(url: impl Into<String>, proxy: Option<String>, max_size: u64) -> Self {
         Self {
             url: url.into(),
-            proxy: proxy
+            proxy: crate::commands::proxy::resolve(proxy)
                 .map(|value| value.trim().to_owned())
                 .filter(|value| !value.is_empty()),
             headers: Vec::new(),

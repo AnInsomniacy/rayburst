@@ -8,8 +8,12 @@ import {
   normalizeUriLines,
   decodePathSegment,
   extractDecodedFilename,
+  invalidInputOut,
+  joinInputSubdir,
   parseAria2Input,
   safeFilename,
+  splitInputOut,
+  takeInputSubdir,
 } from '../batchHelpers'
 
 describe('normalizeUriLines', () => {
@@ -156,6 +160,47 @@ describe('parseAria2Input', () => {
     expect(parseAria2Input('https://example.com/file.zip\n  malformed-option-line').entries).toEqual([
       { uris: ['https://example.com/file.zip'], options: {} },
     ])
+  })
+})
+
+describe('input file out paths', () => {
+  it('splits the directories below dir from the file name', () => {
+    expect(splitInputOut('game.rar')).toEqual({ subdir: [], name: 'game.rar' })
+    expect(splitInputOut('phantom/./disc 1\\game.part01.rar')).toEqual({
+      subdir: ['phantom', 'disc 1'],
+      name: 'game.part01.rar',
+    })
+  })
+
+  it('refuses a path that leaves dir or names nothing', () => {
+    for (const out of [
+      '../game.rar',
+      'a/../../game.rar',
+      '/etc/game',
+      'C:/game.rar',
+      '\\\\host\\game',
+      'a//b',
+      'dir/',
+    ]) {
+      expect(splitInputOut(out), out).toBeNull()
+    }
+    expect(splitInputOut('a:b/c')).toBeNull()
+  })
+
+  it('reports the first refused out in the input', () => {
+    const text = 'https://a.example/1\n  out=ok/1.rar\nhttps://a.example/2\n  out=../2.rar\n'
+    expect(invalidInputOut(text)).toBe('../2.rar')
+    expect(invalidInputOut('https://a.example/1\n  out=ok/1.rar')).toBeUndefined()
+  })
+
+  it('moves the directories into dir in its own separator', () => {
+    const options: Record<string, unknown> = { out: 'phantom/game.part01.rar' }
+    const subdir = takeInputSubdir(options)
+    expect(options.out).toBe('game.part01.rar')
+    expect(joinInputSubdir('D:\\Downloads\\', subdir)).toBe('D:\\Downloads\\phantom')
+    expect(joinInputSubdir('/home/me/Downloads', subdir)).toBe('/home/me/Downloads/phantom')
+    expect(joinInputSubdir('/home/me', [])).toBe('/home/me')
+    expect(() => takeInputSubdir({ out: '../x' })).toThrow()
   })
 })
 

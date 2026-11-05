@@ -244,6 +244,47 @@ export function parseAria2Input(text: string): ParsedAria2Input {
 }
 
 /**
+ * Splits an input file's `out`, which aria2 lets name a path below `dir`
+ * (#780), into those directories and the file name. Null when the path
+ * would leave `dir` or no file system accepts one of its names.
+ */
+export function splitInputOut(out: string): { subdir: string[]; name: string } | null {
+  const segments = out.split(/[\\/]/)
+  if (segments.length === 1) return { subdir: [], name: out }
+  if (/^[A-Za-z]:/.test(out) || segments[0] === '' || segments[segments.length - 1] === '') return null
+  const parts = segments.filter((segment) => segment !== '.')
+  if (parts.some((segment) => !segment || segment === '..' || /[\x00-\x1f<>:"|?*]/.test(segment))) return null
+  const name = parts.pop() as string
+  return { subdir: parts, name }
+}
+
+/** The first `out` in the input that `splitInputOut` refuses. */
+export function invalidInputOut(text: string): string | undefined {
+  return parseAria2Input(text)
+    .entries.flatMap((entry) => [entry.options.out ?? []].flat())
+    .find((out) => !splitInputOut(out))
+}
+
+/**
+ * Leaves only the file name in `options.out` and returns the directories the
+ * input file put before it, for `joinInputSubdir` once `dir` is final.
+ */
+export function takeInputSubdir(options: Record<string, unknown>): string[] {
+  if (typeof options.out !== 'string') return []
+  const split = splitInputOut(options.out)
+  if (!split) throw new Error(`out=${options.out} must name a file inside the download directory`)
+  options.out = split.name
+  return split.subdir
+}
+
+/** `dir` with `subdir` appended, in the separator `dir` already uses. */
+export function joinInputSubdir(dir: string, subdir: string[]): string {
+  if (subdir.length === 0) return dir
+  const separator = dir.includes('\\') && !dir.includes('/') ? '\\' : '/'
+  return [dir.replace(/[\\/]+$/, ''), ...subdir].join(separator)
+}
+
+/**
  * Split, trim, remove blanks, and deduplicate URI lines by first occurrence.
  * Handles multiline payloads — each line is treated as an independent URI.
  * Bare info hashes (SHA-1 hex / Base32) are automatically wrapped as magnet URIs.

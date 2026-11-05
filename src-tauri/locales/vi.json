@@ -13,5 +13,8 @@
   "notification.ed2k-complete-title": "Tải ED2K hoàn thành",
   "notification.error-unknown": "Unknown error",
   "notification.selection-title": "Đang chờ chọn nội dung",
-  "notification.selection-body": "%{task_name}"
+  "notification.selection-body": "%{task_name}",
+  "notification.browser-kept-title": "Tải xuống được giữ trong trình duyệt",
+  "notification.browser-kept-body": "Rayburst không thể kết nối tới %{host}.",
+  "notification.browser-kept-proxy-body": "Rayburst không thể kết nối tới %{host}. Nếu trình duyệt dùng proxy, hãy bật proxy trong cài đặt mạng của Rayburst."
 }
