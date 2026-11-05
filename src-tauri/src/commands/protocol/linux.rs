@@ -394,7 +394,8 @@ mod tests {
         )
         .unwrap();
         std::fs::write(&desktop_defaults, "# Keep this comment\n[Default Applications]\nx-scheme-handler/magnet=other.desktop;\nx-scheme-handler/thunder=other.desktop;\n").unwrap();
-        let executable = if scenario == "portable" {
+        // A conflict only matters where Rayburst needs its own handler entry.
+        let executable = if matches!(scenario, "portable" | "conflict") {
             let executable = root.join("Rayburst $`'\" test.AppImage");
             std::fs::copy("/usr/bin/true", &executable).unwrap();
             executable
