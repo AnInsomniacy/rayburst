@@ -214,6 +214,15 @@ pub(crate) fn repair_activation_protocol(app: &AppHandle) {
         let app = app.clone();
         tauri::async_runtime::spawn(async move {
             let result = async {
+                #[cfg(target_os = "linux")]
+                if let Err(error) = with_linux_associations(&app, |associations| {
+                    associations.tidy();
+                    Ok(())
+                })
+                .await
+                {
+                    log::warn!("protocol:tidy-failed error={error}");
+                }
                 match is_default_protocol_client(app.clone(), "rayburst".into()).await {
                     Ok(true) => return Ok(()),
                     Ok(false) => {}

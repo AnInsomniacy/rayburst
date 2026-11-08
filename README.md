@@ -71,7 +71,7 @@ Download the `.dmg` installer from [Releases](https://github.com/AnInsomniacy/ra
 | Apple Silicon | `Rayburst_x.x.x_aarch64.dmg` |
 | Intel         | `Rayburst_x.x.x_x64.dmg`     |
 
-The `.app.tar.gz` macOS artifacts are published for the Tauri updater.
+Rayburst requires macOS 11 or later with an up-to-date Safari (16.2 or later). The `.app.tar.gz` macOS artifacts are published for the Tauri updater.
 
 > [!TIP]
 > If macOS says the app is **"damaged and can't be opened"**, see the [FAQ below](#faq).

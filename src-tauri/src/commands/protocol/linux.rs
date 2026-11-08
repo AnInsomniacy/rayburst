@@ -70,7 +70,7 @@ impl Associations {
     }
 
     fn entry(&self) -> Result<DesktopAppInfo, AppError> {
-        remove_shadowing_entry();
+        self.tidy();
         if let Some(info) = DesktopAppInfo::new(DESKTOP_ID) {
             if self.owns(info.upcast_ref()) {
                 return Ok(info);
@@ -131,6 +131,36 @@ impl Associations {
             .map_err(|error| failure("save desktop entry", error))?;
         DesktopAppInfo::from_filename(&path)
             .ok_or_else(|| failure("load saved desktop entry", path.display()))
+    }
+
+    /// Removes user entries that misdirect Rayburst's associations.
+    pub fn tidy(&self) {
+        remove_shadowing_entry();
+        if DesktopAppInfo::new(DESKTOP_ID).is_some_and(|info| self.owns(info.upcast_ref())) {
+            self.remove_foreign_handler();
+        }
+    }
+
+    /// Removes the managed handler entry when the installed entry is ours and
+    /// the handler runs another program, such as the browser AppImage an
+    /// earlier version took for Rayburst (rayburst-connect#106).
+    fn remove_foreign_handler(&self) {
+        let path = glib::user_data_dir().join("applications").join(HANDLER_ID);
+        let saved = glib::KeyFile::new();
+        if saved
+            .load_from_file(&path, glib::KeyFileFlags::NONE)
+            .is_err()
+            || !saved
+                .boolean("Desktop Entry", "X-Rayburst-Managed")
+                .unwrap_or(false)
+            || DesktopAppInfo::from_filename(&path).is_some_and(|info| self.owns(info.upcast_ref()))
+        {
+            return;
+        }
+        match std::fs::remove_file(&path) {
+            Ok(()) => log::info!("protocol:foreign-handler-removed path={}", path.display()),
+            Err(error) => log::warn!("protocol:foreign-handler-kept error={error}"),
+        }
     }
 
     pub fn set_default(&self, protocol: &str) -> Result<(), AppError> {
@@ -421,6 +451,13 @@ mod tests {
                 desktop_file("/usr/bin/true") + "NoDisplay=true\nX-Rayburst-Managed=true\n",
             )
             .unwrap();
+            // A handler an earlier version wrote for the browser AppImage whose
+            // environment it inherited (rayburst-connect#106).
+            std::fs::write(
+                &user_entry,
+                desktop_file("/usr/bin/false") + "NoDisplay=true\nX-Rayburst-Managed=true\n",
+            )
+            .unwrap();
         } else if scenario == "invalid-config" {
             std::fs::write(&desktop_defaults, "invalid key file").unwrap();
         }
@@ -440,6 +477,9 @@ mod tests {
             return;
         }
         if scenario == "installed" {
+            associations.tidy();
+            assert!(!user_entry.exists());
+            assert!(!shadowing.exists());
             // A user-created entry for this executable must resolve to the
             // same application when querying the effective association.
             std::fs::write(

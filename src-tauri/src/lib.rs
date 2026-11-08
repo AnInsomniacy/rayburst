@@ -2,6 +2,7 @@ rust_i18n::i18n!("locales", fallback = "en-US");
 
 pub(crate) const APP_ID: &str = env!("DESKTOP_APP_ID");
 
+mod appimage;
 mod aria2;
 mod commands;
 mod database;
@@ -608,6 +609,7 @@ async fn shut_down(app: &tauri::AppHandle) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Environment GTK and WebKitGTK read once, before any thread starts.
+    appimage::prepare();
     webkit::prepare();
     services::float_window::prepare_backend();
     // GTK names the window after the program: its Wayland app ID and X11
