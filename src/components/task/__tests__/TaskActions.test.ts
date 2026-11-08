@@ -273,7 +273,7 @@ describe('TaskActions', () => {
       taskStore.taskList = [{ gid: 'done', status: 'complete' }] as never
       const wrapper = createWrapper()
 
-      await clickButton(wrapper, 3) // Purge (index 2 when in stopped list)
+      await clickButton(wrapper, 4) // Purge, after the missing-file purge
 
       // No engine gate — dialog should open regardless
       expect(mockMessageWarning).not.toHaveBeenCalled()
@@ -308,7 +308,7 @@ describe('TaskActions', () => {
       taskStore.taskList = [{ gid: 'done', status: 'complete' }] as never
       const wrapper = createWrapper()
 
-      await clickButton(wrapper, 3) // Purge
+      await clickButton(wrapper, 4) // Purge
 
       expect(mockMessageWarning).not.toHaveBeenCalled()
       expect(mockDialogWarning).toHaveBeenCalledOnce()
@@ -523,7 +523,7 @@ describe('TaskActions', () => {
       taskStore.taskList = [{ gid: 'done', status: 'complete' }] as never
       const wrapper = createWrapper()
 
-      await clickButton(wrapper, 3) // Purge
+      await clickButton(wrapper, 4) // Purge
       expect(lastDialogOptions?.title).toBe('Clear History Records')
       expect(renderDialogText(lastDialogOptions?.content)).toContain(
         'This will remove all completed, failed, or removed task records.',

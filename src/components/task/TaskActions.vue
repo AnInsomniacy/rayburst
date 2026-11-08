@@ -534,22 +534,7 @@ const batchOptions = computed<BatchAction[]>(() => {
         disabled: finishingMedia.value,
         action: () => void finishRecordings(),
       })
-    options.push({
-      key: 'delete',
-      label: t('task.delete-all-task'),
-      icon: menuIcon(CloseOutline),
-      disabled: deleteAllDisabled.value,
-      action: onDeleteAll,
-    })
   }
-  if (showStoppedActions.value)
-    options.push({
-      key: 'purge',
-      label: t('task.purge-record'),
-      icon: menuIcon(TrashOutline),
-      disabled: !terminalTasks.value.length,
-      action: purgeRecord,
-    })
   if (showStoppedActions.value)
     options.push({
       key: 'purge-missing',
@@ -557,6 +542,22 @@ const batchOptions = computed<BatchAction[]>(() => {
       icon: menuIcon(DocumentOutline),
       disabled: purgingMissing.value || !terminalTasks.value.some((task) => task.status === TASK_STATUS.COMPLETE),
       action: purgeMissingRecords,
+    })
+  if (showActiveActions.value)
+    options.push({
+      key: 'delete',
+      label: t('task.delete-all-task'),
+      icon: menuIcon(CloseOutline),
+      disabled: deleteAllDisabled.value,
+      action: onDeleteAll,
+    })
+  if (showStoppedActions.value)
+    options.push({
+      key: 'purge',
+      label: t('task.purge-record'),
+      icon: menuIcon(TrashOutline),
+      disabled: !terminalTasks.value.length,
+      action: purgeRecord,
     })
   return options
 })
