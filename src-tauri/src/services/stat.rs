@@ -25,7 +25,7 @@ pub struct StatUpdate {
 /// Computes a human-readable compact size string (e.g., "1.5M", "200K").
 ///
 /// Matches the frontend `compactSize` output used for tray/dock display.
-fn compact_size(bytes: u64) -> String {
+pub(crate) fn compact_size(bytes: u64) -> String {
     const KB: f64 = 1024.0;
     const MB: f64 = KB * 1024.0;
     const GB: f64 = MB * 1024.0;
@@ -375,19 +375,29 @@ pub struct StatEffects {
     last_tray_tooltip: Option<String>,
     /// The Windows tray icon is redrawn for a new display scale.
     tray_icon_size: Option<u32>,
+    /// The notification-style progress surface, where the desktop has one.
+    job_progress: super::job_progress::JobProgressEffect,
 }
 
 impl StatEffects {
-    /// `active` holds the active tasks of the same snapshot as `stat`.
+    /// `active` and `paused` hold tasks of the same snapshot as `stat`.
     pub async fn apply(
         &mut self,
         app: &tauri::AppHandle,
         cfg: &RuntimeConfig,
         stat: &StatUpdate,
         active: &[crate::aria2::types::Aria2Task],
+        paused: &[crate::aria2::types::Aria2Task],
     ) {
         self.keep_awake(cfg.keep_awake && stat.num_active > 0, stat.num_active)
             .await;
+
+        let jobs = if cfg.show_progress_bar && super::job_progress::shows_progress_notification() {
+            super::job_progress::describe(active)
+        } else {
+            Vec::new()
+        };
+        self.job_progress.sync(app, cfg, &jobs, paused).await;
 
         let next_title =
             tray_title_for_speed(cfg.tray_speedometer, stat.download_speed, stat.upload_speed);
@@ -437,17 +447,22 @@ impl StatEffects {
         #[cfg(target_os = "windows")]
         if let Some(window) = app.get_webview_window("main") {
             use tauri::window::{ProgressBarState, ProgressBarStatus};
-            // Without a measurable download (seeding only, unknown sizes) the
-            // taskbar stays plain rather than running the marquee animation.
+            // A download whose size is unknown gets the marquee animation
+            // instead of a frozen bar.
             let progress = (cfg.show_progress_bar && stat.num_active > 0)
                 .then(|| task_progress(active))
                 .flatten();
-            let state = ProgressBarState {
-                status: Some(if progress.is_some() {
+            let status = if cfg.show_progress_bar && stat.num_active > 0 {
+                if progress.is_some() {
                     ProgressBarStatus::Normal
                 } else {
-                    ProgressBarStatus::None
-                }),
+                    ProgressBarStatus::Indeterminate
+                }
+            } else {
+                ProgressBarStatus::None
+            };
+            let state = ProgressBarState {
+                status: Some(status),
                 progress,
             };
             let _ = window.set_progress_bar(state);
@@ -484,6 +499,12 @@ impl StatEffects {
         }
         self.power_retry_at = None;
         self.release().await;
+    }
+
+    /// Closes progress surfaces without completion notices; the pump stops
+    /// with the app or engine, not because every download finished.
+    pub async fn shutdown(&mut self, app: &tauri::AppHandle) {
+        self.job_progress.shutdown(app).await;
     }
 
     /// Releases the keep-awake assertion; called when the pump stops.

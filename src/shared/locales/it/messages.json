@@ -649,7 +649,8 @@
     "task-actions-section": "Azioni sulle attività",
     "request-section": "Richieste",
     "connection-section": "Connessione",
-    "bt-protocol-section": "Protocollo"
+    "bt-protocol-section": "Protocollo",
+    "show-job-progress": "Mostra la barra di avanzamento dell'attività"
   },
   "task": {
     "scope-all": "Tutte",

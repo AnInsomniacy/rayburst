@@ -8,7 +8,7 @@ use crate::aria2::types::{
 };
 use crate::database::{Database, DatabaseState};
 use crate::error::AppError;
-use crate::services::tasks::{TaskService, TaskServiceState};
+use crate::services::tasks::{removal, TaskService, TaskServiceState};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -557,38 +557,6 @@ pub async fn aria2_force_remove(
     state.0.force_remove(&gid).await
 }
 
-fn is_terminal_download_status(status: &str) -> bool {
-    matches!(status, "complete" | "error" | "removed")
-}
-
-async fn remove_engine_task(client: &TaskService, gid: &str) -> Result<(), AppError> {
-    let operation = async {
-        let mut removal_requested = false;
-        loop {
-            let tasks = client.tell_task_snapshot(true).await?;
-            let Some(task) = tasks.iter().find(|task| task.gid == gid) else {
-                return Ok(());
-            };
-            if is_terminal_download_status(&task.status) {
-                match client.remove_download_result(gid).await {
-                    Ok(_) => return Ok(()),
-                    // Native result publication can trail a terminal snapshot.
-                    // Re-read state on application faults; transport failures stay visible.
-                    Err(AppError::Rpc { code: 1, .. }) => {}
-                    Err(error) => return Err(error),
-                }
-            } else if !removal_requested {
-                client.force_remove(gid).await?;
-                removal_requested = true;
-            }
-            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-        }
-    };
-    tokio::time::timeout(std::time::Duration::from_secs(5), operation)
-        .await
-        .map_err(|_| AppError::Aria2(format!("Task {gid} did not finish removal")))?
-}
-
 fn is_p2p_sharing_task(task: &Aria2Task) -> bool {
     matches!(task.status.as_str(), "active" | "paused")
         && (task.bittorrent.is_some() || task.ed2k.is_some())
@@ -631,100 +599,6 @@ impl BatchTaskOperationResult {
     }
 }
 
-async fn delete_task(
-    client: &TaskService,
-    history: &Database,
-    gid: &str,
-    delete_mode: Option<crate::commands::fs::FileDeletionMode>,
-    protected_roots: &HashSet<PathBuf>,
-) -> Result<(), AppError> {
-    use crate::services::tasks::files::{
-        content_paths, delete_content, history_task, path_identity, with_unfinished_copies,
-    };
-    let _mutation = client.mutation.lock().await;
-    log::info!("aria2:delete gid={gid}");
-    let snapshot = client.tell_task_snapshot(true).await?;
-    let records = history.get_records(None).await?;
-    let task = snapshot
-        .iter()
-        .find(|task| task.gid == gid)
-        .cloned()
-        .or_else(|| {
-            records
-                .iter()
-                .find(|record| record.gid == gid)
-                .map(history_task)
-        });
-    let paths = task
-        .as_ref()
-        .map(|task| with_unfinished_copies(content_paths(&task.files, false)))
-        .unwrap_or_default();
-    let root = task
-        .as_ref()
-        .map(|task| PathBuf::from(&task.dir))
-        .unwrap_or_default();
-    let mut protected_directories: HashSet<_> = snapshot
-        .iter()
-        .filter(|task| task.gid != gid)
-        .map(|task| path_identity(Path::new(&task.dir)))
-        .chain(
-            records
-                .iter()
-                .filter(|record| record.gid != gid)
-                .filter_map(|record| record.dir.as_deref())
-                .map(|dir| path_identity(Path::new(dir))),
-        )
-        .collect();
-    let protected_tasks = snapshot
-        .iter()
-        .chain(
-            records
-                .iter()
-                .filter(|record| record.gid != gid)
-                .map(history_task)
-                .collect::<Vec<_>>()
-                .iter(),
-        )
-        .filter(|task| task.gid != gid)
-        .flat_map(|task| content_paths(&task.files, false))
-        .collect::<Vec<_>>();
-    protected_directories.extend(protected_roots.iter().cloned());
-    protected_directories.extend(
-        protected_tasks
-            .iter()
-            .filter_map(|path| path.parent())
-            .flat_map(Path::ancestors)
-            .map(path_identity),
-    );
-    if delete_mode.is_some() && !records.iter().any(|record| record.gid == gid) {
-        if let Some(task) = &task {
-            let event = crate::services::monitor::TaskEvent::from_aria2(task);
-            let mut record = crate::services::monitor::build_history_record_with_added_at(
-                &event,
-                crate::services::monitor::events::TASK_ERROR,
-                history.get_task_birth(gid).await?,
-            );
-            record.status = "removed".into();
-            history.add_record(&record).await?;
-        }
-    }
-    remove_engine_task(client, gid).await?;
-    client.tasks.mark_deleted(gid);
-    history.remove_bt_selection(gid).await?;
-    if let Some(mode) = delete_mode {
-        tokio::task::spawn_blocking(move || {
-            let protected = protected_tasks
-                .iter()
-                .map(|path| path_identity(path))
-                .collect();
-            delete_content(&paths, &protected, &root, &protected_directories, mode)
-        })
-        .await
-        .map_err(|error| AppError::Io(error.to_string()))??;
-    }
-    history.remove_task_records(gid).await
-}
-
 async fn finish_sharing_task(
     client: &TaskService,
     history: &Database,
@@ -746,7 +620,7 @@ async fn finish_sharing_task(
         added_at,
     );
     history.add_record(&record).await?;
-    remove_engine_task(client, gid).await
+    removal::remove_engine_task(client, gid).await
 }
 
 /// Delete a task regardless of whether it is live, transitioning, or stopped.
@@ -763,7 +637,7 @@ pub async fn aria2_delete_task(
     } else {
         HashSet::new()
     };
-    delete_task(&state.0, &history.0, &gid, delete_mode, &protected).await
+    removal::delete_task(&state.0, &history.0, &gid, delete_mode, &protected).await
 }
 
 fn protected_download_directories(app: &AppHandle) -> Result<HashSet<PathBuf>, AppError> {
@@ -823,7 +697,7 @@ pub async fn aria2_batch_delete_tasks(
         HashSet::new()
     };
     for target in tasks {
-        let operation = delete_task(
+        let operation = removal::delete_task(
             &state.0,
             &history.0,
             &target.gid,
@@ -986,8 +860,9 @@ pub async fn aria2_resume_eligible(
 
 #[cfg(test)]
 mod tests {
-    use super::{is_p2p_sharing_task, is_terminal_download_status};
+    use super::is_p2p_sharing_task;
     use crate::aria2::types::{Aria2BtInfo, Aria2Ed2kInfo, Aria2Task};
+    use crate::services::tasks::removal::is_terminal_download_status;
 
     #[tokio::test]
     async fn deletion_removes_the_visible_native_task_before_its_history() {
@@ -1048,7 +923,7 @@ mod tests {
         )
         .await
         .unwrap();
-        super::delete_task(
+        crate::services::tasks::removal::delete_task(
             &client,
             &db,
             "task",

@@ -649,7 +649,8 @@
     "task-actions-section": "Akcje zadań",
     "request-section": "Żądania",
     "connection-section": "Połączenie",
-    "bt-protocol-section": "Protokół"
+    "bt-protocol-section": "Protokół",
+    "show-job-progress": "Pokaż pasek postępu zadania"
   },
   "task": {
     "scope-all": "Wszystkie",

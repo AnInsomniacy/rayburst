@@ -34,7 +34,6 @@ pub struct RuntimeConfig {
     pub show_tray_icon: bool,
     #[cfg(target_os = "macos")]
     pub dock_badge_speed: bool,
-    #[cfg(not(target_os = "linux"))]
     pub show_progress_bar: bool,
     /// Whether to shut down the system after all downloads complete.
     pub shutdown_when_complete: bool,
@@ -117,7 +116,6 @@ impl Default for RuntimeConfig {
             show_tray_icon: true,
             #[cfg(target_os = "macos")]
             dock_badge_speed: true,
-            #[cfg(not(target_os = "linux"))]
             show_progress_bar: false,
             shutdown_when_complete: false,
             keep_awake: false,
@@ -210,7 +208,6 @@ mod tests {
         assert!(cfg.tray_speedometer);
         #[cfg(target_os = "macos")]
         assert!(!cfg.dock_badge_speed);
-        #[cfg(not(target_os = "linux"))]
         assert!(cfg.show_progress_bar);
         assert!(cfg.shutdown_when_complete);
         assert!(cfg.keep_awake);

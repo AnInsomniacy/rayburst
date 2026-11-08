@@ -649,7 +649,8 @@
     "task-actions-section": "Acțiuni pentru sarcini",
     "request-section": "Cereri",
     "connection-section": "Conexiune",
-    "bt-protocol-section": "Protocol"
+    "bt-protocol-section": "Protocol",
+    "show-job-progress": "Afișează bara de progres a sarcinii"
   },
   "task": {
     "scope-all": "Toate",

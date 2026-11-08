@@ -16,5 +16,6 @@
   "notification.selection-body": "%{task_name}",
   "notification.browser-kept-title": "بقي التنزيل في المتصفح",
   "notification.browser-kept-body": "تعذّر على Rayburst الوصول إلى %{host}.",
-  "notification.browser-kept-proxy-body": "تعذّر على Rayburst الوصول إلى %{host}. إذا كان المتصفح يستخدم وكيلًا، ففعّل الوكيل في إعدادات الشبكة في Rayburst."
+  "notification.browser-kept-proxy-body": "تعذّر على Rayburst الوصول إلى %{host}. إذا كان المتصفح يستخدم وكيلًا، ففعّل الوكيل في إعدادات الشبكة في Rayburst.",
+  "notification.stop": "إيقاف"
 }

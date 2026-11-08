@@ -16,5 +16,6 @@
   "notification.selection-body": "%{task_name}",
   "notification.browser-kept-title": "A letöltés a böngészőben maradt",
   "notification.browser-kept-body": "A Rayburst nem érte el ezt: %{host}.",
-  "notification.browser-kept-proxy-body": "A Rayburst nem érte el ezt: %{host}. Ha a böngésző proxyt használ, kapcsolja be a proxyt a Rayburst hálózati beállításaiban."
+  "notification.browser-kept-proxy-body": "A Rayburst nem érte el ezt: %{host}. Ha a böngésző proxyt használ, kapcsolja be a proxyt a Rayburst hálózati beállításaiban.",
+  "notification.stop": "Leállítás"
 }

@@ -16,5 +16,6 @@
   "notification.selection-body": "%{task_name}",
   "notification.browser-kept-title": "İndirme tarayıcıda kaldı",
   "notification.browser-kept-body": "Rayburst %{host} adresine ulaşamadı.",
-  "notification.browser-kept-proxy-body": "Rayburst %{host} adresine ulaşamadı. Tarayıcı bir proxy kullanıyorsa Rayburst’ün ağ ayarlarında proxy’yi açın."
+  "notification.browser-kept-proxy-body": "Rayburst %{host} adresine ulaşamadı. Tarayıcı bir proxy kullanıyorsa Rayburst’ün ağ ayarlarında proxy’yi açın.",
+  "notification.stop": "Durdur"
 }

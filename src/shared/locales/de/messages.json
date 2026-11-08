@@ -649,7 +649,8 @@
     "task-actions-section": "Aufgabenaktionen",
     "request-section": "Anfragen",
     "connection-section": "Verbindung",
-    "bt-protocol-section": "Protokoll"
+    "bt-protocol-section": "Protokoll",
+    "show-job-progress": "Fortschrittsbalken für Aufgaben anzeigen"
   },
   "task": {
     "scope-all": "Alle",

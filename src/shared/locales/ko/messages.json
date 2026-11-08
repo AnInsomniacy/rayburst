@@ -649,7 +649,8 @@
     "task-actions-section": "작업 동작",
     "request-section": "요청",
     "connection-section": "연결",
-    "bt-protocol-section": "프로토콜"
+    "bt-protocol-section": "프로토콜",
+    "show-job-progress": "작업 진행률 표시줄 표시"
   },
   "task": {
     "scope-all": "전체",

@@ -16,5 +16,6 @@
   "notification.selection-body": "%{task_name}",
   "notification.browser-kept-title": "다운로드를 브라우저에 두었습니다",
   "notification.browser-kept-body": "Rayburst가 %{host}에 연결할 수 없습니다.",
-  "notification.browser-kept-proxy-body": "Rayburst가 %{host}에 연결할 수 없습니다. 브라우저가 프록시를 사용한다면 Rayburst 네트워크 설정에서 프록시를 켜세요."
+  "notification.browser-kept-proxy-body": "Rayburst가 %{host}에 연결할 수 없습니다. 브라우저가 프록시를 사용한다면 Rayburst 네트워크 설정에서 프록시를 켜세요.",
+  "notification.stop": "중지"
 }

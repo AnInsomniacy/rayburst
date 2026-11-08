@@ -649,7 +649,8 @@
     "task-actions-section": "Taakacties",
     "request-section": "Verzoeken",
     "connection-section": "Verbinding",
-    "bt-protocol-section": "Protocol"
+    "bt-protocol-section": "Protocol",
+    "show-job-progress": "Voortgangsbalk van de taak tonen"
   },
   "task": {
     "scope-all": "Alle",

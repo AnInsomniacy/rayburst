@@ -649,7 +649,8 @@
     "task-actions-section": "اقدامات وظیفه",
     "request-section": "درخواست‌ها",
     "connection-section": "اتصال",
-    "bt-protocol-section": "پروتکل"
+    "bt-protocol-section": "پروتکل",
+    "show-job-progress": "نمایش نوار پیشرفت کار"
   },
   "task": {
     "scope-all": "همه",

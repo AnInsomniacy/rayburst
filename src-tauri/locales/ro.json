@@ -16,5 +16,6 @@
   "notification.selection-body": "%{task_name}",
   "notification.browser-kept-title": "Descărcarea a rămas în browser",
   "notification.browser-kept-body": "Rayburst nu a putut accesa %{host}.",
-  "notification.browser-kept-proxy-body": "Rayburst nu a putut accesa %{host}. Dacă browserul folosește un proxy, activați proxy-ul în setările de rețea ale Rayburst."
+  "notification.browser-kept-proxy-body": "Rayburst nu a putut accesa %{host}. Dacă browserul folosește un proxy, activați proxy-ul în setările de rețea ale Rayburst.",
+  "notification.stop": "Oprește"
 }

@@ -649,7 +649,8 @@
     "task-actions-section": "Tindakan tugas",
     "request-section": "Permintaan",
     "connection-section": "Koneksi",
-    "bt-protocol-section": "Protokol"
+    "bt-protocol-section": "Protokol",
+    "show-job-progress": "Tampilkan bilah kemajuan tugas"
   },
   "task": {
     "scope-all": "Semua",

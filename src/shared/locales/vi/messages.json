@@ -649,7 +649,8 @@
     "task-actions-section": "Thao tác tác vụ",
     "request-section": "Yêu cầu",
     "connection-section": "Kết nối",
-    "bt-protocol-section": "Giao thức"
+    "bt-protocol-section": "Giao thức",
+    "show-job-progress": "Hiển thị thanh tiến trình của tác vụ"
   },
   "task": {
     "scope-all": "Tất cả",

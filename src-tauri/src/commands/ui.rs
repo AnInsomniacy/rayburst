@@ -267,6 +267,13 @@ pub fn float_panel_start_drag(app: AppHandle) -> Result<(), AppError> {
     crate::services::float_window::start_panel_drag(&app)
 }
 
+/// Names the desktop surface that draws download progress. Settings only
+/// offer a progress bar where one exists.
+#[tauri::command]
+pub fn job_progress_backend() -> String {
+    crate::services::job_progress::backend_id().to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::clipboard_offer;

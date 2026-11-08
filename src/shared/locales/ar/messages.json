@@ -649,7 +649,8 @@
     "task-actions-section": "إجراءات المهام",
     "request-section": "الطلبات",
     "connection-section": "الاتصال",
-    "bt-protocol-section": "البروتوكول"
+    "bt-protocol-section": "البروتوكول",
+    "show-job-progress": "إظهار شريط تقدم المهمة"
   },
   "task": {
     "scope-all": "الكل",

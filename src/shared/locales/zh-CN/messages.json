@@ -649,7 +649,8 @@
     "task-actions-section": "任务操作",
     "request-section": "请求",
     "connection-section": "连接",
-    "bt-protocol-section": "协议"
+    "bt-protocol-section": "协议",
+    "show-job-progress": "显示任务进度条"
   },
   "task": {
     "scope-all": "全部",

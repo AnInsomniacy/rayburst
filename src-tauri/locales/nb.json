@@ -16,5 +16,6 @@
   "notification.selection-body": "%{task_name}",
   "notification.browser-kept-title": "Nedlastingen ble i nettleseren",
   "notification.browser-kept-body": "Rayburst nådde ikke %{host}.",
-  "notification.browser-kept-proxy-body": "Rayburst nådde ikke %{host}. Hvis nettleseren bruker en proxy, slå på proxy i nettverksinnstillingene til Rayburst."
+  "notification.browser-kept-proxy-body": "Rayburst nådde ikke %{host}. Hvis nettleseren bruker en proxy, slå på proxy i nettverksinnstillingene til Rayburst.",
+  "notification.stop": "Stopp"
 }

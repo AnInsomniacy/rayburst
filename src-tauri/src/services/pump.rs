@@ -178,6 +178,7 @@ impl Pump {
                 _ = tokio::time::sleep(interval) => {}
                 _ = self.wake.notified() => {}
                 _ = stopped.changed() => {
+                    effects.shutdown(&app).await;
                     effects.release().await;
                     log::info!("pump: stopped");
                     return;
@@ -208,7 +209,12 @@ impl Pump {
             .filter(|task| task.status == "active")
             .cloned()
             .collect();
-        effects.apply(app, &config, &stat, &active).await;
+        let paused: Vec<_> = tasks
+            .iter()
+            .filter(|task| task.status == "paused")
+            .cloned()
+            .collect();
+        effects.apply(app, &config, &stat, &active, &paused).await;
 
         let queued: Vec<_> = tasks
             .iter()
