@@ -61,10 +61,10 @@ pub fn start_automatic_selection(app: tauri::AppHandle, engine: Arc<TaskService>
                             log::debug!("media: automatic selection failed: {error}");
                         }
                     }
-                } else if !matches!(
+                } else if !(matches!(
                     task.status.as_str(),
                     "paused" | "complete" | "error" | "removed"
-                ) && !(task.media.is_none()
+                ) || task.media.is_none()
                     && task.completed_length.parse::<u64>().unwrap_or(0) > 0)
                 {
                     continue;
