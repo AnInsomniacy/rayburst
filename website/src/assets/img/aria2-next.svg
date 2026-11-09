@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512" role="img" aria-labelledby="aria2-next-title">
+  <title id="aria2-next-title">Aria2 Next</title>
+  <defs>
+    <linearGradient id="aria2-next-rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F4E4B6" />
+      <stop offset="45%" stop-color="#D3B06B" />
+      <stop offset="100%" stop-color="#9C7638" />
+    </linearGradient>
+    <linearGradient id="aria2-next-face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#25252B" />
+      <stop offset="100%" stop-color="#101013" />
+    </linearGradient>
+    <linearGradient id="aria2-next-gold" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0%" stop-color="#F2DFA8" />
+      <stop offset="100%" stop-color="#C49A52" />
+    </linearGradient>
+  </defs>
+  <rect x="20" y="20" width="472" height="472" rx="116" fill="url(#aria2-next-rim)" />
+  <rect x="38" y="38" width="436" height="436" rx="99" fill="url(#aria2-next-face)" />
+  <rect x="38.5" y="38.5" width="435" height="435" rx="98.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.06" />
+  <g transform="translate(-15 0)">
+    <!-- A drawn as a pair of compasses, as heavy as the letters beside it -->
+    <g fill="url(#aria2-next-gold)" stroke="url(#aria2-next-gold)">
+      <rect x="136.5" y="114" width="19" height="46" rx="9.5" stroke="none" />
+      <polygon points="134,170 158,178 106.5,320.5 93.5,316.5" stroke="none" />
+      <polygon points="134,178 158,170 198.5,316.5 185.5,320.5" stroke="none" />
+      <rect x="110" y="253" width="72" height="17" rx="4" stroke="none" />
+      <circle cx="146" cy="174" r="20" fill="#18181C" stroke-width="17" />
+    </g>
+    <!-- ria, spaced so the r's arm and the i clear their neighbours -->
+    <g fill="none" stroke="#EEEAE3" stroke-width="19" stroke-linecap="round">
+      <path d="M231 226 V318 M231 266 C231 241 248 228 272 228" />
+      <path d="M312 226 V318" />
+      <circle cx="392" cy="273" r="44" />
+      <path d="M436 226 V318" />
+    </g>
+    <circle cx="312" cy="190" r="12" fill="#EEEAE3" />
+  </g>
+  <rect x="186" y="378" width="140" height="14" rx="7" fill="#EEEAE3" fill-opacity="0.92" />
+</svg>

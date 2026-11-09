@@ -10,7 +10,7 @@ import { useEngineBuilds } from '@/composables/useEngineBuilds'
 import { LINKS, STORES } from '@/links'
 import { vReveal, vSpotlight } from '@/motion/directives'
 import connectLogo from '@/assets/img/connect.svg'
-import engineLogo from '@/assets/img/aria2-next.webp'
+import engineLogo from '@/assets/img/aria2-next.svg'
 
 const { t } = useI18n()
 const builds = useEngineBuilds()

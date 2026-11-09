@@ -1,90 +1,149 @@
-/* Aria2 Next: black and gold. */
+/* Aria2 Next: ivory paper and gold, as on its README banner (see EnginePaper). */
 .engine {
   position: relative;
-  margin-top: clamp(120px, 16vw, 200px);
-  padding-block: clamp(96px, 12vw, 160px);
-  color: #f4ebdd;
-  background: #0a0908;
+  margin-top: clamp(40px, 6vw, 80px);
+  padding-block: clamp(200px, 22vw, 280px);
+  color: #15110b;
   isolation: isolate;
   overflow: clip;
-  --gold: #e3c07a;
-  --text: #f4ebdd;
-  --text-2: #c9bba2;
-  --text-3: #8f846f;
-  --line: rgba(227, 192, 122, 0.14);
-  --line-2: rgba(227, 192, 122, 0.22);
-  --card: #14110b;
-  --card-2: #16130d;
-  --success: #b9d39a;
+  /* The paper dawns out of the page and sinks back into it, with no edge:
+     an eased fade over the band's first and last 240 pixels. */
+  --paper-fade: linear-gradient(
+    180deg,
+    transparent 0,
+    rgba(0, 0, 0, 0.06) 50px,
+    rgba(0, 0, 0, 0.22) 100px,
+    rgba(0, 0, 0, 0.5) 150px,
+    rgba(0, 0, 0, 0.8) 200px,
+    #000 240px,
+    #000 calc(100% - 240px),
+    rgba(0, 0, 0, 0.8) calc(100% - 200px),
+    rgba(0, 0, 0, 0.5) calc(100% - 150px),
+    rgba(0, 0, 0, 0.22) calc(100% - 100px),
+    rgba(0, 0, 0, 0.06) calc(100% - 50px),
+    transparent 100%
+  );
+  --gold: #8a570c;
+  --text: #15110b;
+  --text-2: #4a4134;
+  --text-3: #8a6a35;
+  --line: rgba(138, 87, 12, 0.16);
+  --line-2: rgba(138, 87, 12, 0.28);
+  --card: #fffaf0;
+  --card-2: #fbf2e1;
+  --success: #3f6b1c;
+  --accent: #8a570c;
 }
-.engine::before,
+.engine::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  /* Deeper gold where it fades, so the edge reads as warm light, not grey. */
+  background:
+    linear-gradient(
+      180deg,
+      #b07a2c 0,
+      rgba(216, 170, 92, 0.6) 140px,
+      rgba(236, 215, 171, 0) 260px,
+      rgba(236, 215, 171, 0) calc(100% - 260px),
+      rgba(216, 170, 92, 0.6) calc(100% - 140px),
+      #b07a2c 100%
+    ),
+    radial-gradient(60% 50% at 100% 45%, rgba(214, 163, 70, 0.34), transparent 70%),
+    radial-gradient(40% 45% at 0% 70%, rgba(196, 140, 48, 0.22), transparent 70%),
+    radial-gradient(36% 35% at 46% 30%, rgba(255, 255, 255, 0.7), transparent 70%),
+    linear-gradient(118deg, #fdf9f1 0%, #f6ead4 55%, #ecd7ab 100%);
+  -webkit-mask-image: var(--paper-fade);
+  mask-image: var(--paper-fade);
+}
+/* The ground: the site's dot grid in gold, clearest at the sides of the sheet. */
 .engine::after {
   content: '';
   position: absolute;
-  inset-inline: 0;
-  height: 180px;
-  z-index: -1;
-  pointer-events: none;
-}
-.engine::before {
-  top: 0;
-  background: linear-gradient(180deg, var(--bg), transparent);
-}
-.engine::after {
-  bottom: 0;
-  background: linear-gradient(0deg, var(--bg), transparent);
-}
-.engine-fx {
-  position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
   z-index: -2;
+  background-image: radial-gradient(circle, rgba(176, 125, 38, 0.55) 1px, transparent 1.5px);
+  background-size: 24px 24px;
+  -webkit-mask-image: var(--paper-fade), radial-gradient(70% 60% at 50% 50%, rgba(0, 0, 0, 0.35), #000);
+  -webkit-mask-composite: source-in;
+  mask-image: var(--paper-fade), radial-gradient(70% 60% at 50% 50%, rgba(0, 0, 0, 0.35), #000);
+  mask-composite: intersect;
 }
 .engine-grid {
   display: grid;
   grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
   gap: clamp(28px, 5vw, 72px);
-  align-items: center;
+  align-items: end;
 }
 .engine .eyebrow {
   color: var(--gold);
 }
+/* The icon sits on the gold line, the name above it and the slogan below:
+   the icon's centre falls in the middle of the gap between them. */
+.engine-head {
+  --icon: clamp(64px, 9vw, 112px);
+  --gap: 34px;
+  display: grid;
+  grid-template-columns: var(--icon) auto;
+  align-items: end;
+  column-gap: calc(var(--icon) * 0.5);
+  row-gap: var(--gap);
+  /* Room for the rosette, which reaches past the icon. */
+  margin: 10px 0 calc(var(--icon) * 0.62 - var(--gap) / 2);
+}
+.engine-icon {
+  grid-row: 1;
+  width: var(--icon);
+  height: var(--icon);
+  margin-bottom: calc(var(--icon) / -2 - var(--gap) / 2);
+  filter: drop-shadow(0 18px 26px rgba(80, 56, 14, 0.32)) drop-shadow(0 4px 8px rgba(80, 56, 14, 0.22));
+}
 .engine-title {
-  display: flex;
-  align-items: center;
-  gap: 0.2em;
+  grid-row: 1;
+  grid-column: 2;
+  justify-self: start;
   margin: 0;
-  font-size: clamp(48px, 7vw, 96px);
-  line-height: 1;
-  font-weight: 800;
-  letter-spacing: -0.045em;
+  font-family: var(--display);
+  font-size: clamp(40px, 7vw, 96px);
+  line-height: 0.9;
+  font-weight: 700;
+  font-stretch: 104%;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  /* Pressed into the paper, lit from above. */
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9),
+    0 14px 30px rgba(120, 78, 14, 0.18);
 }
-.engine-title img {
-  width: 0.84em;
-  height: 0.84em;
-  flex: none;
-  filter: drop-shadow(0 10px 24px rgba(227, 192, 122, 0.25));
-}
-.engine-title span {
-  background: linear-gradient(180deg, #fff6e0 0%, #e3c07a 55%, #9c7a3c 100%);
-  padding-bottom: 0.06em;
+/* A text shadow would paint over the clipped gradient, so the gold word takes
+   the same light as a filter. */
+.engine-title em {
+  font-style: normal;
+  text-shadow: none;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.9)) drop-shadow(0 14px 15px rgba(120, 78, 14, 0.18));
+  background: linear-gradient(180deg, #d9a43c, #8a570c);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  padding-bottom: 0.06em;
 }
 .engine-tag {
-  margin: 18px 0 0;
+  grid-row: 2;
+  grid-column: 2;
+  margin: 0;
+  font-family: var(--display);
   font-size: clamp(19px, 2vw, 24px);
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  color: var(--text);
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  color: #4a4134;
 }
-.engine-copy p {
+.engine-copy > p {
   color: var(--text-2);
 }
 .engine-copy p a {
   color: var(--gold);
+  font-weight: 600;
   text-decoration: underline;
   text-decoration-color: color-mix(in srgb, var(--gold) 40%, transparent);
   text-underline-offset: 3px;
@@ -292,18 +351,20 @@
 .chip {
   padding: 6px 12px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
-  background: color-mix(in srgb, var(--gold) 7%, transparent);
-  color: var(--gold);
-  font: 500 13px/1.2 var(--mono);
+  border: 1px solid rgba(176, 127, 42, 0.45);
+  background: rgba(255, 250, 240, 0.7);
+  color: #6b4a12;
+  font: 600 13px/1.2 var(--mono);
 }
 .term {
-  border-radius: 16px;
-  background: rgba(20, 17, 12, 0.82);
-  border: 1px solid rgba(227, 192, 122, 0.18);
-  box-shadow: 0 40px 100px -30px rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  border-radius: 18px;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(180deg, #25252b, #101013) padding-box,
+    linear-gradient(135deg, #f4e4b6 0%, #d3b06b 45%, #9c7638 100%) border-box;
+  box-shadow:
+    0 40px 80px -30px rgba(80, 56, 14, 0.55),
+    0 12px 30px -12px rgba(80, 56, 14, 0.35);
   overflow: hidden;
   direction: ltr;
   text-align: left;
@@ -364,6 +425,6 @@
 }
 @media (max-width: 900px) {
   .engine-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }

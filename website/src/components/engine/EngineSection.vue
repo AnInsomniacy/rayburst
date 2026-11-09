@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
- * @fileoverview Aria2 Next. A black-and-gold band: data lanes stream in from
- * the left and converge on a terminal typing the engine's own quick-start
- * commands (aria2-next README) and a standard aria2 JSON-RPC call; a gold
- * download button for the visitor's system with every build in a menu, and a
- * Docker command that copies itself.
+ * @fileoverview Aria2 Next, on the ivory paper of its README banner: the icon
+ * in a gold rosette, the name above the gold line that swells into an aria
+ * (EnginePaper), and a terminal typing the engine's own quick-start commands
+ * (aria2-next README) and a standard aria2 JSON-RPC call; a gold download
+ * button for the visitor's system with every build in a menu, and a Docker
+ * command that copies itself.
  */
 import { useClipboard } from '@vueuse/core'
 import {
@@ -23,30 +24,32 @@ import { DOCKER_PULL, LINKS } from '@/links'
 import { vReveal } from '@/motion/directives'
 import { useScene } from '@/motion/useScene'
 import { fileSize } from '@/sim/format'
-import EngineLanes from './EngineLanes.vue'
+import EnginePaper from './EnginePaper.vue'
 import { typedScript, TYPED_BY } from './script'
-import engineLogo from '@/assets/img/aria2-next.webp'
+import engineLogo from '@/assets/img/aria2-next.svg'
 
 const { t } = useI18n()
 const builds = useEngineBuilds()
 const { copy, copied } = useClipboard({ legacy: true, copiedDuring: 1800 })
 
 const section = ref<HTMLElement | null>(null)
-const term = ref<HTMLElement | null>(null)
+const icon = ref<HTMLElement | null>(null)
+const name = ref<HTMLElement | null>(null)
 const { time } = useScene(section, { still: TYPED_BY })
 const lines = computed(() => typedScript(time.value))
 </script>
 
 <template>
   <section id="engine" ref="section" class="engine">
-    <EngineLanes :time="time" :section="section" :target="term" />
+    <EnginePaper :time="time" :section="section" :icon="icon" :name="name" />
     <div class="wrap engine-grid">
       <div class="engine-copy">
         <span v-reveal class="eyebrow">{{ t('engine.over') }}</span>
-        <h2 v-reveal="1" class="engine-title">
-          <img :src="engineLogo" alt="" width="80" height="80" /><span>Aria2 Next</span>
-        </h2>
-        <p v-reveal="2" class="engine-tag">{{ t('engine.tag') }}</p>
+        <div class="engine-head">
+          <img ref="icon" v-reveal.scale="1" class="engine-icon" :src="engineLogo" alt="" width="112" height="112" />
+          <h2 ref="name" v-reveal="1" class="engine-title">Aria2 <em>Next</em></h2>
+          <p v-reveal="2" class="engine-tag">{{ t('engine.tag') }}</p>
+        </div>
         <i18n-t v-reveal="3" keypath="engine.description" tag="p" scope="global">
           <template #aria2Next>
             <a :href="LINKS.engine" target="_blank" rel="noopener">Aria2 Next</a>
@@ -125,7 +128,7 @@ const lines = computed(() => typedScript(time.value))
           </a>
         </div>
       </div>
-      <div ref="term" v-reveal.scale="2" class="term">
+      <div v-reveal.scale="2" class="term">
         <div class="term-bar"><i /><i /><i /><span>aria2-next</span></div>
         <pre aria-label="aria2-next"><template v-for="(line, i) in lines" :key="i"><span
           v-for="(part, j) in line.parts" :key="j" :class="part.cls">{{ part.text }}</span><span
