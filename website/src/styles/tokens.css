@@ -13,6 +13,7 @@
   --text: #f2edf9;
   --text-2: #bdb3cd;
   --text-3: #8a809c;
+  --slogan: #dcd2ee;
   --accent: #caa6ff;
   --accent-2: #9e74d5;
   --accent-ink: #7b3ed1;
@@ -37,6 +38,10 @@
   --font:
     'Inter Variable', system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
     'Noto Sans CJK SC', 'Noto Sans', sans-serif;
+  /* Names and headlines, as on the artwork; CJK falls back to the system faces. */
+  --display:
+    'Mona Sans Variable', 'Inter Variable', system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Noto Sans CJK SC', 'Noto Sans', sans-serif;
   --mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   --gutter: clamp(16px, 4vw, 40px);
   --maxw: 1200px;
@@ -54,6 +59,7 @@
   --text: #1b1520;
   --text-2: #4f4758;
   --text-3: #7d7486;
+  --slogan: #3b3049;
   --accent: #7b3ed1;
   --accent-2: #9e74d5;
   --accent-ink: #682bbc;

@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useTheme } from '@/composables/useTheme'
 import { EASE, gsap, reducedMotion } from '@/motion/gsap'
 import logo from '@/assets/img/logo.svg'
+import MarkRing from '@/components/art/MarkRing.vue'
 
 const { t } = useI18n()
 useTheme()
@@ -19,7 +20,7 @@ onMounted(() => {
 
 <template>
   <main ref="root" class="nf">
-    <img :src="logo" alt="" width="72" height="72" />
+    <MarkRing class="nf-mark"><img :src="logo" alt="" width="88" height="88" /></MarkRing>
     <h1>404</h1>
     <p>{{ t('error.description') }}</p>
     <a class="btn btn-primary btn-lg" href="/">Rayburst</a>
@@ -36,18 +37,18 @@ onMounted(() => {
   background: radial-gradient(50% 45% at 50% 30%, var(--glow-a), transparent 70%), var(--bg);
   text-align: center;
 }
-img {
-  width: 72px;
-  height: 72px;
-  margin-bottom: 28px;
-  filter: drop-shadow(0 12px 36px rgba(123, 62, 209, 0.5));
+.nf-mark {
+  width: 88px;
+  margin: 24px 0 52px;
 }
 h1 {
   margin: 0;
+  font-family: var(--display);
   font-size: clamp(56px, 12vw, 120px);
   line-height: 1;
-  font-weight: 800;
-  letter-spacing: -0.05em;
+  font-weight: 720;
+  font-stretch: 112%;
+  letter-spacing: -0.03em;
   background: var(--sheen);
   -webkit-background-clip: text;
   background-clip: text;

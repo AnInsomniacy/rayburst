@@ -1,22 +1,26 @@
 <script setup lang="ts">
 /**
- * @fileoverview The hero backdrop: slow star dust drifting up and to the
- * right, one burst of light from the logo when it fills in, then a breathing
- * glow. Drawn on a canvas from the scene clock.
+ * @fileoverview The hero's moving layer, after the social preview: a halo of
+ * light breathing around the ring, star dust drifting up and to the right, and
+ * an aria that leaves the ring, runs under the copy and opens into the far
+ * side, its twist rolling along it. Drawn on a canvas from the scene clock.
  */
 import { useElementBounding } from '@vueuse/core'
 import { ref, watch } from 'vue'
+import { drawAria, drawBloom, drawHalo, paletteFor } from '@/art/motifs'
 import { useTheme } from '@/composables/useTheme'
 import { useCanvas } from '@/motion/useCanvas'
 import { EASE, hash, prog } from '@/motion/gsap'
+import { isRtlPage, rectIn } from '@/ui/geometry'
 
-const props = defineProps<{ time: number; logo: HTMLElement | null }>()
+const props = defineProps<{ time: number; mark: HTMLElement | null; copy: HTMLElement | null }>()
 
-const STARS = 110
+const STARS = 90
 const canvas = ref<HTMLCanvasElement | null>(null)
 const { frame } = useCanvas(canvas, 1.75)
 const theme = useTheme()
-const logoBox = useElementBounding(() => props.logo, { windowScroll: false })
+const markBox = useElementBounding(() => props.mark, { windowScroll: false })
+const copyBox = useElementBounding(() => props.copy, { windowScroll: false })
 const canvasBox = useElementBounding(canvas, { windowScroll: false })
 
 function draw(time: number) {
@@ -24,44 +28,67 @@ function draw(time: number) {
   if (!f) return
   const { ctx, w, h } = f
   const lite = theme.state.value === 'light'
+  const paint = paletteFor(theme.state.value)
+  // The ring (see MarkRing): centred on the mark's box, radius 0.59 of it.
+  const size = markBox.width.value || 200
+  const cx = markBox.left.value - canvasBox.left.value + size * 0.485
+  const cy = markBox.top.value - canvasBox.top.value + size * 0.5
+  const r = size * 0.59
+  const stacked = copyBox.top.value > markBox.bottom.value - 1
+
+  drawHalo(ctx, { cx, cy, r: r * 2.4, time, palette: paint, alpha: EASE.text(prog(time, 0.6, 1.8)) })
+
   for (let i = 0; i < STARS; i++) {
     const depth = 0.3 + hash(i, 1) * 0.7
     const x = ((hash(i, 2) * (w + 80) + time * 6 * depth) % (w + 80)) - 40
     const y = ((hash(i, 3) * (h + 80) - time * 10 * depth + (h + 80) * 4) % (h + 80)) - 40
+    if (Math.hypot(x - cx, y - cy) < r * 1.1) continue
     const tw = 0.5 + 0.5 * Math.sin(time * (0.8 + hash(i, 4) * 1.6) + i)
-    const a = (0.1 + 0.45 * tw) * depth * (lite ? 0.55 : 1)
-    ctx.fillStyle = lite ? `rgba(123,62,209,${a})` : `rgba(230,218,255,${a})`
+    const a = (0.1 + 0.45 * tw) * depth * (lite ? 0.5 : 1)
+    ctx.fillStyle = lite ? `rgba(123,62,209,${a})` : `rgba(239,230,255,${a})`
     ctx.beginPath()
-    ctx.arc(x, y, 0.6 + depth * 1.3, 0, Math.PI * 2)
+    ctx.arc(x, y, 0.5 + depth * 1.2, 0, Math.PI * 2)
     ctx.fill()
   }
-  // The rays converge near the lower-left of the mark; the glow sits at its centre.
-  const size = logoBox.width.value || 100
-  const ox = logoBox.left.value - canvasBox.left.value + size * 0.5
-  const oy = logoBox.top.value - canvasBox.top.value + logoBox.height.value * 0.52
-  const burst = prog(time, 0.7, 1.6)
-  if (burst > 0 && burst < 1) {
-    ctx.globalCompositeOperation = lite ? 'source-over' : 'lighter'
-    ctx.strokeStyle = `rgba(214,186,255,${0.55 * (1 - burst)})`
-    ctx.lineWidth = 1.5
-    ctx.beginPath()
-    ctx.arc(ox, oy, size * (0.4 + 3.2 * EASE.enter(burst)), 0, Math.PI * 2)
-    ctx.stroke()
-    ctx.globalCompositeOperation = 'source-over'
+
+  // The aria: under the copy, flat from the ring, open into the far side.
+  const rtl = isRtlPage()
+  const copyBottom = copyBox.bottom.value - canvasBox.top.value
+  const y = Math.min(h - 60, Math.max(cy + size * 0.5, copyBottom + (stacked ? 40 : 64)))
+  const near = rtl ? w - cx : cx
+  const amp = Math.min(size * 0.43, h * 0.2)
+  const drift = Math.min(size * 0.3, y * 0.35)
+  const intro = EASE.text(prog(time, 0.9, 1.6))
+  // It opens only past the last line of the copy, so it never runs under the statistics.
+  let far = 0
+  const foot = props.copy?.lastElementChild
+  if (foot && canvas.value) {
+    for (const el of foot.children) {
+      const r = rectIn(el, canvas.value)
+      far = Math.max(far, rtl ? w - r.x : r.x + r.w)
+    }
   }
-  const breathe = 0.75 + 0.25 * Math.sin(time * 0.9)
-  const g0 = prog(time, 0.7, 0.5) * (1 - 0.6 * prog(time, 1.2, 1.4))
-  const r = size * (2.2 + 0.4 * breathe)
-  const grad = ctx.createRadialGradient(ox, oy, 0, ox, oy, r)
-  const glow = lite ? '158,116,213' : '150,95,230'
-  grad.addColorStop(0, `rgba(${glow},${(0.22 + 0.35 * g0) * (lite ? 0.6 : 1)})`)
-  grad.addColorStop(1, `rgba(${glow},0)`)
-  ctx.fillStyle = grad
-  ctx.fillRect(ox - r, oy - r, r * 2, r * 2)
+  const swell = stacked ? w * 0.4 : Math.min(w * 0.8, Math.max(near + size, w * 0.62, far - 100))
+  if (!lite) drawBloom(ctx, rtl ? w * 0.08 : w * 0.92, y - drift * 0.6, amp * 2.4, '#c026d3', 0.26 * intro)
+  drawAria(ctx, {
+    w,
+    x0: stacked ? 0 : near,
+    end: w + 30,
+    y,
+    swell,
+    amp: amp * (0.6 + 0.4 * intro),
+    drift,
+    twist: 0.0098,
+    phase: time * 0.22,
+    strands: 72,
+    alpha: intro,
+    flip: rtl,
+    paint: paint.aria,
+  })
 }
 
 watch(
-  () => [props.time, theme.state.value, logoBox.top.value, canvasBox.width.value] as const,
+  () => [props.time, theme.state.value, markBox.top.value, copyBox.bottom.value, canvasBox.width.value] as const,
   ([time]) => draw(time),
   { flush: 'post' },
 )
@@ -74,10 +101,9 @@ watch(
 <style scoped>
 .hero-fx {
   position: absolute;
-  inset: 0 0 auto;
+  inset: 0;
   width: 100%;
-  height: 100svh;
-  min-height: 720px;
+  height: 100%;
   z-index: -1;
   pointer-events: none;
 }

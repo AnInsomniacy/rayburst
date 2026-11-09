@@ -98,6 +98,7 @@ kbd {
 }
 .sec {
   position: relative;
+  isolation: isolate;
   padding-block: clamp(96px, 14vw, 180px) 0;
 }
 .sec-head {
@@ -125,10 +126,12 @@ kbd {
 }
 .title {
   margin: 0;
+  font-family: var(--display);
   font-size: clamp(36px, 5.6vw, 68px);
   line-height: 1.06;
-  font-weight: 760;
-  letter-spacing: -0.035em;
+  font-weight: 680;
+  font-stretch: 106%;
+  letter-spacing: -0.032em;
   background: var(--sheen);
   -webkit-background-clip: text;
   background-clip: text;

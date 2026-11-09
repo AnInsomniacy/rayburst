@@ -1,5 +1,6 @@
 /** @fileoverview 404 entry: the same fonts, tokens and language detection as the page. */
 import '@fontsource-variable/inter'
+import '@fontsource-variable/mona-sans/standard.css'
 import './styles/tokens.css'
 import './styles/base.css'
 import './styles/controls.css'

@@ -12,7 +12,7 @@ pnpm project; the desktop app's dependencies are not involved.
 | Browser utilities | VueUse |
 | Icons | `@vicons/ionicons5`, the set Rayburst uses |
 | Color schemes | `@material/material-color-utilities`, as in the app |
-| Fonts | Fontsource (Inter, JetBrains Mono) |
+| Fonts | Fontsource (Mona Sans for names and headlines, Inter, JetBrains Mono) |
 
 ## Develop
 
@@ -32,9 +32,11 @@ src/
   i18n.ts                locale detection, lazy loading, right-to-left
   locales/*.json         27 languages
   motion/                GSAP setup, the scene clock, canvas sizing, directives
+  art/                   the promo artwork's ripples, aria and palettes, drawn live
   sim/                   the demo tasks as pure functions of time
   composables/           theme, language, GitHub releases and statistics
-  components/            one folder per section; mock/ rebuilds the app window
+  components/            one folder per section; mock/ rebuilds the app window;
+                         art/ holds the mark's ring and the section backdrops
   styles/                tokens, base, shared controls, the window mock
   data/schemes.ts        the ten color schemes, generated like colorScheme.ts
 tools/                   maintenance scripts

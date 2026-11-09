@@ -1,6 +1,7 @@
 /** @fileoverview Entry: fonts, global styles, the page language, then the app. */
 import '@fontsource-variable/inter'
 import '@fontsource-variable/jetbrains-mono'
+import '@fontsource-variable/mona-sans/standard.css'
 import './styles/tokens.css'
 import './styles/base.css'
 import './styles/controls.css'
