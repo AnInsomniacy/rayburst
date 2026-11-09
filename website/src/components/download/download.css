@@ -13,9 +13,7 @@
 }
 .get-logo {
   width: clamp(80px, 9vw, 104px);
-  height: auto;
-  margin-bottom: 28px;
-  filter: drop-shadow(0 16px 44px rgba(123, 62, 209, 0.6));
+  margin: 16px 0 52px;
 }
 .get-main {
   display: flex;

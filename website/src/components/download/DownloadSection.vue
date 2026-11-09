@@ -2,7 +2,8 @@
 /**
  * @fileoverview Get Rayburst: one button for the visitor's system with an
  * architecture switch, a card per platform with every package, and a slow
- * burst of light behind the logo; then the rest of the family.
+ * logo in its ring of light with ripples spreading over the section; then the
+ * rest of the family.
  */
 import { ToggleGroupItem, ToggleGroupRoot } from 'reka-ui'
 import { computed, nextTick, ref, watch } from 'vue'
@@ -14,20 +15,18 @@ import { useDownloadPulse } from '@/composables/useDownloadPulse'
 import { LINKS } from '@/links'
 import { vReveal, vSpotlight } from '@/motion/directives'
 import { EASE, Flip, reducedMotion } from '@/motion/gsap'
-import { useScene } from '@/motion/useScene'
 import { fileSize } from '@/sim/format'
 import logo from '@/assets/img/logo.svg'
-import DownloadBurst from './DownloadBurst.vue'
+import MarkRing from '@/components/art/MarkRing.vue'
+import SectionField from '@/components/art/SectionField.vue'
 import FamilyCards from './FamilyCards.vue'
 
 const { t } = useI18n()
 const release = useDesktopRelease()
 const os = release.os
 
-const hero = ref<HTMLElement | null>(null)
 const logoEl = ref<HTMLElement | null>(null)
 const primary = ref<HTMLElement | null>(null)
-const { time } = useScene(hero, { still: 2.4 })
 
 // Object.keys widens to string[]; the keys of SYSTEMS[os].arch are Arch by construction.
 const archKeys = computed(() => (os ? (Object.keys(SYSTEMS[os].arch) as Arch[]) : []))
@@ -78,10 +77,12 @@ watch(pulse.pulses, () => {
 
 <template>
   <section id="download" class="sec get">
+    <SectionField :ring="logoEl" />
     <div class="wrap">
-      <div ref="hero" class="get-hero">
-        <DownloadBurst :time="time" :logo="logoEl" />
-        <img ref="logoEl" v-reveal.scale class="get-logo" :src="logo" alt="" width="96" height="96" />
+      <div class="get-hero">
+        <div ref="logoEl" v-reveal.scale class="get-logo">
+          <MarkRing><img :src="logo" alt="" width="104" height="104" /></MarkRing>
+        </div>
         <h2 v-reveal="1" class="title">{{ t('dl.title') }}</h2>
         <p v-reveal="2" class="lead">{{ t('dl.sub') }}</p>
         <div v-reveal="3" class="get-main">

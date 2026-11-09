@@ -9,6 +9,7 @@ import CodeMoment from './CodeMoment.vue'
 import PickMoment from './PickMoment.vue'
 import StudioPanel from './StudioPanel.vue'
 import TrayMoment from './TrayMoment.vue'
+import SectionField from '@/components/art/SectionField.vue'
 
 const { t } = useI18n()
 
@@ -21,6 +22,7 @@ const MOMENTS = [
 
 <template>
   <section id="craft" class="sec craft">
+    <SectionField :aria="{ y: 110, open: 'start', swell: 0.66 }" />
     <div class="wrap">
       <div class="sec-head">
         <h2 v-reveal class="title">{{ t('craft.title') }}</h2>

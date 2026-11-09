@@ -12,6 +12,7 @@ import { useScene } from '@/motion/useScene'
 import ConnectionsPanel from './ConnectionsPanel.vue'
 import LivePanel from './LivePanel.vue'
 import PiecesPanel from './PiecesPanel.vue'
+import SectionField from '@/components/art/SectionField.vue'
 
 const { t } = useI18n()
 
@@ -43,6 +44,7 @@ const selected = computed({
 
 <template>
   <section id="details" class="sec details">
+    <SectionField />
     <div class="wrap">
       <div class="sec-head">
         <h2 v-reveal class="title">{{ t('details.title') }}</h2>

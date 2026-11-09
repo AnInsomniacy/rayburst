@@ -18,6 +18,8 @@ import { useScene } from '@/motion/useScene'
 import { KINDS, scenario } from '@/sim/tasks'
 import { centerIn, rectIn, type Point } from '@/ui/geometry'
 import connectLogo from '@/assets/img/connect.svg'
+import MarkRing from '@/components/art/MarkRing.vue'
+import SectionField from '@/components/art/SectionField.vue'
 import ConnectBrowser from './ConnectBrowser.vue'
 import { CLICKS, CUE, LOOP } from './timeline'
 
@@ -31,6 +33,7 @@ const model = scenario(
 )
 
 const stage = ref<HTMLElement | null>(null)
+const mark = ref<HTMLElement | null>(null)
 const browser = ref<InstanceType<typeof ConnectBrowser> | null>(null)
 const win = ref<InstanceType<typeof RbWindow> | null>(null)
 const { time } = useScene(stage, { loop: LOOP, still: 11 })
@@ -121,9 +124,12 @@ const matchEl = computed(() => browser.value?.frame() ?? null)
 
 <template>
   <section id="connect" class="sec connect">
+    <SectionField :ring="mark" :aria="{ y: 110, open: 'end', swell: 0.66 }" />
     <div class="wrap">
       <div class="sec-head">
-        <img v-reveal class="connect-logo" :src="connectLogo" alt="" width="64" height="64" />
+        <div ref="mark" v-reveal.scale class="connect-mark">
+          <MarkRing><img :src="connectLogo" alt="" width="84" height="84" /></MarkRing>
+        </div>
         <h2 v-reveal="1" class="title">Rayburst Connect</h2>
         <p v-reveal="2" class="lead">{{ t('connect.tagline') }}</p>
         <div v-reveal="3" class="stores">
@@ -198,11 +204,9 @@ const matchEl = computed(() => browser.value?.frame() ?? null)
 .connect {
   --c: var(--connect);
 }
-.connect-logo {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 20px;
-  filter: drop-shadow(0 10px 30px rgba(123, 62, 209, 0.5));
+.connect-mark {
+  width: 84px;
+  margin: 24px auto 44px;
 }
 .stores {
   display: flex;

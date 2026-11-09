@@ -18,6 +18,7 @@ import { clamp, EASE, prog } from '@/motion/gsap'
 import { useScene } from '@/motion/useScene'
 import { KINDS, LINKS, scenario, toastsFor, type TaskId } from '@/sim/tasks'
 import { isRtlPage, rectIn, type Point } from '@/ui/geometry'
+import SectionField from '@/components/art/SectionField.vue'
 
 const { t } = useI18n()
 const tr = (key: string, named?: Record<string, unknown>) => t(key, named ?? {})
@@ -124,6 +125,7 @@ const ribbons = computed(() =>
 
 <template>
   <section id="protocols" class="sec protocols">
+    <SectionField :aria="{ y: 110, open: 'start', swell: 0.66 }" />
     <div class="wrap">
       <div class="sec-head">
         <h2 v-reveal class="title">{{ t('proto.title') }}</h2>

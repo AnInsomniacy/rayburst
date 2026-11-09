@@ -13,6 +13,7 @@ import { vReveal, vSpotlight } from '@/motion/directives'
 import { useScene } from '@/motion/useScene'
 import { KINDS, scenario, toastsFor } from '@/sim/tasks'
 import type { IconName } from '@/ui/icons'
+import SectionField from '@/components/art/SectionField.vue'
 
 const { t } = useI18n()
 const tr = (key: string, named?: Record<string, unknown>) => t(key, named ?? {})
@@ -51,6 +52,7 @@ const focus = computed(() => (spot.value === 'card' && frame.value.tasks[0] ? [f
 
 <template>
   <section id="overview" class="sec overview">
+    <SectionField />
     <div class="wrap">
       <div class="sec-head">
         <h2 v-reveal class="title">{{ t('ov.title') }}</h2>
