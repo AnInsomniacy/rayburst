@@ -12,7 +12,8 @@ import DetailCopy from './DetailCopy.vue'
 import { clock } from '@/sim/format'
 import { KINDS } from '@/sim/tasks'
 
-const props = defineProps<{ time: number }>()
+// `active` is part of the panels' shared interface; this panel draws nothing off screen.
+const props = defineProps<{ time: number; active?: boolean }>()
 const { t } = useI18n()
 const tr = (key: string, named?: Record<string, unknown>) => t(key, named ?? {})
 
