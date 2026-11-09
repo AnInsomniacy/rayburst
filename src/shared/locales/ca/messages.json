@@ -649,7 +649,8 @@
     "task-actions-section": "Accions de tasques",
     "request-section": "Sol·licituds",
     "connection-section": "Connexió",
-    "bt-protocol-section": "Protocol"
+    "bt-protocol-section": "Protocol",
+    "show-job-progress": "Mostra la barra de progrés de la tasca"
   },
   "task": {
     "scope-all": "Totes",

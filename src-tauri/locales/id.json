@@ -16,5 +16,6 @@
   "notification.selection-body": "%{task_name}",
   "notification.browser-kept-title": "Unduhan tetap di browser",
   "notification.browser-kept-body": "Rayburst tidak dapat menjangkau %{host}.",
-  "notification.browser-kept-proxy-body": "Rayburst tidak dapat menjangkau %{host}. Jika browser memakai proxy, aktifkan proxy di pengaturan jaringan Rayburst."
+  "notification.browser-kept-proxy-body": "Rayburst tidak dapat menjangkau %{host}. Jika browser memakai proxy, aktifkan proxy di pengaturan jaringan Rayburst.",
+  "notification.stop": "Hentikan"
 }

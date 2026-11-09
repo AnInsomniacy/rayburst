@@ -2,6 +2,7 @@
 pub mod bittorrent;
 pub mod files;
 mod policy;
+pub mod removal;
 use crate::{
     aria2::{rpc::RpcClient, types::*},
     error::AppError,

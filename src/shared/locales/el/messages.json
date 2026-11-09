@@ -649,7 +649,8 @@
     "task-actions-section": "Ενέργειες εργασιών",
     "request-section": "Αιτήματα",
     "connection-section": "Σύνδεση",
-    "bt-protocol-section": "Πρωτόκολλο"
+    "bt-protocol-section": "Πρωτόκολλο",
+    "show-job-progress": "Εμφάνιση γραμμής προόδου εργασίας"
   },
   "task": {
     "scope-all": "Όλα",

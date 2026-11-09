@@ -16,5 +16,6 @@
   "notification.selection-body": "%{task_name}",
   "notification.browser-kept-title": "La baixada continua al navegador",
   "notification.browser-kept-body": "Rayburst no ha pogut connectar amb %{host}.",
-  "notification.browser-kept-proxy-body": "Rayburst no ha pogut connectar amb %{host}. Si el navegador fa servir un proxy, activeu el proxy a la configuració de xarxa de Rayburst."
+  "notification.browser-kept-proxy-body": "Rayburst no ha pogut connectar amb %{host}. Si el navegador fa servir un proxy, activeu el proxy a la configuració de xarxa de Rayburst.",
+  "notification.stop": "Atura"
 }

@@ -649,7 +649,8 @@
     "task-actions-section": "任務操作",
     "request-section": "請求",
     "connection-section": "連線",
-    "bt-protocol-section": "協定"
+    "bt-protocol-section": "協定",
+    "show-job-progress": "顯示工作進度列"
   },
   "task": {
     "scope-all": "全部",

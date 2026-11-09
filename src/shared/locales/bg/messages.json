@@ -649,7 +649,8 @@
     "task-actions-section": "Действия със задачи",
     "request-section": "Заявки",
     "connection-section": "Връзка",
-    "bt-protocol-section": "Протокол"
+    "bt-protocol-section": "Протокол",
+    "show-job-progress": "Показване на лентата за напредък на задачата"
   },
   "task": {
     "scope-all": "Всички",

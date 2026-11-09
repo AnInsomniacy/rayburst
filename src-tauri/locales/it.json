@@ -16,5 +16,6 @@
   "notification.selection-body": "%{task_name}",
   "notification.browser-kept-title": "Download lasciato al browser",
   "notification.browser-kept-body": "Rayburst non è riuscito a raggiungere %{host}.",
-  "notification.browser-kept-proxy-body": "Rayburst non è riuscito a raggiungere %{host}. Se il browser usa un proxy, attiva il proxy nelle impostazioni di rete di Rayburst."
+  "notification.browser-kept-proxy-body": "Rayburst non è riuscito a raggiungere %{host}. Se il browser usa un proxy, attiva il proxy nelle impostazioni di rete di Rayburst.",
+  "notification.stop": "Interrompi"
 }

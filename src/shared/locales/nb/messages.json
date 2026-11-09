@@ -649,7 +649,8 @@
     "task-actions-section": "Oppgavehandlinger",
     "request-section": "Forespørsler",
     "connection-section": "Tilkobling",
-    "bt-protocol-section": "Protokoll"
+    "bt-protocol-section": "Protokoll",
+    "show-job-progress": "Vis fremdriftslinje for jobben"
   },
   "task": {
     "scope-all": "Alle",

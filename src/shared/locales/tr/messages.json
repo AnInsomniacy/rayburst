@@ -649,7 +649,8 @@
     "task-actions-section": "Görev eylemleri",
     "request-section": "İstekler",
     "connection-section": "Bağlantı",
-    "bt-protocol-section": "Protokol"
+    "bt-protocol-section": "Protokol",
+    "show-job-progress": "İş ilerleme çubuğunu göster"
   },
   "task": {
     "scope-all": "Tümü",

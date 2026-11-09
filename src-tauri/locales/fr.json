@@ -16,5 +16,6 @@
   "notification.selection-body": "%{task_name}",
   "notification.browser-kept-title": "Téléchargement laissé au navigateur",
   "notification.browser-kept-body": "Rayburst n'a pas pu joindre %{host}.",
-  "notification.browser-kept-proxy-body": "Rayburst n'a pas pu joindre %{host}. Si le navigateur utilise un proxy, activez le proxy dans les paramètres réseau de Rayburst."
+  "notification.browser-kept-proxy-body": "Rayburst n'a pas pu joindre %{host}. Si le navigateur utilise un proxy, activez le proxy dans les paramètres réseau de Rayburst.",
+  "notification.stop": "Arrêter"
 }

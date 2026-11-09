@@ -88,8 +88,8 @@ windows-sys = { version = "0.59", features = [
 ] }
 winreg = "0.56"
 tauri-winrt-notification = "0.7"
-# Same version and features as tauri-winrt-notification uses.
-windows = { version = "0.61", features = ["UI_Notifications"] }
+# Same version as tauri-winrt-notification; the progress toast needs the XML and collection types.
+windows = { version = "0.61", features = ["Data_Xml_Dom", "Foundation", "Foundation_Collections", "UI_Notifications"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

@@ -14,6 +14,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { arch as osArch, version as osVersion } from '@tauri-apps/plugin-os'
 import { usePlatform } from '@/composables/usePlatform'
+import { useJobProgressBackend } from '@/composables/useJobProgress'
 import { getVersion as getAppVersion } from '@tauri-apps/api/app'
 import { getVersion as getAria2Version } from '@/api/aria2'
 import { getLocale } from 'tauri-plugin-locale-api'
@@ -59,6 +60,7 @@ const appStore = useAppStore()
 const dialog = useDialog()
 const message = useAppMessage()
 const { isMac, isLinux, isWindows, platformLabel, archLabel: getArchLabel } = usePlatform()
+const { backend: jobProgressBackend, showsProgressNotification } = useJobProgressBackend()
 
 // ─── System info card ────────────────────────────────────────────────
 const sysArch = ref('')
@@ -198,6 +200,9 @@ const notificationClickOptions = computed(() => [
   { value: 'reveal', label: t('preferences.notification-click-reveal') },
   { value: 'open', label: t('preferences.notification-click-open') },
 ])
+// A progress surface announces the same job; the start and completion
+// notifications would say it twice.
+const progressReplacesNotifications = computed(() => form.value.showProgressBar && showsProgressNotification.value)
 
 const floatWindowOptions = computed(() =>
   FLOAT_WINDOW_MODES.map((value) => ({ value, label: t(FLOAT_WINDOW_MODE_LABELS[value]) })),
@@ -437,11 +442,14 @@ onMounted(async () => {
 
         <!-- Notifications -->
         <NDivider title-placement="left">{{ t('preferences.notification-section') }}</NDivider>
+        <NFormItem v-if="jobProgressBackend === 'kde-job-view'" :label="t('preferences.show-job-progress')">
+          <NSwitch v-model:value="form.showProgressBar" />
+        </NFormItem>
         <NFormItem :label="t('preferences.task-completed-notify')">
           <NSwitch v-model:value="form.taskNotification" />
         </NFormItem>
         <NCollapseTransition :show="form.taskNotification">
-          <NFormItem label=" ">
+          <NFormItem v-if="!progressReplacesNotifications" label=" ">
             <PreferenceCheckboxGrid v-model:value="selectedNotificationTypes" :options="notificationTypeOptions" />
           </NFormItem>
           <NFormItem v-if="isWindows" :label="t('preferences.notification-click-action')">
@@ -624,7 +632,7 @@ onMounted(async () => {
         <NFormItem v-if="isMac || isLinux" :label="t('preferences.tray-speedometer')">
           <NSwitch v-model:value="form.traySpeedometer" />
         </NFormItem>
-        <NFormItem :label="t('preferences.show-progress-bar')">
+        <NFormItem v-if="isMac || isWindows" :label="t('preferences.show-progress-bar')">
           <NSwitch v-model:value="form.showProgressBar" />
         </NFormItem>
         <NFormItem>

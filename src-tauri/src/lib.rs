@@ -743,6 +743,7 @@ pub fn run() {
             commands::update_tray_menu_labels,
             commands::update_menu_labels,
             commands::update_progress_bar,
+            commands::job_progress_backend,
             commands::update_dock_badge,
             commands::send_app_system_notification,
             commands::notification_access_state,

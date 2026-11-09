@@ -16,5 +16,6 @@
   "notification.selection-body": "%{task_name}",
   "notification.browser-kept-title": "下载已留在浏览器",
   "notification.browser-kept-body": "Rayburst 无法连接 %{host}。",
-  "notification.browser-kept-proxy-body": "Rayburst 无法连接 %{host}。如果浏览器使用了代理，请在 Rayburst 的网络设置中启用代理。"
+  "notification.browser-kept-proxy-body": "Rayburst 无法连接 %{host}。如果浏览器使用了代理，请在 Rayburst 的网络设置中启用代理。",
+  "notification.stop": "停止"
 }

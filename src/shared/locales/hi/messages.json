@@ -649,7 +649,8 @@
     "task-actions-section": "कार्य क्रियाएँ",
     "request-section": "अनुरोध",
     "connection-section": "कनेक्शन",
-    "bt-protocol-section": "प्रोटोकॉल"
+    "bt-protocol-section": "प्रोटोकॉल",
+    "show-job-progress": "कार्य की प्रगति बार दिखाएं"
   },
   "task": {
     "scope-all": "सभी",

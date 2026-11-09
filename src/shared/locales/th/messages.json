@@ -649,7 +649,8 @@
     "task-actions-section": "การจัดการงาน",
     "request-section": "คำขอ",
     "connection-section": "การเชื่อมต่อ",
-    "bt-protocol-section": "โปรโตคอล"
+    "bt-protocol-section": "โปรโตคอล",
+    "show-job-progress": "แสดงแถบความคืบหน้าของงาน"
   },
   "task": {
     "scope-all": "ทั้งหมด",

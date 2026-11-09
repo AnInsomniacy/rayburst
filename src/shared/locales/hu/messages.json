@@ -649,7 +649,8 @@
     "task-actions-section": "Feladatműveletek",
     "request-section": "Kérések",
     "connection-section": "Kapcsolat",
-    "bt-protocol-section": "Protokoll"
+    "bt-protocol-section": "Protokoll",
+    "show-job-progress": "Feladat folyamatjelzőjének megjelenítése"
   },
   "task": {
     "scope-all": "Összes",

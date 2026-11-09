@@ -649,7 +649,8 @@
     "task-actions-section": "Task Actions",
     "request-section": "Requests",
     "connection-section": "Connection",
-    "bt-protocol-section": "Protocol"
+    "bt-protocol-section": "Protocol",
+    "show-job-progress": "Show job progress bar"
   },
   "task": {
     "scope-all": "All",

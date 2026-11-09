@@ -16,5 +16,6 @@
   "notification.selection-body": "%{task_name}",
   "notification.browser-kept-title": "ダウンロードはブラウザーで続行されます",
   "notification.browser-kept-body": "Rayburst は %{host} に接続できませんでした。",
-  "notification.browser-kept-proxy-body": "Rayburst は %{host} に接続できませんでした。ブラウザーがプロキシを使っている場合は、Rayburst のネットワーク設定でプロキシを有効にしてください。"
+  "notification.browser-kept-proxy-body": "Rayburst は %{host} に接続できませんでした。ブラウザーがプロキシを使っている場合は、Rayburst のネットワーク設定でプロキシを有効にしてください。",
+  "notification.stop": "停止"
 }

@@ -16,5 +16,6 @@
   "notification.selection-body": "%{task_name}",
   "notification.browser-kept-title": "Pobieranie zostało w przeglądarce",
   "notification.browser-kept-body": "Rayburst nie mógł połączyć się z %{host}.",
-  "notification.browser-kept-proxy-body": "Rayburst nie mógł połączyć się z %{host}. Jeśli przeglądarka używa proxy, włącz proxy w ustawieniach sieci Rayburst."
+  "notification.browser-kept-proxy-body": "Rayburst nie mógł połączyć się z %{host}. Jeśli przeglądarka używa proxy, włącz proxy w ustawieniach sieci Rayburst.",
+  "notification.stop": "Zatrzymaj"
 }

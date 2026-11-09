@@ -236,6 +236,16 @@ fn notification_enabled(kind: TaskNotificationKind, config: &RuntimeConfig) -> b
     if !config.task_notification {
         return false;
     }
+    // A progress surface announces the same job, starting and finishing.
+    if matches!(
+        kind,
+        TaskNotificationKind::Start
+            | TaskNotificationKind::Complete
+            | TaskNotificationKind::P2pDownloadComplete
+    ) && super::job_progress::notifications_replaced(config)
+    {
+        return false;
+    }
 
     match kind {
         TaskNotificationKind::Start => config.notify_on_start,
@@ -583,7 +593,7 @@ pub fn notification_access(_app: &tauri::AppHandle) -> NotificationAccess {
 /// Development builds run from Cargo's target directory without an
 /// installed application identity.
 #[cfg(windows)]
-fn development_build() -> bool {
+pub(crate) fn development_build() -> bool {
     tauri::utils::platform::current_exe()
         .ok()
         .and_then(|exe| exe.parent().map(std::path::Path::to_path_buf))

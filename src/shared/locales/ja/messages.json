@@ -649,7 +649,8 @@
     "task-actions-section": "タスク操作",
     "request-section": "リクエスト",
     "connection-section": "接続",
-    "bt-protocol-section": "プロトコル"
+    "bt-protocol-section": "プロトコル",
+    "show-job-progress": "ジョブの進行状況バーを表示"
   },
   "task": {
     "scope-all": "すべて",
