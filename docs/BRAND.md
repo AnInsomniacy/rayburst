@@ -17,7 +17,10 @@ gives `actool` an explicit standard input to avoid the Node CLI descriptor issue
 tracked in [tauri#15991](https://github.com/tauri-apps/tauri/pull/15991).
 The tray remains a separate transparent template image. The Windows tray uses
 `src-tauri/icons/tray/`, one PNG per display scale, so the shell never resizes it.
-`docs/brand/banner.png` is the English README banner with the current slogan. Use no terminal punctuation in slogans, including translations.
+`docs/brand/banner.png` is the English README banner (4:1, 2400×600) with the current slogan.
+`docs/brand/social-preview.png` (1280×640) is the GitHub social preview, set in the
+repository settings. `docs/brand/posters/` holds the feature posters (2560×1600) for
+the website and posts. Use no terminal punctuation in slogans, including translations.
 
 The default interface seed is `#9E74D5`, a soft lavender. Material Color Utilities
 generates both themes through the content palette, preserving the seed chroma.
@@ -45,8 +48,8 @@ The website is a standalone Vue project in `website/`. Its light and dark
 colors use the desktop's default palette; the SVG logos retain their original colors.
 Website artwork copies come from `public/logo.svg`, Rayburst Connect's
 `public/icon/icon.svg`, and the screenshots in `docs/media/`.
-The companion section uses the approved browser-to-desktop campaign artwork.
-Its engine panel uses Aria2 Next's approved black-and-gold `docs/media/banner.png`.
+The companion section draws its browser-to-desktop scene in code.
+Its engine panel uses Aria2 Next's icon, `docs/media/aria2-next-icon.png`.
 Keep promotional scenes separate from the unedited interface screenshots; preserve
 their proportions and omit release numbers from campaign artwork.
 Serve full-resolution WebP copies on the website: lossless for interface screenshots
