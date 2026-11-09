@@ -42,6 +42,7 @@ import { usePreferenceStore } from '@/stores/preference'
 
 import { resubmitTask, type TaskResubmissionMode } from './resubmit'
 import { createTaskOperations } from './operations'
+import { updateTasksInPlace } from './reconcile'
 
 export type { Aria2Task, Aria2File, Aria2Peer }
 
@@ -261,7 +262,7 @@ export const useTaskStore = defineStore('task', () => {
     } else {
       sortTasks(data, field, direction, addedAtIndex, completedAtIndex)
     }
-    taskList.value = data
+    if (!updateTasksInPlace(taskList.value, data)) taskList.value = data
     if (checkedGids.value.length) {
       const present = new Set(data.map((task) => task.gid))
       const kept = checkedGids.value.filter((gid) => present.has(gid))

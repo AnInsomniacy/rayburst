@@ -237,18 +237,40 @@ const { setupListeners } = useAppEvents({
 
 // ── Engine snapshots ─────────────────────────────────────────────────
 // The native pump is the only reader of engine state. It pushes every
-// snapshot (statistics and all tasks) while this window exists, right after
+// snapshot (statistics and all tasks) while this window is shown, right after
 // engine notifications and task actions and otherwise every 0.5–2 s.
+//
+// A hidden page paints nothing, so list transitions started there never
+// finish and every later update grows costlier (#799). The pump skips hidden
+// and minimized windows; for states only the page sees, such as a covered
+// window, the latest snapshot waits until the page shows again.
+
+let deferredSnapshot: TaskSnapshot | null = null
+
+function applySnapshot(snapshot: TaskSnapshot) {
+  appStore.applyStat(snapshot.stat)
+  taskStore.applySnapshot(snapshot.tasks)
+}
+
+function applyDeferredSnapshot() {
+  if (document.hidden || !deferredSnapshot) return
+  const snapshot = deferredSnapshot
+  deferredSnapshot = null
+  applySnapshot(snapshot)
+}
 
 async function startSnapshotListener() {
   stopSnapshotListener()
+  document.addEventListener('visibilitychange', applyDeferredSnapshot)
   unlistenSnapshot = await listen<TaskSnapshot>('tasks:snapshot', ({ payload }) => {
-    appStore.applyStat(payload.stat)
-    taskStore.applySnapshot(payload.tasks)
+    if (document.hidden) deferredSnapshot = payload
+    else applySnapshot(payload)
   })
 }
 
 function stopSnapshotListener() {
+  document.removeEventListener('visibilitychange', applyDeferredSnapshot)
+  deferredSnapshot = null
   unlistenSnapshot?.()
   unlistenSnapshot = null
 }

@@ -938,6 +938,11 @@ pub fn run() {
                     let _ = app.emit("show-exit-dialog", ());
                 }
             }
+            // The pump skips a hidden main window; a returning one reads a
+            // fresh snapshot now instead of after the background interval.
+            tauri::WindowEvent::Focused(true) if window.label() == "main" => {
+                services::pump::wake(window.app_handle());
+            }
             tauri::WindowEvent::Moved(position)
                 if window.label() == services::float_window::PANEL_LABEL =>
             {

@@ -132,8 +132,22 @@ export function historyRecordToTask(record: HistoryRecord): Aria2Task {
   return task
 }
 
+/** Tasks restored from each record. The store keeps one record array until
+ *  the history changes, so every snapshot reuses these instead of parsing the
+ *  metadata of the whole history again. Frozen because they are shared. */
+const restoredTasks = new WeakMap<HistoryRecord, Aria2Task>()
+
+function restoredTask(record: HistoryRecord): Aria2Task {
+  let task = restoredTasks.get(record)
+  if (!task) {
+    task = Object.freeze(historyRecordToTask(record))
+    restoredTasks.set(record, task)
+  }
+  return task
+}
+
 /** Merge by task identity; the same content can belong to different downloads. */
 export function mergeHistoryIntoTasks(aria2Tasks: Aria2Task[], historyRecords: HistoryRecord[]): Aria2Task[] {
   const gids = new Set(aria2Tasks.map((task) => task.gid))
-  return [...aria2Tasks, ...historyRecords.filter((record) => !gids.has(record.gid)).map(historyRecordToTask)]
+  return [...aria2Tasks, ...historyRecords.filter((record) => !gids.has(record.gid)).map(restoredTask)]
 }

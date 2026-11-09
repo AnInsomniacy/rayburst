@@ -2,10 +2,10 @@
 //!
 //! Each tick reads the global statistics and every task queue with one
 //! multicall and feeds the native surfaces (tray, Dock, taskbar, keep-awake),
-//! the floating window, the lifecycle monitor and, while a window exists, the
-//! frontend. Engine
-//! notifications and task actions request an immediate tick, so the interval
-//! only bounds how stale speeds and progress may get.
+//! the floating window, the lifecycle monitor and, while the main window is
+//! shown, the frontend. Engine notifications and task actions request an
+//! immediate tick, so the interval only bounds how stale speeds and progress
+//! may get.
 
 use super::config::RuntimeConfigState;
 use super::float_window::FloatWindow;
@@ -16,7 +16,7 @@ use crate::error::AppError;
 use crate::services::tasks::TaskService;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 use tokio::sync::{watch, Notify};
 
 /// Tick interval while a window shows live speeds and progress.
@@ -47,6 +47,15 @@ struct Running {
     task: tokio::task::JoinHandle<()>,
 }
 
+/// The main window's state for one tick.
+#[derive(Clone, Copy)]
+struct View {
+    /// The window exists, so the snapshot carries the whole task list.
+    window: bool,
+    /// The window is on screen and receives the snapshot.
+    shown: bool,
+}
+
 /// Managed for the whole app lifetime; reads run only between
 /// [`Pump::start`] and [`Pump::stop`], i.e. while an engine is up.
 pub struct Pump {
@@ -60,6 +69,13 @@ pub struct Pump {
 /// Files a WebView snapshot carries per task. A torrent can hold tens of
 /// thousands; serializing them every tick froze the window.
 const SNAPSHOT_FILES: usize = 64;
+
+/// Whether the window is on screen. A hidden or minimized page paints
+/// nothing, so pushed snapshots only queue layout and transition work that
+/// never settles until the window returns (#799).
+fn is_shown(window: &WebviewWindow) -> bool {
+    window.is_visible().unwrap_or(false) && !window.is_minimized().unwrap_or(false)
+}
 
 /// Keeps the selected files first, so opening a task still finds one.
 fn trim_files(task: &mut Aria2Task) {
@@ -151,19 +167,14 @@ impl Pump {
         let mut monitor: Option<Monitor> = None;
         loop {
             let window = app.get_webview_window("main");
-            let visible = window
-                .as_ref()
-                .is_some_and(|window| window.is_visible().unwrap_or(false))
-                || super::float_window::exists(&app);
+            let shown = window.as_ref().is_some_and(is_shown);
+            let visible = shown || super::float_window::exists(&app);
+            let view = View {
+                window: window.is_some(),
+                shown,
+            };
             let interval = match self
-                .tick(
-                    &app,
-                    &aria2,
-                    window.is_some(),
-                    &mut effects,
-                    &float,
-                    &mut monitor,
-                )
+                .tick(&app, &aria2, view, &mut effects, &float, &mut monitor)
                 .await
             {
                 Ok(()) if visible => VISIBLE_INTERVAL,
@@ -190,13 +201,13 @@ impl Pump {
         &self,
         app: &AppHandle,
         aria2: &TaskService,
-        window: bool,
+        view: View,
         effects: &mut StatEffects,
         float: &FloatWindow,
         monitor: &mut Option<Monitor>,
     ) -> Result<(), AppError> {
         // Stopped tasks matter only to the task list.
-        let (stat, mut tasks) = aria2.snapshot(window).await?;
+        let (stat, mut tasks) = aria2.snapshot(view.window).await?;
         let stat = stat_update(&stat);
 
         let config = match app.try_state::<RuntimeConfigState>() {
@@ -221,7 +232,7 @@ impl Pump {
             None => *monitor = Some(Monitor::new(&queued)),
         }
 
-        if window {
+        if view.window {
             if let Err(error) = super::tasks::bittorrent::decorate(app, &mut tasks).await {
                 log::warn!("pump: selection state unavailable: {error}");
             }
@@ -237,8 +248,10 @@ impl Pump {
             }
         }
         let snapshot = Arc::new(Snapshot { stat, tasks });
-        if window {
-            if let Err(error) = app.emit(SNAPSHOT_EVENT, &*snapshot) {
+        // A hidden window catches up when it returns: focusing it wakes the
+        // pump, and a refresh reads the published snapshot.
+        if view.shown {
+            if let Err(error) = app.emit_to("main", SNAPSHOT_EVENT, &*snapshot) {
                 log::debug!("pump: emit failed: {error}");
             }
         }

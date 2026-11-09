@@ -219,6 +219,14 @@ describe('mergeHistoryIntoTasks', () => {
     expect(mergeHistoryIntoTasks([], [])).toEqual([])
   })
 
+  it('restores each record once and shares the frozen task across snapshots', () => {
+    const history = [makeRecord({ gid: 'h1' })]
+    const first = mergeHistoryIntoTasks([], history)[0]
+    expect(mergeHistoryIntoTasks([], history)[0]).toBe(first)
+    expect(Object.isFrozen(first)).toBe(true)
+    expect(mergeHistoryIntoTasks([], [{ ...history[0] }])[0]).not.toBe(first)
+  })
+
   // ── infoHash-based cross-session dedup ─────────────────────────
 
   it('preserves distinct GIDs with the same infoHash', () => {

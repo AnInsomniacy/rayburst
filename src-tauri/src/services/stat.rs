@@ -375,6 +375,9 @@ pub struct StatEffects {
     last_tray_tooltip: Option<String>,
     /// The Windows tray icon is redrawn for a new display scale.
     tray_icon_size: Option<u32>,
+    /// The Dock badge and progress last drawn; each draw redisplays the tile.
+    #[cfg(target_os = "macos")]
+    dock: Option<(Option<String>, Option<u64>)>,
 }
 
 impl StatEffects {
@@ -428,10 +431,15 @@ impl StatEffects {
             let progress = (cfg.show_progress_bar && stat.num_active > 0)
                 .then(|| task_progress(active))
                 .flatten();
-            let _ = app.run_on_main_thread(move || {
-                set_dock_badge(badge_label.as_deref());
-                set_dock_progress(progress);
-            });
+            let dock = (badge_label, progress);
+            if self.dock.as_ref() != Some(&dock) {
+                self.dock = Some(dock.clone());
+                let (badge_label, progress) = dock;
+                let _ = app.run_on_main_thread(move || {
+                    set_dock_badge(badge_label.as_deref());
+                    set_dock_progress(progress);
+                });
+            }
         }
 
         #[cfg(target_os = "windows")]
