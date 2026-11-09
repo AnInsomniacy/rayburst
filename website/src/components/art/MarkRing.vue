@@ -41,7 +41,7 @@ const strokes = computed(() => ({
 const stop = (d: number) => (d / REACH).toFixed(4)
 
 let tl: gsap.core.Timeline | null = null
-/** Hide the ring and return its intro: the rim draws out both ways from the point, then the corona lights. */
+/** Hide the ring and return its intro, paused: the rim draws out both ways from the point, then the corona lights. */
 function intro(): gsap.core.Timeline | null {
   const el = back.value
   if (!el) return null
@@ -49,7 +49,7 @@ function intro(): gsap.core.Timeline | null {
   const halo = el.querySelectorAll('.mr-halo')
   gsap.set(rims, { drawSVG: '50% 50%' })
   gsap.set(halo, { autoAlpha: 0, scale: 0.92, transformOrigin: `${CX}px ${CY}px` })
-  tl = gsap.timeline()
+  tl = gsap.timeline({ paused: true })
   tl.to(rims, { drawSVG: '0% 100%', duration: 1.3, ease: EASE.enter, stagger: 0.12 }, 0).to(
     halo,
     { autoAlpha: 1, scale: 1, duration: 1.4, ease: EASE.text, stagger: 0.1 },

@@ -60,8 +60,8 @@ onMounted(async () => {
   const ringIntro = ring.value?.intro()
   await Promise.race([document.fonts.ready, new Promise((resolve) => setTimeout(resolve, 700))])
   intro = gsap.timeline({ defaults: { ease: EASE.text, duration: 0.9 } })
-  if (logoIntro) intro.add(logoIntro, 0)
-  if (ringIntro) intro.add(ringIntro, 0.45)
+  if (logoIntro) intro.add(logoIntro.paused(false), 0)
+  if (ringIntro) intro.add(ringIntro.paused(false), 0.45)
   intro
     .to(split.chars, { autoAlpha: 1, yPercent: 0, filter: 'blur(0px)', stagger: 0.045, clearProps: 'filter' }, 0.55)
     .to(rise, { autoAlpha: 1, y: 0, stagger: 0.07, clearProps: 'transform' }, 0.95)

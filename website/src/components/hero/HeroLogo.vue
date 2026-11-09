@@ -9,7 +9,7 @@ import { EASE, gsap } from '@/motion/gsap'
 const svg = ref<SVGSVGElement | null>(null)
 let tl: gsap.core.Timeline | null = null
 
-/** Hide the artwork and return the intro timeline (the hero places it at 0). */
+/** Hide the artwork and return the intro timeline, paused (the hero places it at 0). */
 function intro(): gsap.core.Timeline | null {
   const el = svg.value
   if (!el) return null
@@ -17,7 +17,7 @@ function intro(): gsap.core.Timeline | null {
   const fill = el.querySelector('.fill')
   gsap.set(fill, { autoAlpha: 0 })
   gsap.set(traces, { drawSVG: '0%', autoAlpha: 0 })
-  tl = gsap.timeline()
+  tl = gsap.timeline({ paused: true })
   tl.to(traces, { drawSVG: '100%', autoAlpha: 1, duration: 0.8, stagger: 0.09, ease: EASE.enter }, 0)
     .to(traces, { autoAlpha: 0, duration: 0.35, stagger: 0.09, ease: 'power1.out' }, 0.8)
     .to(fill, { autoAlpha: 1, duration: 0.9, ease: EASE.text }, 0.75)
