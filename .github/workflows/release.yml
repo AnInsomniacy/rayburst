@@ -181,41 +181,46 @@ jobs:
 
   update-homebrew:
     needs: build
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     if: github.event_name == 'release' && !github.event.release.prerelease && vars.HOMEBREW_ENABLED == 'true'
     concurrency:
       group: homebrew-rayburst
       cancel-in-progress: false
-    env:
-      HOMEBREW_NO_AUTO_UPDATE: 1
-      HOMEBREW_NO_ANALYTICS: 1
-      HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}
 
     steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      # Edit the tap with git instead of loading it through Homebrew, whose
+      # third-party tap trust policy can reject the cask before it is read.
       - name: Update the Rayburst cask
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          RELEASE_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
           VERSION="${RELEASE_TAG#v}"
           [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
 
+          assets="$RUNNER_TEMP/rayburst-macos"
+          GH_TOKEN="$RELEASE_TOKEN" gh release download "$RELEASE_TAG"             --repo "$GITHUB_REPOSITORY" --dir "$assets"             --pattern 'Rayburst_aarch64.app.tar.gz' --pattern 'Rayburst_x64.app.tar.gz'
+          arm="$(sha256sum "$assets/Rayburst_aarch64.app.tar.gz" | cut -d' ' -f1)"
+          intel="$(sha256sum "$assets/Rayburst_x64.app.tar.gz" | cut -d' ' -f1)"
+
           gh auth setup-git --hostname github.com
-          brew tap AnInsomniacy/rayburst
-          TAP_DIR="$(brew --repository AnInsomniacy/rayburst)"
-          CURRENT="$(brew info --json=v2 --cask AnInsomniacy/rayburst/rayburst | jq -r '.casks[0].version')"
-          if [ "$CURRENT" = "$VERSION" ]; then
+          tap="$RUNNER_TEMP/homebrew-rayburst"
+          git clone --depth 1 https://github.com/AnInsomniacy/homebrew-rayburst.git "$tap"
+          ./.github/scripts/update-homebrew-cask.sh "$tap/Casks/rayburst.rb" "$VERSION" "$arm" "$intel"
+
+          if [ -z "$(git -C "$tap" status --porcelain)" ]; then
             echo "Rayburst $VERSION is already in the tap."
             exit 0
           fi
-
-          brew bump-cask-pr --write-only --no-audit \
-            --version="$VERSION" \
-            AnInsomniacy/rayburst/rayburst
-          git -C "$TAP_DIR" diff --check
-          git -C "$TAP_DIR" config user.name "github-actions[bot]"
-          git -C "$TAP_DIR" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C "$TAP_DIR" add Casks/rayburst.rb
-          git -C "$TAP_DIR" commit -m "rayburst $VERSION"
-          git -C "$TAP_DIR" push origin HEAD:main
+          git -C "$tap" diff --check
+          git -C "$tap" config user.name "github-actions[bot]"
+          git -C "$tap" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$tap" add Casks/rayburst.rb
+          git -C "$tap" commit -m "rayburst $VERSION"
+          git -C "$tap" push origin HEAD:main

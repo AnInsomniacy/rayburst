@@ -80,8 +80,9 @@ macOS 15 can crash AssetCatalogAgent even after the application compiles success
 
 Homebrew publication requires `HOMEBREW_ENABLED=true` and `HOMEBREW_TAP_TOKEN`
 with write access to `AnInsomniacy/homebrew-rayburst`. The tap owns `Casks/rayburst.rb`;
-the stable release job uses `brew bump-cask-pr --write-only` to update both architecture
-checksums without replacing its installation or cleanup rules. Windows signing requires `SIGNPATH_ENABLED=true` and the existing
+the stable release job clones the tap with git and runs `.github/scripts/update-homebrew-cask.sh`
+to update the version and both architecture checksums without replacing its installation or
+cleanup rules. It does not load the tap through Homebrew, so tap trust policy cannot block it. Windows signing requires `SIGNPATH_ENABLED=true` and the existing
 `SIGNPATH_API_TOKEN`, `SIGNPATH_ORGANIZATION_ID`, `SIGNPATH_PROJECT_SLUG` and
 `SIGNPATH_RELEASE_ARTIFACT_CONFIGURATION_SLUG` settings. Match the artifact
 configuration to the new installer names in the signing service.
