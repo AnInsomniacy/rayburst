@@ -13,7 +13,7 @@
 </div>
 
 > [!IMPORTANT]
-> **Motrix Next is now Rayburst.** We recommend uninstalling the previous desktop app before installing Rayburst. Settings, tasks and history are not imported; keep your downloaded files. In-app updates may leave both apps installed or retain old shortcuts. Visit the [website](https://rayburst.pages.dev).
+> **Motrix Next is now Rayburst.** We recommend uninstalling the previous desktop app before installing Rayburst. Settings, tasks and history are not imported automatically. On macOS, you can [find and recover your old download history](docs/MOTRIX_HISTORY.md). Keep your downloaded files. In-app updates may leave both apps installed or retain old shortcuts. Visit the [website](https://rayburst.pages.dev).
 
 ---
 
