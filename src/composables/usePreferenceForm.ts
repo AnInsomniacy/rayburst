@@ -17,6 +17,7 @@ import { logger } from '@shared/logger'
 import type { AppConfig } from '@shared/types'
 import { validateAppConfigCandidate } from '@shared/configConstraints'
 import { buildSystemConfigFromAppConfig } from '@shared/utils/systemConfig'
+import { prepareTaskPreferenceOptions } from './taskPreferenceOptions'
 
 export interface UsePreferenceFormOptions<T extends Record<string, unknown>> {
   /** Build the initial form state from the current preference config. */
@@ -133,6 +134,7 @@ export function usePreferenceForm<T extends Record<string, unknown>>(options: Us
     )
     const shouldHotReload = isEngineReady() && Object.keys(changedHotConfig).length > 0
     let hotReloadAttempted = false
+    let rollbackTaskOptions: (() => Promise<void>) | undefined
     let preferencesPersisted = false
     let systemConfigWriteAttempted = false
     const saveFeedback =
@@ -141,8 +143,11 @@ export function usePreferenceForm<T extends Record<string, unknown>>(options: Us
         : options.saveFeedback
     try {
       if (shouldHotReload) {
+        const taskOptions = await prepareTaskPreferenceOptions(changedHotConfig)
+        rollbackTaskOptions = taskOptions.rollback
         hotReloadAttempted = true
         await changeGlobalOption(changedHotConfig as Partial<AppConfig>)
+        await taskOptions.apply()
       }
 
       const saved = await preferenceStore.updateAndSave(storeData)
@@ -187,6 +192,12 @@ export function usePreferenceForm<T extends Record<string, unknown>>(options: Us
           rollbackFailed = true
           logger.error('PreferenceForm.rollback', rollbackError)
         }
+      }
+      try {
+        await rollbackTaskOptions?.()
+      } catch (rollbackError) {
+        rollbackFailed = true
+        logger.error('PreferenceForm.rollbackTasks', rollbackError)
       }
       if (!rollbackFailed) {
         Object.assign(form.value, options.buildForm())
