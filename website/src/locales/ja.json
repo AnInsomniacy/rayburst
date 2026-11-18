@@ -4,16 +4,16 @@
     "features": "機能"
   },
   "rebrand": {
-    "body": "プロジェクトはそのまま、名前だけが変わりました。ブラウザ拡張機能も Rayburst Connect になりました。Rayburst は新規インストールをおすすめします。設定・タスク・履歴は引き継がれず、旧アプリ内から更新すると旧アプリやショートカットが残ることがあります。",
-    "chip": "Motrix Next は Rayburst になりました"
+    "body": "プロジェクトはそのまま、名前だけが変わりました。ブラウザ拡張機能もRayburst Connectになりました。Rayburstは新規インストールをおすすめします。設定・タスク・履歴は引き継がれず、旧アプリ内から更新すると旧アプリやショートカットが残ることがあります。",
+    "chip": "Motrix NextはRayburstになりました"
   },
   "hero": {
     "tagline": "オープンソースのダウンロードマネージャーを再定義する",
-    "description": "ファイル、トレント、ライブ配信に対応したオープンソースのダウンロードマネージャー。macOS、Windows、Linux でネイティブに動作します。",
+    "description": "ファイル、トレント、ライブ配信に対応したオープンソースのダウンロードマネージャー。macOS、Windows、Linuxでネイティブに動作します。",
     "download": "ダウンロード",
     "github": "GitHub",
     "sponsor": "スポンサー",
-    "stars": "Stars",
+    "stars": "スター",
     "downloads": "ダウンロード",
     "version": "安定版"
   },
@@ -22,7 +22,7 @@
     "sub": "ファイルもトレントもライブ配信も、高速なネイティブウィンドウひとつに",
     "p1": {
       "t": "サイドバー",
-      "d": "すべて、ダウンロード中、失敗、完了。件数はリアルタイムで更新"
+      "d": "すべて、進行中、失敗、完了。件数はリアルタイムで更新"
     },
     "p2": {
       "t": "タスクカード",
@@ -48,7 +48,7 @@
   },
   "proto": {
     "title": "すべてのプロトコルを、ひとつのリストに",
-    "sub": "HTTPS からマグネット、ライブの HLS まで。貼り付ければ、そのまま届きます",
+    "sub": "HTTPSからマグネット、ライブHLSまで。貼り付ければ、そのまま届きます",
     "magnet": "マグネット",
     "k": {
       "files": "ファイル",
@@ -61,11 +61,11 @@
   },
   "details": {
     "title": "見えないところは、ひとつもない",
-    "sub": "接続、ピース、ライブのセグメントを、届いた瞬間に描き出します"
+    "sub": "接続、ピース、ライブセグメントを、届いた瞬間に描き出します"
   },
   "d1": {
-    "title": "64 本の接続を同時に",
-    "sub": "各ダウンロードを既定で最大 64 本の接続に分割し、止まった場所から正確に再開します"
+    "title": "64本の接続を同時に",
+    "sub": "各ダウンロードを既定で最大64本の接続に分割し、止まった場所から正確に再開します"
   },
   "d2": {
     "title": "ピースが届くたびに",
@@ -73,27 +73,27 @@
   },
   "d3": {
     "title": "ライブを、そのまま録る",
-    "sub": "トラックを選んで、HLS や DASH を MP4 または MKV に直接保存"
+    "sub": "トラックを選んで、HLSやDASHをMP4またはMKVに直接保存"
   },
   "connect": {
-    "tagline": "連携ブラウザー拡張機能を再定義する",
-    "preview": "ダウンロード前にプレビューして、必要な映像・音声・字幕トラックだけを残せます。Rayburst デスクトップアプリと連携して動作します。",
-    "pageTitle": "フィヨルドのオーロラ · 4K",
+    "tagline": "連携ブラウザ拡張機能を再定義する",
+    "preview": "ダウンロード前にプレビューして、必要な映像・音声・字幕トラックだけを残せます。Rayburstデスクトップアプリと連携して動作します。",
+    "pageTitle": "フィヨルドのオーロラ・4K",
     "channel": "北極光アーカイブ",
-    "add": "{browser} に追加",
+    "add": "{browser}に追加",
     "store": {
-      "chrome": "Chrome ウェブストア",
-      "edge": "Microsoft Edge アドオン",
-      "firefox": "Firefox アドオン"
+      "chrome": "Chromeウェブストア",
+      "edge": "Microsoft Edgeアドオン",
+      "firefox": "Firefoxアドオン"
     },
-    "offline": "GitHub のオフラインパッケージ"
+    "offline": "GitHubのオフラインパッケージ"
   },
   "engine": {
-    "description": "{aria2Next} は Rayburst を動かすオープンソースのエンジンです。積極的にメンテナンスされる aria2 として、上流に溜まっていた数多くの不具合を修正し、初めて ED2K に対応しました。HTTP、HTTPS、SFTP、Metalink、ED2K、BitTorrent を、コマンドラインから、または JSON-RPC 経由で。",
-    "media": "HLS と DASH にもネイティブ対応。トラックを選び、ライブ配信を録画し、再エンコードなしで MP4 や MKV に保存します。",
-    "over": "中で動くエンジン",
-    "tag": "次世代の aria2 を再定義する",
-    "getAny": "Aria2 Next をダウンロード",
+    "description": "{aria2Next}はRayburstを動かすオープンソースのエンジンです。積極的にメンテナンスされているaria2として、上流に溜まっていた数多くの不具合を修正し、初めてED2Kに対応しました。HTTP、HTTPS、SFTP、Metalink、ED2K、BitTorrentを、コマンドラインから、またはJSON-RPC経由で。",
+    "media": "HLSとDASHにもネイティブ対応。トラックを選び、ライブ配信を録画し、再エンコードなしでMP4やMKVに保存します。",
+    "over": "搭載エンジン",
+    "tag": "次世代のaria2を再定義する",
+    "getAny": "Aria2 Nextをダウンロード",
     "more": "ほかのビルド",
     "checksums": "チェックサム",
     "copy": "コマンドをコピー",
@@ -102,24 +102,24 @@
   },
   "craft": {
     "title": "あなた好みに",
-    "sub": "10 のカラースキーム、ライトとダーク、27 の言語。実際のウィンドウで試してみてください",
+    "sub": "10のカラースキーム、ライトとダーク、27の言語。実際のウィンドウで試してみてください",
     "appearance": "外観",
     "scheme": "カラースキーム",
     "native": "トレイに常駐",
     "nativeSub": "ウィンドウを閉じてもダウンロードは続き、メニューバーに速度をリアルタイム表示。",
     "open": "最後の一行まで、オープン",
-    "openSub": "MIT ライセンス。すべてのコードが GitHub にあります。",
+    "openSub": "MITライセンス。すべてのコードがGitHubにあります。",
     "pick": "必要なものだけ",
     "pickSub": "トレントやマグネットリンクのファイル、ストリームのトラックを開始前に選択。それ以外はダウンロードされません。"
   },
   "dl": {
-    "title": "Rayburst を手に入れる",
+    "title": "Rayburstを手に入れる",
     "primary": {
-      "fallback": "Rayburst をダウンロード"
+      "fallback": "Rayburstをダウンロード"
     },
-    "note": "古いリリースには Motrix Next の名前が残っている場合があります。",
+    "note": "古いリリースにはMotrix Nextの名前が残っている場合があります。",
     "releases": "すべてのリリース",
-    "sub": "macOS、Windows、Linux 向け。無料でオープンソース",
+    "sub": "macOS、Windows、Linux向け。無料でオープンソース",
     "yours": "お使いのシステム",
     "notes": "リリースノート",
     "installer": "インストーラー",
@@ -130,21 +130,21 @@
       "prompt": "どれを選べばいいか迷ったら",
       "macOS": "アップルメニュー → このMacについて → チップ",
       "windows": "設定 → システム → バージョン情報 → システムの種類",
-      "linux": "ターミナルで {cmd} を実行"
+      "linux": "ターミナルで{cmd}を実行"
     },
-    "family": "Rayburst ファミリー",
-    "connectSub": "ブラウザで見つけたものを、そのまま Rayburst へ。",
-    "engineSub": "単体で使えるエンジン。CLI、JSON-RPC、Docker イメージ。",
+    "family": "Rayburstファミリー",
+    "connectSub": "ブラウザで見つけたものを、そのままRayburstへ。",
+    "engineSub": "単体で使えるエンジン。CLI、JSON-RPC、Dockerイメージ。",
     "sponsor": "この光を灯し続けるために",
-    "sponsorSub": "Rayburst は無料のオープンソースです。あなたの支援が開発を前へ進めます。"
+    "sponsorSub": "Rayburstは無料のオープンソースです。あなたの支援が開発を前へ進めます。"
   },
   "footer": {
     "built": "使用技術",
     "contributing": "貢献",
     "coc": "行動規範",
     "privacy": "プライバシーポリシー",
-    "signing": "署名ポリシー",
-    "license": "MIT — Copyright © 2025-現在 AnInsomniacy"
+    "signing": "コード署名",
+    "license": "MIT — Copyright © 2025-present AnInsomniacy"
   },
   "ui": {
     "tasks": "タスク一覧",
@@ -155,20 +155,20 @@
     "about": "このアプリについて",
     "settings": "設定",
     "remaining": "残り",
-    "h": "時",
+    "h": "時間",
     "m": "分",
     "s": "秒",
     "complete": "完了",
     "seeding": "シード中",
-    "fetching": "Torrent 取得中",
+    "fetching": "トレントを取得中",
     "probing": "メディアを解析中",
     "mediaDownloading": "メディアをダウンロード中",
     "recording": "録画中",
     "live": "ライブ",
-    "saved": "保存しました：{name}",
-    "seedingToast": "シード中：{name}",
+    "saved": "保存しました: {name}",
+    "seedingToast": "シード中: {name}",
     "openFile": "ファイルを開く",
-    "showInFolder": "フォルダーで表示",
+    "showInFolder": "フォルダで表示",
     "detail": "タスク詳細",
     "tab": {
       "general": "概要",
@@ -195,11 +195,11 @@
     "startDownload": "ダウンロード開始"
   },
   "tray": {
-    "show": "Rayburst を表示",
+    "show": "Rayburstを表示",
     "new": "新規タスク",
     "resume": "すべて再開",
     "pause": "すべて一時停止",
-    "quit": "Rayburst を終了"
+    "quit": "Rayburstを終了"
   },
   "scheme": {
     "rayburst": "Rayburst",
@@ -226,24 +226,24 @@
     "subsKind": "字幕",
     "back": "ソース一覧に戻る",
     "sizeUnknown": "サイズ不明",
-    "loading": "メディアを調査中…",
+    "loading": "メディアを解析中…",
     "confirming": "ダウンロードを確認中…",
     "video": "動画の画質",
     "audio": "音声",
     "subs": "字幕",
     "format": "出力形式",
     "start": "開始位置（秒）",
-    "end": "終了位置（0：末尾）",
+    "end": "終了位置（0: 末尾）",
     "cancel": "キャンセル",
     "download": "ダウンロード",
-    "submitted": "Rayburst にダウンロードを作成しました。"
+    "submitted": "Rayburstにダウンロードを作成しました。"
   },
   "film": {
     "watch": "動画を見る",
     "language": "英語",
     "close": "動画を閉じる",
     "help": "動画が再生されない場合は、接続を確認してください。",
-    "youtube": "YouTube で見る"
+    "youtube": "YouTubeで見る"
   },
   "error": {
     "description": "このページは存在しません。",
