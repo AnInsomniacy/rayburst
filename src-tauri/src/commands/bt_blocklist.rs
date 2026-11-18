@@ -14,6 +14,8 @@ use tauri_plugin_store::StoreExt;
 
 const BLOCKLIST_DIR: &str = "bt";
 const BLOCKLIST_FILE: &str = "peer-blocklist.txt";
+/// The subscription plus the user's own rules; only written when there are some.
+const EFFECTIVE_BLOCKLIST_FILE: &str = "peer-blocklist-effective.txt";
 const BUNDLED_BLOCKLIST_FILE: &str = "data/bt-peer-blocklist.txt";
 const MAX_BLOCKLIST_SIZE: u64 = 16 * 1024 * 1024;
 const SOURCE_PREFIX: &str = "# Source: ";
@@ -71,6 +73,9 @@ struct BtPeerBlocklistConfig {
     sync_interval_hours: u64,
     #[serde(default)]
     proxy: BlocklistProxyConfig,
+    /// Addresses the user blocks by hand, one rule per line (#816).
+    #[serde(rename = "btPeerBlocklistCustomRules", default)]
+    custom_rules: String,
 }
 
 fn default_true() -> bool {
@@ -103,11 +108,9 @@ pub struct BtPeerBlocklistStatus {
     pub bundled: bool,
 }
 
-fn normalize_blocklist_with_snapshot(
-    content: &str,
-    source: &str,
-    snapshot: &str,
-) -> Result<(String, usize), AppError> {
+/// Parses IPv4, IPv6 and CIDR rules, skipping blank lines and `#` comments,
+/// and returns them normalized without duplicates.
+fn parse_rules(content: &str) -> Result<Vec<String>, AppError> {
     let mut rules = Vec::new();
     let mut seen = HashSet::new();
 
@@ -137,7 +140,15 @@ fn normalize_blocklist_with_snapshot(
             rules.push(normalized);
         }
     }
+    Ok(rules)
+}
 
+fn normalize_blocklist_with_snapshot(
+    content: &str,
+    source: &str,
+    snapshot: &str,
+) -> Result<(String, usize), AppError> {
+    let rules = parse_rules(content)?;
     if rules.is_empty() {
         return Err(AppError::Io(
             "BT peer blocklist contains no valid rules".into(),
@@ -170,6 +181,34 @@ fn blocklist_path(app: &AppHandle) -> Result<PathBuf, AppError> {
         .map_err(|e| AppError::Io(format!("Failed to get app data dir: {e}")))?
         .join(BLOCKLIST_DIR)
         .join(BLOCKLIST_FILE))
+}
+
+fn effective_blocklist_path(app: &AppHandle) -> Result<PathBuf, AppError> {
+    Ok(blocklist_path(app)?.with_file_name(EFFECTIVE_BLOCKLIST_FILE))
+}
+
+/// The file the engine reads: the cached subscription, or a copy with the
+/// user's rules appended when there are any.
+fn engine_blocklist(app: &AppHandle, cache: &Path, custom: &str) -> Result<PathBuf, AppError> {
+    let effective = effective_blocklist_path(app)?;
+    let custom = parse_rules(custom)?;
+    if custom.is_empty() {
+        if effective.exists() {
+            std::fs::remove_file(&effective)?;
+        }
+        return Ok(cache.to_path_buf());
+    }
+    let mut content = std::fs::read_to_string(cache)?;
+    if !content.ends_with('\n') {
+        content.push('\n');
+    }
+    content.push_str("# Custom rules\n");
+    for rule in &custom {
+        content.push_str(rule);
+        content.push('\n');
+    }
+    write_cache(&effective, &content)?;
+    Ok(effective)
 }
 
 fn bundled_blocklist_path(app: &AppHandle) -> Result<PathBuf, AppError> {
@@ -331,7 +370,8 @@ async fn update_cache(
     let (normalized, rule_count) = normalize_blocklist(&raw, source)?;
     let target = blocklist_path(app)?;
     write_cache(&target, &normalized)?;
-    set_engine_blocklist(aria2, Some(&target)).await?;
+    let effective = engine_blocklist(app, &target, &config.custom_rules)?;
+    set_engine_blocklist(aria2, Some(&effective)).await?;
 
     log::info!("bt_blocklist: updated rules={rule_count} source={source}");
     read_status(&target)
@@ -359,7 +399,8 @@ pub(crate) async fn reconcile(
         return update_cache(app, aria2, &config).await;
     }
 
-    set_engine_blocklist(aria2, Some(&path)).await?;
+    let effective = engine_blocklist(app, &path, &config.custom_rules)?;
+    set_engine_blocklist(aria2, Some(&effective)).await?;
     Ok(status)
 }
 
@@ -382,7 +423,23 @@ pub(crate) fn startup_blocklist_path(app: &AppHandle) -> Result<Option<String>, 
         .and_then(serde_json::Value::as_str)
         .unwrap_or(DEFAULT_BLOCKLIST_URL);
     let path = ensure_bundled_cache(app, source)?;
+    let custom = preferences
+        .as_ref()
+        .and_then(|value| value.get("btPeerBlocklistCustomRules"))
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_default();
+    // Unreadable custom rules must not cost the subscription its protection.
+    let path = engine_blocklist(app, &path, custom).unwrap_or_else(|error| {
+        log::warn!("bt_blocklist: custom rules skipped: {error}");
+        path
+    });
     Ok(Some(crate::engine::path_to_safe_string(&path)))
+}
+
+/// Checks the rules a user types before they are saved.
+#[tauri::command]
+pub fn check_bt_peer_blocklist_rules(rules: String) -> Result<usize, AppError> {
+    Ok(parse_rules(&rules)?.len())
 }
 
 #[tauri::command]
@@ -436,6 +493,17 @@ mod tests {
         assert!(content.contains("2001:db8::7\n"));
         assert!(content.contains("2001:db8::/32\n"));
         assert_eq!(content.matches("203.0.113.7\n").count(), 1);
+    }
+
+    #[test]
+    fn custom_rules_accept_comments_and_report_the_bad_line() {
+        assert_eq!(
+            parse_rules("# PCDN\n203.0.113.9\n\n198.51.100.0/24\n").expect("valid rules"),
+            vec!["203.0.113.9", "198.51.100.0/24"]
+        );
+        assert!(parse_rules("").expect("empty rules").is_empty());
+        let error = parse_rules("203.0.113.9\nnot-an-ip\n").expect_err("invalid rule");
+        assert!(error.to_string().contains("line 2"));
     }
 
     #[test]

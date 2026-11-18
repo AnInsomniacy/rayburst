@@ -6,8 +6,8 @@ use tauri::{
 pub fn build_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, tauri::Error> {
     // ── App menu (first submenu = macOS application menu) ────────────
     //
-    // PredefinedMenuItem variants (hide, hide_others, show_all, quit)
-    // are auto-localized by macOS — no manual i18n required.
+    // PredefinedMenuItem variants (hide, hide_others, show_all) are
+    // auto-localized by macOS — no manual i18n required.
     // "About" uses a custom MenuItem so it routes through on_menu_event
     // to open the in-app AboutPanel instead of the bare native panel.
     let app_menu = Submenu::with_items(
@@ -29,7 +29,12 @@ pub fn build_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, tauri::Error> {
             &PredefinedMenuItem::hide_others(app, None)?,
             &PredefinedMenuItem::show_all(app, None)?,
             &PredefinedMenuItem::separator(app)?,
-            &PredefinedMenuItem::quit(app, None)?,
+            // Not PredefinedMenuItem::quit: its terminate: runs inside the key
+            // event WebKit hands back, so the shutdown tore down the WebView
+            // from within that WebView's own message dispatch and AppKit
+            // aborted on Cmd+Q (#822). This item quits like the tray does,
+            // after the event returns.
+            &MenuItem::with_id(app, "quit-app", "Quit Rayburst", true, Some("CmdOrCtrl+Q"))?,
         ],
     )?;
 

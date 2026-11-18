@@ -4,6 +4,10 @@
  * The fill is scaled, never resized: a width or max-width change re-lays out
  * and repaints the list on every frame of its transition, and an endless
  * sweep keeps doing so for every active download (#799).
+ *
+ * Track and fill stay composited for good. A fill promoted only while it
+ * moves is drawn at the row's unrounded offset, a pixel off the track it sits
+ * in, so the bar flickered with every update on WebKitGTK (#813).
  */
 import { computed } from 'vue'
 
@@ -41,11 +45,13 @@ const ratio = computed(() => Math.min(Math.max(props.percentage, 0), 100) / 100)
   background: var(--m3-outline-variant);
   contain: strict;
   width: 100%;
+  will-change: transform;
 }
 .linear-progress__fill {
   position: absolute;
   inset: 0;
   transform-origin: 0 50%;
+  will-change: transform;
   transition:
     transform var(--task-motion-progress) var(--task-motion-ease),
     background-color var(--task-motion-state) var(--task-motion-ease);

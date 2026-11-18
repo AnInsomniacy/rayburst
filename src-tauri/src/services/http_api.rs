@@ -43,7 +43,7 @@ pub struct VersionResponse {
 }
 
 /// GET /stat response — mirrors aria2's getGlobalStat for the extension popup.
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct StatResponse {
     pub download_speed: String,
@@ -133,7 +133,13 @@ pub fn validate_bearer_token(headers: &HeaderMap, expected_secret: &str) -> Resu
 /// Shared state passed to Axum handlers via `State<Arc<ApiContext>>`.
 pub struct ApiContext {
     pub app: AppHandle,
+    /// The last statistics the engine returned, answered while it is busy.
+    pub last_stat: std::sync::Mutex<Option<StatResponse>>,
 }
+
+/// How long a read endpoint waits for the engine before it answers without
+/// it. The extension polls; a slow engine must not hold its requests (#828).
+const ENGINE_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
 
 // ── Router Builder ──────────────────────────────────────────────────
 
@@ -170,8 +176,39 @@ pub fn build_router(ctx: Arc<ApiContext>) -> Router {
             limit(Arc::clone(&limits), request, next)
         }))
         .layer(middleware::from_fn(require_product_client))
+        .layer(middleware::from_fn_with_state(
+            Arc::clone(&ctx),
+            require_secret_for_remote,
+        ))
         .layer(cors)
         .with_state(ctx)
+}
+
+/// Another machine may only use the API behind a secret: with remote access
+/// on and no secret, anyone on the network could add downloads (#109). The
+/// answer is 401, which the extension reports as a secret to set.
+async fn require_secret_for_remote(
+    State(ctx): State<Arc<ApiContext>>,
+    request: Request,
+    next: Next,
+) -> Response {
+    let remote = request
+        .extensions()
+        .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
+        .is_some_and(|info| !info.0.ip().to_canonical().is_loopback());
+    let public = matches!(request.uri().path(), "/ping" | "/version");
+    if remote
+        && !public
+        && request.method() != Method::OPTIONS
+        && read_api_secret(&ctx.app).is_empty()
+    {
+        log::warn!(
+            "http_api: refused remote request without an API secret path={}",
+            request.uri().path()
+        );
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    next.run(request).await
 }
 
 pub(super) fn extension_origin(value: &str) -> bool {
@@ -266,8 +303,25 @@ async fn limit(limits: Arc<Limits>, request: Request, next: Next) -> Response {
         log::warn!("http_api: too many requests in flight write={write}");
         return too_many_requests();
     };
-    next.run(request).await
+    // A slow answer to a request that never touches the engine (/ping) means
+    // the app's runtime was busy, not the engine; the path tells them apart.
+    let path = request.uri().path().to_owned();
+    let started = std::time::Instant::now();
+    let response = next.run(request).await;
+    let elapsed = started.elapsed();
+    if elapsed >= SLOW_REQUEST && path != "/add" && !path.starts_with("/media/") {
+        log::warn!(
+            "http_api: slow_request path={path} status={} elapsed_ms={}",
+            response.status().as_u16(),
+            elapsed.as_millis()
+        );
+    }
+    response
 }
+
+/// Reads answer in milliseconds; /add may wait on the user's confirmation and
+/// media routes stream.
+const SLOW_REQUEST: std::time::Duration = std::time::Duration::from_secs(1);
 
 fn too_many_requests() -> Response {
     (StatusCode::TOO_MANY_REQUESTS, [(header::RETRY_AFTER, "1")]).into_response()
@@ -290,15 +344,11 @@ async fn handle_download_capabilities(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     validate_bearer_token(&headers, &read_api_secret(&ctx.app))
         .map_err(|status| (status, Json(serde_json::Value::Null)))?;
-    let engine = ctx
-        .app
-        .try_state::<TaskServiceState>()
-        .ok_or_else(|| engine_unavailable(&ctx.app))?;
-    engine
-        .0
-        .get_version()
-        .await
-        .map_err(|_| engine_unavailable(&ctx.app))?;
+    // The supervisor's probe decides whether the engine runs; asking the
+    // engine here would let one slow reply refuse a download (#828).
+    if engine_phase(&ctx.app) != crate::engine::supervisor::EnginePhase::Running {
+        return Err(engine_unavailable(&ctx.app));
+    }
     // 3: browser downloads are verified by the engine and held until /add
     // answers; no receipts.
     Ok(Json(
@@ -372,11 +422,31 @@ async fn handle_stat(
         .try_state::<TaskServiceState>()
         .ok_or_else(|| engine_unavailable(&ctx.app))?;
 
-    match aria2.0.get_global_stat().await {
-        Ok(stat) => Ok(Json(stat.into())),
-        Err(e) => {
+    match tokio::time::timeout(ENGINE_READ_TIMEOUT, aria2.0.get_global_stat()).await {
+        Ok(Ok(stat)) => {
+            let stat: StatResponse = stat.into();
+            *ctx.last_stat
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(stat.clone());
+            Ok(Json(stat))
+        }
+        Ok(Err(e)) => {
             log::error!("http_api: get_global_stat failed: {e}");
             Err(engine_unavailable(&ctx.app))
+        }
+        Err(_) => {
+            log::warn!("http_api: get_global_stat exceeded {ENGINE_READ_TIMEOUT:?}; answering the last statistics");
+            ctx.last_stat
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .clone()
+                .map(Json)
+                .ok_or_else(|| {
+                    (
+                        StatusCode::SERVICE_UNAVAILABLE,
+                        Json(serde_json::json!({"error": "engine_busy"})),
+                    )
+                })
         }
     }
 }
@@ -660,7 +730,10 @@ pub async fn spawn_http_api(
     port: u16,
     allow_remote_access: bool,
 ) -> Result<HttpApiHandle, AppError> {
-    let ctx = Arc::new(ApiContext { app });
+    let ctx = Arc::new(ApiContext {
+        app,
+        last_stat: std::sync::Mutex::new(None),
+    });
     let router = build_router(ctx);
 
     let host = if allow_remote_access {
@@ -676,7 +749,11 @@ pub async fn spawn_http_api(
     let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
 
     let join_handle = tokio::spawn(async move {
-        let graceful = axum::serve(listener, router).with_graceful_shutdown(async {
+        let graceful = axum::serve(
+            listener,
+            router.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+        )
+        .with_graceful_shutdown(async {
             let _ = shutdown_rx.await;
         });
         if let Err(e) = graceful.await {

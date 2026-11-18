@@ -501,12 +501,14 @@ export interface AppConfig {
   btPeerBlocklistUrl: string
   btPeerBlocklistAutoSync: boolean
   btPeerBlocklistSyncIntervalHours: number
+  btPeerBlocklistCustomRules: string
   keepSharing: boolean
   keepWindowState: boolean
 
   mediaSelectBeforeDownload: boolean
   mediaDefaultFormat: 'mp4' | 'mkv'
   newTaskShowDownloading: boolean
+  newTaskStartPaused: boolean
   noConfirmBeforeDeleteTask: boolean
   fileDeletionMode: FileDeletionMode
   deleteFilesWhenSkipConfirm: boolean

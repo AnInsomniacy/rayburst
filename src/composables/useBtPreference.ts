@@ -68,6 +68,7 @@ export interface BtForm {
   btPeerBlocklistUrl: string
   btPeerBlocklistAutoSync: boolean
   btPeerBlocklistSyncIntervalHours: number
+  btPeerBlocklistCustomRules: string
   trackerSource: string[]
   customTrackerUrls: string[]
   btTracker: string
@@ -110,6 +111,7 @@ export function buildBtForm(config: AppConfig): BtForm {
     btPeerBlocklistSyncIntervalHours: Number(
       config.btPeerBlocklistSyncIntervalHours ?? D.btPeerBlocklistSyncIntervalHours,
     ),
+    btPeerBlocklistCustomRules: config.btPeerBlocklistCustomRules ?? D.btPeerBlocklistCustomRules,
     trackerSource: config.trackerSource ?? [...D.trackerSource],
     customTrackerUrls: config.customTrackerUrls ?? [...D.customTrackerUrls],
     btTracker: convertCommaToLine(config.btTracker ?? D.btTracker),

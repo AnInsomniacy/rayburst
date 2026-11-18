@@ -89,8 +89,8 @@ async function openSettings() {
         <img
           v-if="!imageFailed"
           :src="banner"
-          width="1440"
-          height="480"
+          width="1600"
+          height="400"
           alt=""
           decoding="async"
           :class="{ loaded: imageLoaded }"
@@ -159,10 +159,27 @@ async function openSettings() {
   overscroll-behavior: contain;
   text-align: start;
   color: var(--m3-on-surface);
+  /* The banner's deep violet; its edge continues into the panel's border. */
+  --extension-stage: #1d0d3b;
+  --extension-art-height: calc(min(760px, 100vw - 32px) / 4);
   border-radius: var(--radius-2xl);
-  border: 1px solid var(--m3-outline-variant);
-  /* Solid: a backdrop blur makes WebKitGTK flicker on some GPUs (#705). */
-  background: var(--m3-surface-container-high);
+  border: 1px solid transparent;
+  /* Solid: a backdrop blur makes WebKitGTK flicker on some GPUs (#705).
+     Border and background stay dark behind the banner's opaque top, so no
+     light rim or corner seam frames it; the fade below still meets the panel. */
+  background:
+    linear-gradient(
+        to bottom,
+        var(--extension-stage) calc(var(--extension-art-height) * 0.5),
+        var(--m3-surface-container-high) 0
+      )
+      padding-box,
+    linear-gradient(
+        to bottom,
+        var(--extension-stage) calc(var(--extension-art-height) * 0.7),
+        var(--m3-outline-variant) var(--extension-art-height)
+      )
+      border-box;
   box-shadow:
     0 8px 32px var(--m3-shadow),
     0 0 0 1px color-mix(in srgb, var(--m3-on-surface) 8%, transparent);
@@ -184,25 +201,30 @@ async function openSettings() {
   place-items: center;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--m3-outline-variant);
+  border: 0;
   border-radius: 50%;
-  background: var(--m3-surface-container-high);
-  color: var(--m3-on-surface);
+  /* A light disc stands out on the dark banner it always sits on. */
+  background: rgb(255 255 255 / 0.8);
+  color: var(--extension-stage);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.4);
   cursor: pointer;
   transition:
     background-color var(--task-motion-enter) var(--task-motion-ease),
     color var(--task-motion-enter) var(--task-motion-ease);
 }
 .extension-close:hover {
-  background: var(--m3-surface-container-highest);
-  color: var(--m3-on-surface);
+  background: #fff;
+  color: var(--extension-stage);
 }
 .extension-artwork {
-  aspect-ratio: 3 / 1;
+  aspect-ratio: 4 / 1;
   overflow: hidden;
   border-radius: calc(var(--radius-2xl) - 1px) calc(var(--radius-2xl) - 1px) 0 0;
-  border-bottom: 1px solid var(--m3-outline-variant);
-  background: var(--m3-primary-container);
+  background: var(--extension-stage);
+  /* The dark stage dissolves into the panel instead of ending on a hard edge. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 74%, rgb(0 0 0 / 0.55) 88%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 74%, rgb(0 0 0 / 0.55) 88%, transparent);
+  mask-image: linear-gradient(to bottom, #000 74%, rgb(0 0 0 / 0.55) 88%, transparent);
 }
 .extension-artwork > img {
   display: block;
@@ -222,7 +244,7 @@ async function openSettings() {
   height: 100%;
   font-size: var(--font-size-3xl);
   font-weight: 700;
-  color: var(--m3-on-primary-container);
+  color: #f4ecff;
 }
 .extension-body {
   display: grid;

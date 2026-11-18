@@ -290,6 +290,7 @@ export const DEFAULT_APP_CONFIG = {
   mediaSelectBeforeDownload: true,
   mediaDefaultFormat: 'mp4' as const,
   newTaskShowDownloading: true, // auto-navigate to downloads after adding task
+  newTaskStartPaused: false, // the add dialog remembers its "Start immediately" box (#809)
   noConfirmBeforeDeleteTask: false, // require confirmation to prevent accidental deletion
   fileDeletionMode: 'trash' as const,
   deleteFilesWhenSkipConfirm: false, // when skip-confirm is on, default to keeping files (safe)
@@ -371,6 +372,7 @@ export const DEFAULT_APP_CONFIG = {
   btPeerBlocklistUrl: BT_PEER_BLOCKLIST_URL,
   btPeerBlocklistAutoSync: true,
   btPeerBlocklistSyncIntervalHours: 24,
+  btPeerBlocklistCustomRules: '', // addresses blocked by hand, merged into the list (#816)
   trackerSource: [...DEFAULT_TRACKER_SOURCE],
   customTrackerUrls: [] as string[],
   btTracker: '',

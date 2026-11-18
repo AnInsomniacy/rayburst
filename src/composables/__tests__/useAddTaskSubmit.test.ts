@@ -117,6 +117,12 @@ describe('buildEngineOptions', () => {
     expect(opts.out).toBeUndefined()
   })
 
+  it('adds tasks paused only when the dialog asks for it (#809)', () => {
+    expect(buildEngineOptions(baseForm).pause).toBeUndefined()
+    expect(buildEngineOptions({ ...baseForm, startPaused: false }).pause).toBeUndefined()
+    expect(buildEngineOptions({ ...baseForm, startPaused: true }).pause).toBe('true')
+  })
+
   it('includes user-agent when set', () => {
     const opts = buildEngineOptions({ ...baseForm, userAgent: 'MyUA/1.0' })
     expect(opts['user-agent']).toBe('MyUA/1.0')

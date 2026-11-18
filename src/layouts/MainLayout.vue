@@ -781,7 +781,11 @@ onUnmounted(() => {
     </Transition>
     <div class="window-chrome" data-tauri-drag-region />
     <div class="sidebar-heading" data-tauri-drag-region>
-      <h2 data-tauri-drag-region>{{ t('app.task-list') }}</h2>
+      <!-- The brand sits where the sidebar begins; its mark lines up with the navigation icons. -->
+      <h2 class="sidebar-brand" data-tauri-drag-region>
+        <img class="sidebar-brand-mark" src="/logo.svg" alt="" width="22" height="22" draggable="false" />
+        <span class="sidebar-brand-name">Rayburst</span>
+      </h2>
     </div>
     <AppSidebar
       :compact="compactNavigation"
@@ -946,9 +950,10 @@ onUnmounted(() => {
 .sidebar-heading {
   grid-column: 1;
   grid-row: 2;
-  padding-inline: 20px;
+  padding-inline: 15px;
   overflow: hidden;
   background: var(--sidebar-bg);
+  transition: padding var(--navigation-duration) var(--navigation-easing);
 }
 .sidebar-heading,
 .page-header {
@@ -964,11 +969,30 @@ onUnmounted(() => {
   line-height: 24px;
   font-weight: 500;
 }
-.sidebar-heading h2 {
-  transition: opacity var(--navigation-duration) var(--navigation-easing);
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  user-select: none;
+}
+/* Clicks fall through to the heading, which drags the window. */
+.sidebar-brand > * {
+  pointer-events: none;
+}
+.sidebar-brand-mark {
+  flex: none;
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+.sidebar-brand-name {
   overflow: clip visible;
+  font-weight: 650;
+  letter-spacing: -0.01em;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: opacity var(--navigation-duration) var(--navigation-easing);
 }
 .sidebar-slot {
   grid-column: 1;
@@ -1122,9 +1146,12 @@ onUnmounted(() => {
 }
 
 @media (max-width: 699px) {
-  .sidebar-heading h2 {
+  /* The compact rail keeps the mark, centred over its icons. */
+  .sidebar-heading {
+    padding-inline: calc((var(--sidebar-width) - 22px) / 2);
+  }
+  .sidebar-brand-name {
     opacity: 0;
-    pointer-events: none;
   }
   .page-header {
     gap: 8px;
@@ -1136,7 +1163,8 @@ onUnmounted(() => {
   .page-accessory-enter-active,
   .page-accessory-leave-active,
   #container,
-  .sidebar-heading h2 {
+  .sidebar-heading,
+  .sidebar-brand-name {
     transition-duration: 1ms;
     transition-delay: 0s;
   }

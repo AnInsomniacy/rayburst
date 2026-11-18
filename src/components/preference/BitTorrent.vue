@@ -238,6 +238,12 @@ const { form, isDirty, handleSave, handleReset, resetSnapshot, commitInstant } =
       message.warning(t('preferences.bt-peer-blocklist-invalid-url'))
       return false
     }
+    try {
+      await invoke<number>('check_bt_peer_blocklist_rules', { rules: f.btPeerBlocklistCustomRules })
+    } catch (error) {
+      message.warning(t('preferences.bt-peer-blocklist-custom-invalid', { error: getErrorMessage(error) }))
+      return false
+    }
     if (typeof f.btMaxPeers === 'number' && f.btMaxPeers > SAFE_LIMIT_BT_MAX_PEERS) {
       const ok = await confirmBtPeerSafeLimit(f)
       if (!ok) return false
@@ -720,6 +726,15 @@ onMounted(() => {
                 v-model:value="form.btPeerBlocklistUrl"
                 :placeholder="t('preferences.bt-peer-blocklist-url-placeholder')"
                 clearable
+              />
+            </NFormItem>
+            <NFormItem :label="t('preferences.bt-peer-blocklist-custom')">
+              <NInput
+                v-model:value="form.btPeerBlocklistCustomRules"
+                type="textarea"
+                :autosize="{ minRows: 2, maxRows: 8 }"
+                :placeholder="t('preferences.bt-peer-blocklist-custom-placeholder')"
+                spellcheck="false"
               />
             </NFormItem>
             <NFormItem :label="t('preferences.bt-blocklist-scope')">

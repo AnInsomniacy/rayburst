@@ -302,7 +302,12 @@ pub fn setup_tray(app: &AppHandle) -> Result<TrayMenuState, Box<dyn std::error::
     let destination = state.handle.clone();
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        match tray.assume_sni_available(true).spawn().await {
+        match tray
+            .assume_sni_available(true)
+            .disable_dbus_name(sandboxed())
+            .spawn()
+            .await
+        {
             Ok(handle) => {
                 *destination
                     .lock()
@@ -315,4 +320,12 @@ pub fn setup_tray(app: &AppHandle) -> Result<TrayMenuState, Box<dyn std::error::
         }
     });
     Ok(state)
+}
+
+/// Flatpak and Snap sandboxes give every app the same PID, so the
+/// `org.kde.StatusNotifierItem-<pid>-<id>` name collides between apps and
+/// needs an extra permission; the item registers under its unique connection
+/// name instead, as ksni and Chromium do (#825).
+fn sandboxed() -> bool {
+    std::path::Path::new("/.flatpak-info").exists() || std::env::var_os("SNAP").is_some()
 }

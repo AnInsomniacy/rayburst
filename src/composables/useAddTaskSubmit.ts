@@ -44,6 +44,8 @@ import { checksumOption, parseChecksum } from '@shared/utils/checksum'
 export { getDownloadProxy } from '@shared/utils/proxy'
 
 export interface AddTaskForm {
+  /** Adds the tasks paused, to be started later from the list. */
+  startPaused?: boolean
   media?: MediaOptions
   uris: string
   out: string
@@ -147,6 +149,7 @@ export function buildEngineOptions(form: AddTaskForm, context?: ExternalDownload
     'max-connection-per-server': String(form.streamMaxConnections),
   }
   if (form.out) options.out = form.out
+  if (form.startPaused) options.pause = 'true'
   if (form.speedLimit && form.speedLimit !== '0') options['max-download-limit'] = form.speedLimit
   const checksum = form.checksum ? parseChecksum(form.checksum) : null
   if (checksum) options.checksum = checksumOption(checksum)

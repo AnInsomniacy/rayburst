@@ -159,6 +159,70 @@ pub(crate) fn restore_window_state_if_enabled(
             e
         );
     }
+    keep_on_screen(window);
+}
+
+/// The window-state plugin keeps a saved position that overlaps any display,
+/// so a window saved on a monitor that has since changed (a closed lid, another
+/// resolution) can return with its title bar out of reach (#826). The page draws
+/// the title bar, so its strip must lie inside a display's work area; otherwise
+/// the window is fitted to the primary display and centered.
+fn keep_on_screen(window: &tauri::WebviewWindow) {
+    if window.is_maximized().unwrap_or(false)
+        || window.is_fullscreen().unwrap_or(false)
+        || window.is_minimized().unwrap_or(false)
+    {
+        return;
+    }
+    let (Ok(position), Ok(size), Ok(monitors)) = (
+        window.outer_position(),
+        window.outer_size(),
+        window.available_monitors(),
+    ) else {
+        return;
+    };
+    let scale = window.scale_factor().unwrap_or(1.0);
+    let bar = (40.0 * scale).round() as i64;
+    let grip = ((160.0 * scale).round() as i64).min(i64::from(size.width));
+    let (x, y, width) = (
+        i64::from(position.x),
+        i64::from(position.y),
+        i64::from(size.width),
+    );
+    let reachable = monitors.iter().any(|monitor| {
+        let area = monitor.work_area();
+        let (left, top) = (i64::from(area.position.x), i64::from(area.position.y));
+        let (right, bottom) = (
+            left + i64::from(area.size.width),
+            top + i64::from(area.size.height),
+        );
+        y >= top && y + bar <= bottom && x.max(left) + grip <= (x + width).min(right)
+    });
+    if reachable {
+        return;
+    }
+    log::warn!(
+        "window-state:off-screen label={} x={} y={} — recentering",
+        window.label(),
+        position.x,
+        position.y
+    );
+    if let Ok(Some(primary)) = window.primary_monitor() {
+        let area = primary.work_area();
+        let fitted = tauri::PhysicalSize::new(
+            size.width.min(area.size.width),
+            size.height.min(area.size.height),
+        );
+        if fitted != size {
+            let _ = window.set_size(fitted);
+        }
+        let _ = window.set_position(tauri::PhysicalPosition::new(
+            area.position.x + ((area.size.width - fitted.width) / 2) as i32,
+            area.position.y + ((area.size.height - fitted.height) / 2) as i32,
+        ));
+    } else {
+        let _ = window.center();
+    }
 }
 
 /// Set while a silent autostart has not restored the window state yet.
@@ -338,6 +402,11 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                     let _ = window.maximize();
                 }
             }
+        }
+        // ── Cmd+Q: the same deferred shutdown as the tray's Quit (#822) ──
+        "quit-app" => {
+            log::info!("menu:quit — exiting app");
+            app.exit(0);
         }
         // ── Cmd+W: replicate CloseRequested hide-or-dialog logic ──
         "close-window" => {
@@ -756,6 +825,7 @@ pub fn run() {
             commands::get_bt_peer_blocklist_status,
             commands::sync_bt_peer_blocklist,
             commands::reconcile_bt_peer_blocklist,
+            commands::check_bt_peer_blocklist_rules,
             commands::set_dock_visible,
             commands::minimize_to_tray,
             commands::fetch_tracker_sources,

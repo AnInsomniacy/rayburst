@@ -75,6 +75,7 @@ import {
   NEllipsis,
   NSpin,
   NText,
+  NCheckbox,
   useDialog,
 } from 'naive-ui'
 import { useAppMessage } from '@/composables/useAppMessage'
@@ -178,6 +179,9 @@ const form = ref<AddTaskForm>({
   speedLimit: '',
   checksum: '',
 })
+
+/** Remembered across additions, like a BitTorrent client's "Start torrent" box (#809). */
+const startImmediately = ref(!preferenceStore.config.newTaskStartPaused)
 
 const firstRegularUri = computed(
   () =>
@@ -868,6 +872,7 @@ async function handleSubmit() {
       ...requestForm(),
       out: outputName(),
       checksum: checksumAvailable.value ? form.value.checksum : '',
+      startPaused: !startImmediately.value,
     }
     const options = buildEngineOptions(effectiveForm)
     const fileCategory = {
@@ -921,8 +926,13 @@ async function handleSubmit() {
 
       if (skipped.size > 0) message.info(t('task.duplicate-skipped', { count: skipped.size }))
       const effectiveDir = effectiveForm.dir.trim()
-      if (dirUserModified.value && preferenceStore.config.rememberSaveLocation) {
-        preferenceStore.updatePreference({ lastSaveLocation: effectiveDir })
+      const rememberDir = dirUserModified.value && preferenceStore.config.rememberSaveLocation
+      const startPaused = !startImmediately.value
+      if (rememberDir || startPaused !== preferenceStore.config.newTaskStartPaused) {
+        preferenceStore.updatePreference({
+          ...(rememberDir ? { lastSaveLocation: effectiveDir } : {}),
+          newTaskStartPaused: startPaused,
+        })
         await preferenceStore.savePreference()
       }
       await handleClose(false)
@@ -933,11 +943,13 @@ async function handleSubmit() {
         preferenceStore.recordHistoryDirectory(effectiveDir)
       }
 
-      // ── Start notification (aggregated) ────────────────────────
-      handleTaskStart(taskNames, {
-        messageInfo: message.info,
-        t,
-      })
+      // ── Start notification (aggregated); paused tasks have not started ──
+      if (!startPaused) {
+        handleTaskStart(taskNames, {
+          messageInfo: message.info,
+          t,
+        })
+      }
 
       emit('submitted')
     }
@@ -1186,17 +1198,22 @@ defineExpose({ dismiss: () => handleClose(), reset, prepared: () => opening })
         </div>
       </NForm>
       <template #footer>
-        <NSpace justify="end" data-reveal="3">
-          <NButton @click="() => handleClose()">{{ t('app.cancel') }}</NButton>
-          <NButton
-            data-testid="submit-button"
-            type="primary"
-            :loading="submitting"
-            :disabled="!canSubmit"
-            @click="handleSubmit"
-          >
-            {{ t('task.create') }}
-          </NButton>
+        <NSpace justify="space-between" align="center" data-reveal="3">
+          <NCheckbox v-model:checked="startImmediately" data-testid="start-immediately">
+            {{ t('task.start-immediately') }}
+          </NCheckbox>
+          <NSpace justify="end">
+            <NButton @click="() => handleClose()">{{ t('app.cancel') }}</NButton>
+            <NButton
+              data-testid="submit-button"
+              type="primary"
+              :loading="submitting"
+              :disabled="!canSubmit"
+              @click="handleSubmit"
+            >
+              {{ t('task.create') }}
+            </NButton>
+          </NSpace>
         </NSpace>
       </template>
     </NCard>
