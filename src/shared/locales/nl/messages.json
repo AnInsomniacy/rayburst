@@ -1042,7 +1042,9 @@
   "navigation": {
     "about": "Over",
     "settings": "Instellingen",
-    "extensions": "Extensies"
+    "extensions": "Extensies",
+    "collapse-sidebar": "Samenvouwen",
+    "expand-sidebar": "Uitvouwen"
   },
   "extension": {
     "description": "Stuur browserdownloads naar Rayburst en ontdek media op het web.",

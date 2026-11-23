@@ -1042,7 +1042,9 @@
   "navigation": {
     "about": "Quant a",
     "settings": "Configuració",
-    "extensions": "Extensions"
+    "extensions": "Extensions",
+    "collapse-sidebar": "Replega",
+    "expand-sidebar": "Desplega"
   },
   "extension": {
     "description": "Envia les baixades del navegador a Rayburst i descobreix contingut multimèdia al web.",

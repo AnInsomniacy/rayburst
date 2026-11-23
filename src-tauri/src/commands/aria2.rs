@@ -561,17 +561,31 @@ fn is_terminal_download_status(status: &str) -> bool {
     matches!(status, "complete" | "error" | "removed")
 }
 
-async fn remove_engine_task(client: &TaskService, gid: &str) -> Result<(), AppError> {
+/// How a removal ended: the engine let go of the task, or it accepted the
+/// removal and is still stopping it, as on a slow or failing disk (#832).
+#[derive(Debug, PartialEq, Eq)]
+enum Removal {
+    Done,
+    Stopping,
+}
+
+const REMOVAL_WAIT: std::time::Duration = std::time::Duration::from_secs(5);
+const STOPPING_WAIT: std::time::Duration = std::time::Duration::from_secs(600);
+
+async fn remove_engine_task(client: &TaskService, gid: &str) -> Result<Removal, AppError> {
+    let mut removal_requested = false;
     let operation = async {
-        let mut removal_requested = false;
         loop {
-            let tasks = client.tell_task_snapshot(true).await?;
-            let Some(task) = tasks.iter().find(|task| task.gid == gid) else {
-                return Ok(());
+            // Asked by GID: the task list hides deleted tasks the engine may
+            // still be stopping, and their files must not be touched yet.
+            let task = match client.tell_status(gid).await {
+                Ok(task) => task,
+                Err(AppError::Rpc { code: 1, .. }) => return Ok(Removal::Done),
+                Err(error) => return Err(error),
             };
             if is_terminal_download_status(&task.status) {
                 match client.remove_download_result(gid).await {
-                    Ok(_) => return Ok(()),
+                    Ok(_) => return Ok(Removal::Done),
                     // Native result publication can trail a terminal snapshot.
                     // Re-read state on application faults; transport failures stay visible.
                     Err(AppError::Rpc { code: 1, .. }) => {}
@@ -584,7 +598,39 @@ async fn remove_engine_task(client: &TaskService, gid: &str) -> Result<(), AppEr
             tokio::time::sleep(std::time::Duration::from_millis(50)).await;
         }
     };
-    tokio::time::timeout(std::time::Duration::from_secs(5), operation)
+    match tokio::time::timeout(REMOVAL_WAIT, operation).await {
+        Ok(result) => result,
+        Err(_) if removal_requested => {
+            log::info!("aria2:remove gid={gid} accepted; the engine is still stopping it");
+            Ok(Removal::Stopping)
+        }
+        Err(_) => Err(AppError::Aria2(format!(
+            "Task {gid} did not finish removal"
+        ))),
+    }
+}
+
+/// Waits until the engine has stopped a removed task, then drops its result.
+async fn finish_removal(client: &TaskService, gid: &str) -> Result<(), AppError> {
+    let operation = async {
+        loop {
+            match client.tell_status(gid).await {
+                Ok(task) if is_terminal_download_status(&task.status) => {
+                    match client.remove_download_result(gid).await {
+                        Ok(_) => return Ok(()),
+                        Err(AppError::Rpc { code: 1, .. }) => {}
+                        Err(error) => return Err(error),
+                    }
+                }
+                Ok(_) => {}
+                // The engine no longer knows the task.
+                Err(AppError::Rpc { code: 1, .. }) => return Ok(()),
+                Err(error) => return Err(error),
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        }
+    };
+    tokio::time::timeout(STOPPING_WAIT, operation)
         .await
         .map_err(|_| AppError::Aria2(format!("Task {gid} did not finish removal")))?
 }
@@ -632,8 +678,8 @@ impl BatchTaskOperationResult {
 }
 
 async fn delete_task(
-    client: &TaskService,
-    history: &Database,
+    client: &std::sync::Arc<TaskService>,
+    history: &std::sync::Arc<Database>,
     gid: &str,
     delete_mode: Option<crate::commands::fs::FileDeletionMode>,
     protected_roots: &HashSet<PathBuf>,
@@ -708,21 +754,43 @@ async fn delete_task(
             history.add_record(&record).await?;
         }
     }
-    remove_engine_task(client, gid).await?;
+    let removal = remove_engine_task(client, gid).await?;
     client.tasks.mark_deleted(gid);
     history.remove_bt_selection(gid).await?;
-    if let Some(mode) = delete_mode {
-        tokio::task::spawn_blocking(move || {
-            let protected = protected_tasks
-                .iter()
-                .map(|path| path_identity(path))
-                .collect();
-            delete_content(&paths, &protected, &root, &protected_directories, mode)
-        })
-        .await
-        .map_err(|error| AppError::Io(error.to_string()))??;
+    let finish = async move {
+        if let Some(mode) = delete_mode {
+            tokio::task::spawn_blocking(move || {
+                let protected = protected_tasks
+                    .iter()
+                    .map(|path| path_identity(path))
+                    .collect();
+                delete_content(&paths, &protected, &root, &protected_directories, mode)
+            })
+            .await
+            .map_err(|error| AppError::Io(error.to_string()))??;
+        }
+        Ok::<(), AppError>(())
+    };
+    if removal == Removal::Done {
+        finish.await?;
+        return history.remove_task_records(gid).await;
     }
-    history.remove_task_records(gid).await
+    // The task is gone for the user; its files are deleted once the engine
+    // has closed them.
+    let (client, history, gid) = (client.clone(), history.clone(), gid.to_string());
+    tokio::spawn(async move {
+        let result = async {
+            finish_removal(&client, &gid).await?;
+            finish.await?;
+            history.remove_task_records(&gid).await
+        }
+        .await;
+        match result {
+            Ok(()) => log::info!("aria2:delete gid={gid} finished after the engine stopped it"),
+            Err(error) => log::warn!("aria2:delete gid={gid} could not finish: {error}"),
+        }
+    });
+    Ok(())
 }
 
 async fn finish_sharing_task(
@@ -746,7 +814,10 @@ async fn finish_sharing_task(
         added_at,
     );
     history.add_record(&record).await?;
-    remove_engine_task(client, gid).await
+    if remove_engine_task(client, gid).await? == Removal::Stopping {
+        finish_removal(client, gid).await?;
+    }
+    Ok(())
 }
 
 /// Delete a task regardless of whether it is live, transitioning, or stopped.
@@ -964,9 +1035,10 @@ pub async fn aria2_force_pause_all(
         tokio::time::sleep(SETTLE_DELAY).await;
     }
 
-    Err(AppError::Aria2(
-        "Timed out while waiting for all tasks to pause".to_string(),
-    ))
+    // The engine accepted every pause; tasks it is still stopping show as
+    // paused once it has closed their files (#832).
+    log::info!("aria2:pause-all accepted; the engine is still stopping some tasks");
+    Ok(response)
 }
 
 /// Resume paused tasks while keeping unresolved magnet selections paused.
@@ -1017,6 +1089,14 @@ mod tests {
                         "numWaiting":"0","numStopped":"0","numStoppedTotal":"0"});
                     json!([[stat], [tasks], [[]], [[]]])
                 }
+                "aria2.tellStatus" => {
+                    let phase = state.load(Ordering::Relaxed);
+                    json!(Aria2Task {
+                        gid: "task".into(),
+                        status: if phase == 0 { "active" } else { "removed" }.into(),
+                        ..Default::default()
+                    })
+                }
                 "aria2.forceRemove" => {
                     state.store(1, Ordering::Relaxed);
                     json!("task")
@@ -1031,17 +1111,17 @@ mod tests {
         }
         let state = Arc::new(AtomicU8::new(0));
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let client = crate::services::tasks::TaskService::new(
+        let client = Arc::new(crate::services::tasks::TaskService::new(
             listener.local_addr().unwrap().port(),
             String::new(),
-        );
+        ));
         let router = Router::new()
             .route("/jsonrpc", post(rpc))
             .with_state(state.clone());
         let server = tokio::spawn(async move {
             axum::serve(listener, router).await.unwrap();
         });
-        let db = crate::database::Database::open_in_memory().unwrap();
+        let db = Arc::new(crate::database::Database::open_in_memory().unwrap());
         db.add_record(
             &serde_json::from_value(json!({"gid":"task","name":"file","status":"complete"}))
                 .unwrap(),

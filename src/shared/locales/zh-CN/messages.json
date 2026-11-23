@@ -1042,7 +1042,9 @@
   "navigation": {
     "about": "关于",
     "settings": "设置",
-    "extensions": "扩展"
+    "extensions": "扩展",
+    "collapse-sidebar": "收起",
+    "expand-sidebar": "展开"
   },
   "extension": {
     "description": "接管下载，发现网页媒体。",

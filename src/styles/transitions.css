@@ -55,3 +55,34 @@
   opacity: 0;
   transform: scale(0.96);
 }
+
+/* ── Staggered dialog entrance (About, Extensions) ─────────────────── */
+/* Items wait hidden until their dialog adds .panel-entering (usePanelEntrance),
+   then rise in by --entrance order. */
+.entrance {
+  opacity: 0;
+  transform: translateY(12px);
+}
+/* For edges of a scrolling dialog: moving them would overflow it and show
+   scrollbars while they enter. */
+.entrance--fade {
+  transform: none;
+}
+.panel-entering .entrance {
+  animation: panel-entrance 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation-delay: calc(0.05s + var(--entrance, 0) * 0.062s);
+}
+@keyframes panel-entrance {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .entrance,
+  .panel-entering .entrance {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}

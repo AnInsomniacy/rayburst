@@ -1042,7 +1042,9 @@
   "navigation": {
     "about": "Hakkında",
     "settings": "Ayarlar",
-    "extensions": "Uzantılar"
+    "extensions": "Uzantılar",
+    "collapse-sidebar": "Daralt",
+    "expand-sidebar": "Genişlet"
   },
   "extension": {
     "description": "Tarayıcı indirmelerini Rayburst'e gönderin ve web medyasını keşfedin.",

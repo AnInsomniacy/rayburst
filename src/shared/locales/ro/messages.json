@@ -1042,7 +1042,9 @@
   "navigation": {
     "about": "Despre",
     "settings": "Setări",
-    "extensions": "Extensii"
+    "extensions": "Extensii",
+    "collapse-sidebar": "Restrânge",
+    "expand-sidebar": "Extinde"
   },
   "extension": {
     "description": "Trimite descărcările din browser către Rayburst și descoperă conținut media pe web.",

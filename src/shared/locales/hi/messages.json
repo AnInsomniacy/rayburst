@@ -1042,7 +1042,9 @@
   "navigation": {
     "about": "परिचय",
     "settings": "सेटिंग्स",
-    "extensions": "एक्सटेंशन"
+    "extensions": "एक्सटेंशन",
+    "collapse-sidebar": "छोटा करें",
+    "expand-sidebar": "बड़ा करें"
   },
   "extension": {
     "description": "ब्राउज़र के डाउनलोड Rayburst को भेजें और वेब मीडिया खोजें।",

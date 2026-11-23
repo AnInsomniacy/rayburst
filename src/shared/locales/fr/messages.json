@@ -1042,7 +1042,9 @@
   "navigation": {
     "about": "À propos",
     "settings": "Paramètres",
-    "extensions": "Extensions"
+    "extensions": "Extensions",
+    "collapse-sidebar": "Réduire",
+    "expand-sidebar": "Développer"
   },
   "extension": {
     "description": "Envoyez les téléchargements du navigateur vers Rayburst et découvrez les médias du Web.",

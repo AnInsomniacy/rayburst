@@ -3,6 +3,7 @@
 import { ref, useId } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { usePanelEntrance } from '@/composables/usePanelEntrance'
 import { NButton, NIcon, NModal } from 'naive-ui'
 import {
   CloseOutline,
@@ -21,13 +22,14 @@ import { getErrorMessage } from '@shared/utils/errorMessage'
 // Optimized from rayburst-connect/docs/brand/banner.png, without cropping the artwork.
 import banner from '@/assets/extension-banner.webp'
 
-defineProps<{ show: boolean }>()
+const props = defineProps<{ show: boolean }>()
 const emit = defineEmits<{ close: [] }>()
 const brandLogo = '/logo.svg'
 const { t } = useI18n()
 const router = useRouter()
 const message = useAppMessage()
 const panelId = useId()
+const entering = usePanelEntrance(() => props.show)
 const imageLoaded = ref(false)
 const imageFailed = ref(false)
 const packagesUrl = 'https://github.com/AnInsomniacy/rayburst-connect/releases/latest'
@@ -75,9 +77,9 @@ async function openSettings() {
   <NModal :show="show" transform-origin="center" @update:show="(visible: boolean) => !visible && emit('close')">
     <div
       class="extension-panel"
+      :class="{ 'panel-entering': entering }"
       role="dialog"
       aria-modal="true"
-      :data-open="show"
       :aria-labelledby="`${panelId}-title`"
       :aria-describedby="`${panelId}-description`"
     >
@@ -85,6 +87,8 @@ async function openSettings() {
         <NIcon :size="18" :component="CloseOutline" aria-hidden="true" />
       </button>
       <h2 :id="`${panelId}-title`" class="extension-accessible-title">Rayburst Connect</h2>
+      <!-- The artwork is the panel's backdrop and arrives with it: fading it would show
+           the panel's own two-tone background through it. -->
       <div class="extension-artwork" aria-hidden="true">
         <img
           v-if="!imageFailed"
@@ -105,14 +109,16 @@ async function openSettings() {
 
       <div class="extension-body">
         <div class="extension-copy">
-          <h3>{{ t('extension.install') }}</h3>
-          <p :id="`${panelId}-description`">{{ t('extension.description') }}</p>
+          <h3 class="entrance" style="--entrance: 1">{{ t('extension.install') }}</h3>
+          <p :id="`${panelId}-description`" class="entrance" style="--entrance: 2">
+            {{ t('extension.description') }}
+          </p>
           <ul class="extension-features">
-            <li>
+            <li class="entrance" style="--entrance: 3">
               <NIcon :size="18" :component="PlayCircleOutline" aria-hidden="true" />
               <span>{{ t('extension.media-preview') }}</span>
             </li>
-            <li>
+            <li class="entrance" style="--entrance: 4">
               <NIcon :size="18" :component="SpeedometerOutline" aria-hidden="true" />
               <span>{{ t('extension.browser-controls') }}</span>
             </li>
@@ -120,9 +126,10 @@ async function openSettings() {
         </div>
         <nav class="extension-stores" :aria-label="t('extension.install')">
           <a
-            v-for="store in stores"
+            v-for="(store, index) in stores"
             :key="store.name"
-            class="extension-store"
+            class="extension-store entrance"
+            :style="{ '--entrance': index + 1 }"
             :href="store.url"
             @click.prevent="install(store.url)"
           >
@@ -135,7 +142,7 @@ async function openSettings() {
           </a>
         </nav>
       </div>
-      <footer class="extension-footer">
+      <footer class="extension-footer entrance entrance--fade" style="--entrance: 5">
         <a class="extension-packages" :href="packagesUrl" @click.prevent="install(packagesUrl)">
           <NIcon :size="16" :component="DownloadOutline" aria-hidden="true" />
           {{ t('extension.download-packages') }}
@@ -155,6 +162,7 @@ async function openSettings() {
   box-sizing: border-box;
   width: min(760px, calc(100vw - 32px));
   max-height: calc(100dvh - 48px);
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   text-align: start;
@@ -369,19 +377,6 @@ async function openSettings() {
 }
 .extension-settings {
   font-size: var(--font-size-sm);
-}
-.extension-panel[data-open='true'] .extension-body {
-  animation: extension-reveal var(--task-motion-progress) var(--task-motion-ease) both;
-}
-@keyframes extension-reveal {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 @media (max-width: 599px) {
   .extension-body {

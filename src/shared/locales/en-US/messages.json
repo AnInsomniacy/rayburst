@@ -1042,7 +1042,9 @@
   "navigation": {
     "about": "About",
     "settings": "Settings",
-    "extensions": "Extensions"
+    "extensions": "Extensions",
+    "collapse-sidebar": "Collapse",
+    "expand-sidebar": "Expand"
   },
   "extension": {
     "description": "Send browser downloads to Rayburst and discover web media.",

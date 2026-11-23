@@ -1042,7 +1042,9 @@
   "navigation": {
     "about": "O programie",
     "settings": "Ustawienia",
-    "extensions": "Rozszerzenia"
+    "extensions": "Rozszerzenia",
+    "collapse-sidebar": "Zwiń",
+    "expand-sidebar": "Rozwiń"
   },
   "extension": {
     "description": "Przesyłaj pobieranie z przeglądarki do Rayburst i odkrywaj multimedia w sieci.",

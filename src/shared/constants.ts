@@ -217,6 +217,7 @@ export const DEFAULT_APP_CONFIG = {
   showLogoWhenEmpty: true,
   reduceMotion: false,
   sidebarTaskCounts: true,
+  sidebarCollapsed: false,
   uiScale: 1,
   iecSizeUnits: false,
   systemTitleBar: false,

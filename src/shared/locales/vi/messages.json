@@ -1042,7 +1042,9 @@
   "navigation": {
     "about": "Giới thiệu",
     "settings": "Cài đặt",
-    "extensions": "Tiện ích"
+    "extensions": "Tiện ích",
+    "collapse-sidebar": "Thu gọn",
+    "expand-sidebar": "Mở rộng"
   },
   "extension": {
     "description": "Gửi các lượt tải từ trình duyệt đến Rayburst và khám phá nội dung đa phương tiện trên web.",

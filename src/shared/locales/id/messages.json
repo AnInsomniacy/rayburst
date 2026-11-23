@@ -1042,7 +1042,9 @@
   "navigation": {
     "about": "Tentang",
     "settings": "Pengaturan",
-    "extensions": "Ekstensi"
+    "extensions": "Ekstensi",
+    "collapse-sidebar": "Ciutkan",
+    "expand-sidebar": "Bentangkan"
   },
   "extension": {
     "description": "Kirim unduhan browser ke Rayburst dan temukan media web.",
