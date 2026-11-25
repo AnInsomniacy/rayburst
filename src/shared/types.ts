@@ -432,6 +432,8 @@ export interface AppConfig {
   showLogoWhenEmpty: boolean
   reduceMotion: boolean
   sidebarTaskCounts: boolean
+  /** Keep the sidebar as an icon rail at every window width. */
+  sidebarCollapsed: boolean
   /** WebView zoom factor applied to every window. */
   uiScale: number
   /** Write binary units as KiB/MiB instead of KB/MB; values are base 1024 either way. */

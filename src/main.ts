@@ -41,6 +41,7 @@ import './styles/reduced-motion.css'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { getLocale } from 'tauri-plugin-locale-api'
 import { resolveSystemLocale } from '@shared/utils/locale'
+import { opensEditMenu } from '@shared/utils/contextMenu'
 
 const windowLabel = getCurrentWindow().label
 const isAddWindow = windowLabel === 'add'
@@ -72,10 +73,12 @@ app.config.errorHandler = (err) => {
 }
 
 // ── Production guard: suppress browser default context menu ─────────
-// In dev mode, keep the context menu for DevTools / Inspect Element.
-// Industry standard for Tauri/Electron desktop apps (Discord, Slack, VS Code).
+// In dev mode, keep the context menu for DevTools / Inspect Element. Text
+// fields keep the native edit menu (cut, copy, paste) in every build.
 if (import.meta.env.PROD) {
-  document.addEventListener('contextmenu', (e) => e.preventDefault())
+  document.addEventListener('contextmenu', (e) => {
+    if (!opensEditMenu(e.target)) e.preventDefault()
+  })
 }
 
 /** Resolves the persisted or system locale and loads its messages. */

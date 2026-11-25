@@ -1042,7 +1042,9 @@
   "navigation": {
     "about": "Относно",
     "settings": "Настройки",
-    "extensions": "Разширения"
+    "extensions": "Разширения",
+    "collapse-sidebar": "Свий",
+    "expand-sidebar": "Разгъни"
   },
   "extension": {
     "description": "Изпращайте изтеглянията от браузъра към Rayburst и откривайте медия в уеб.",

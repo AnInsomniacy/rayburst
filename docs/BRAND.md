@@ -19,7 +19,8 @@ The tray remains a separate transparent template image. The Windows tray uses
 `src-tauri/icons/tray/`, one PNG per display scale, so the shell never resizes it.
 `docs/brand/banner.png` is the English README banner (4:1, 2400×600) with the current slogan.
 `docs/brand/social-preview.png` (1280×640) is the GitHub social preview, set in the
-repository settings. `docs/brand/posters/` holds the feature posters (2560×1600) for
+repository settings. `src-tauri/nsis/sidebar.bmp` (164×314, 24-bit) is the Windows
+installer's welcome and finish artwork; the uninstaller uses the application icon. `docs/brand/posters/` holds the feature posters (2560×1600) for
 the website and posts. Use no terminal punctuation in slogans, including translations.
 
 The default interface seed is `#9E74D5`, a soft lavender. Material Color Utilities

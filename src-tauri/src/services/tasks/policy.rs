@@ -84,6 +84,11 @@ impl TaskPolicy {
     pub async fn visible_tasks(&self, mut tasks: Vec<Aria2Task>) -> Vec<Aria2Task> {
         let gids = self.internal.read().await;
         tasks.retain(|task| !gids.contains(&task.gid));
+        // A deleted task stays out of the list while the engine still stops it.
+        {
+            let deleted = self.deleted.lock().expect("task deletion state poisoned");
+            tasks.retain(|task| !deleted.contains(&task.gid));
+        }
         let automatic = self.automatic.read().await;
         for task in &mut tasks {
             task.selection_managed = automatic.contains(&task.gid);

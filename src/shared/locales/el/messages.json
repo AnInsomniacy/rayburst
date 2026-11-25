@@ -1042,7 +1042,9 @@
   "navigation": {
     "about": "Σχετικά",
     "settings": "Ρυθμίσεις",
-    "extensions": "Επεκτάσεις"
+    "extensions": "Επεκτάσεις",
+    "collapse-sidebar": "Σύμπτυξη",
+    "expand-sidebar": "Ανάπτυξη"
   },
   "extension": {
     "description": "Στείλτε τις λήψεις του προγράμματος περιήγησης στο Rayburst και ανακαλύψτε πολυμέσα στον ιστό.",

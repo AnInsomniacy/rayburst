@@ -10,6 +10,7 @@ import { openUrl as openExternalUrl } from '@tauri-apps/plugin-opener'
 import { getVersion } from '@tauri-apps/api/app'
 import { getVersion as getAria2Version } from '@/api/aria2'
 import { useAppMessage } from '@/composables/useAppMessage'
+import { usePanelEntrance } from '@/composables/usePanelEntrance'
 import { logger } from '@shared/logger'
 import { writeAppClipboardText } from '@shared/utils'
 
@@ -23,22 +24,17 @@ const aria2Version = ref('')
 const aria2Loading = ref(true)
 const aria2Error = ref(false)
 const year = new Date().getFullYear()
-const animate = ref(false)
+const entering = usePanelEntrance(() => props.show)
 
 onMounted(async () => {
   appVersion.value = await getVersion()
 })
 
-/* Trigger entrance animation and re-fetch Aria2 Next version each time the panel opens. */
+/* Re-fetch the Aria2 Next version each time the panel opens. */
 watch(
   () => props.show,
   async (visible) => {
     if (visible) {
-      animate.value = false
-      requestAnimationFrame(() => {
-        animate.value = true
-      })
-
       /* Reset state and fetch fresh Aria2 Next version */
       aria2Loading.value = true
       aria2Error.value = false
@@ -134,7 +130,7 @@ function openUrl(url: string) {
       }
     "
   >
-    <div class="about-glass" :class="{ 'about-enter': animate }">
+    <div class="about-glass" :class="{ 'panel-entering': entering }">
       <!-- Close button -->
       <button class="about-close" :aria-label="t('app.close')" @click="emit('close')">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -143,15 +139,15 @@ function openUrl(url: string) {
       </button>
 
       <!-- Logo -->
-      <div class="about-logo stagger stagger-1">
+      <div class="about-logo entrance" style="--entrance: 0">
         <img :src="brandLogo" alt="Rayburst" width="96" height="96" />
       </div>
 
       <!-- Title -->
-      <div class="about-title stagger stagger-2">Rayburst</div>
+      <div class="about-title entrance" style="--entrance: 1">Rayburst</div>
 
       <!-- Version Badges (stacked, prominent) -->
-      <div class="about-versions stagger stagger-2">
+      <div class="about-versions entrance" style="--entrance: 1">
         <MTooltip>
           <template #trigger>
             <button class="version-badge" @click="copyToClipboard(`Rayburst v${appVersion}`, 'Rayburst')">
@@ -200,11 +196,11 @@ function openUrl(url: string) {
       </div>
 
       <!-- Slogan -->
-      <p class="about-desc stagger stagger-3">{{ t('about.tagline') }}</p>
+      <p class="about-desc entrance" style="--entrance: 2">{{ t('about.tagline') }}</p>
 
       <!-- Tech Stack -->
-      <div class="about-section-label stagger stagger-4">{{ t('about.tech-stack') }}</div>
-      <div class="about-tags stagger stagger-4">
+      <div class="about-section-label entrance" style="--entrance: 3">{{ t('about.tech-stack') }}</div>
+      <div class="about-tags entrance" style="--entrance: 3">
         <span v-for="tech in techStack" :key="tech.name" class="about-tag" :style="{ '--tag-color': tech.color }">
           <!-- eslint-disable vue/no-v-html -- tech.svg is static local icon markup -->
           <svg
@@ -225,7 +221,7 @@ function openUrl(url: string) {
       </div>
 
       <!-- Links Grid -->
-      <div class="about-links stagger stagger-5">
+      <div class="about-links entrance" style="--entrance: 4">
         <a
           v-for="link in links"
           :key="link.key"
@@ -239,7 +235,7 @@ function openUrl(url: string) {
       </div>
 
       <!-- Footer -->
-      <div class="about-footer stagger stagger-6">
+      <div class="about-footer entrance" style="--entrance: 5">
         <i18n-t keypath="about.developed-by" tag="span" scope="global">
           <template #author>
             <a class="about-link" @click="openUrl('https://github.com/AnInsomniacy')">AnInsomniacy</a>
@@ -481,40 +477,6 @@ function openUrl(url: string) {
   font-weight: 500;
   color: var(--m3-outline);
   letter-spacing: 0.3px;
-}
-
-/* ── Staggered Entrance Animation ─────────────────────────────────── */
-.stagger {
-  opacity: 0;
-  transform: translateY(12px);
-}
-.about-enter .stagger {
-  animation: about-fade-up 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-}
-.about-enter .stagger-1 {
-  animation-delay: 0.05s;
-}
-.about-enter .stagger-2 {
-  animation-delay: 0.12s;
-}
-.about-enter .stagger-3 {
-  animation-delay: 0.18s;
-}
-.about-enter .stagger-4 {
-  animation-delay: 0.24s;
-}
-.about-enter .stagger-5 {
-  animation-delay: 0.3s;
-}
-.about-enter .stagger-6 {
-  animation-delay: 0.36s;
-}
-
-@keyframes about-fade-up {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* ── Spinner ──────────────────────────────────────────────────────── */

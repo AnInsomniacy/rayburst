@@ -1042,7 +1042,9 @@
   "navigation": {
     "about": "정보",
     "settings": "설정",
-    "extensions": "확장 프로그램"
+    "extensions": "확장 프로그램",
+    "collapse-sidebar": "접기",
+    "expand-sidebar": "펼치기"
   },
   "extension": {
     "description": "브라우저 다운로드를 Rayburst로 보내고 웹 미디어를 찾아보세요.",

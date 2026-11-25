@@ -5,18 +5,27 @@ import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import MTooltip from '@/components/common/MTooltip.vue'
 import { NIcon } from 'naive-ui'
-import { ExtensionPuzzleOutline, InformationCircleOutline, SettingsOutline } from '@vicons/ionicons5'
+import {
+  ChevronBackOutline,
+  ChevronForwardOutline,
+  ExtensionPuzzleOutline,
+  InformationCircleOutline,
+  SettingsOutline,
+} from '@vicons/ionicons5'
 import { useTaskStore } from '@/stores/task'
 import { usePreferenceStore } from '@/stores/preference'
 import SidebarCount from './SidebarCount.vue'
 import { useTaskDestinations } from './navigation'
 
-defineProps<{ compact?: boolean; extensionsOpen?: boolean }>()
+const props = defineProps<{ compact?: boolean; collapsible?: boolean; extensionsOpen?: boolean }>()
 
-const emit = defineEmits<{ 'show-about': []; 'show-extensions': [] }>()
+const emit = defineEmits<{ 'show-about': []; 'show-extensions': []; 'toggle-collapsed': [] }>()
 const { t } = useI18n()
 const route = useRoute()
 const taskDestinations = useTaskDestinations()
+const collapseLabel = computed(() =>
+  props.compact ? t('navigation.expand-sidebar') : t('navigation.collapse-sidebar'),
+)
 const tasks = useTaskStore()
 const preferences = usePreferenceStore()
 const isSettings = computed(() => route.matched.some((record) => record.name === 'preference'))
@@ -90,6 +99,23 @@ const isSettings = computed(() => route.matched.some((record) => record.name ===
           </button>
         </template>
         {{ t('navigation.about') }}
+      </MTooltip>
+      <MTooltip v-if="collapsible" placement="right" :disabled="!compact">
+        <template #trigger>
+          <button
+            type="button"
+            class="sidebar-item"
+            :aria-label="collapseLabel"
+            :aria-expanded="!compact"
+            @click="emit('toggle-collapsed')"
+          >
+            <NIcon :size="18" aria-hidden="true">
+              <component :is="compact ? ChevronForwardOutline : ChevronBackOutline" />
+            </NIcon>
+            <span class="sidebar-label">{{ collapseLabel }}</span>
+          </button>
+        </template>
+        {{ collapseLabel }}
       </MTooltip>
     </div>
   </nav>

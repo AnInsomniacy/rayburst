@@ -274,6 +274,5 @@
 @media (max-width: 699px) {
   :root {
     --content-gutter: 16px;
-    --sidebar-width: 76px;
   }
 }

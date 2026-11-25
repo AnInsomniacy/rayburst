@@ -1042,7 +1042,9 @@
   "navigation": {
     "about": "درباره",
     "settings": "تنظیمات",
-    "extensions": "افزونه‌ها"
+    "extensions": "افزونه‌ها",
+    "collapse-sidebar": "جمع کردن",
+    "expand-sidebar": "باز کردن"
   },
   "extension": {
     "description": "دانلودهای مرورگر را به Rayburst بفرستید و محتوای رسانه‌ای وب را پیدا کنید.",

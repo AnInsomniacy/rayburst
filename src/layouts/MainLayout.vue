@@ -84,7 +84,12 @@ const taskScope = computed(() => {
   return status === 'progress' || status === 'failed' || status === 'completed' ? status : 'all'
 })
 
-const compactNavigation = useMediaQuery('(max-width: 699px)')
+// Narrow windows always use the icon rail; wider ones when the user collapses it.
+const narrowWindow = useMediaQuery('(max-width: 699px)')
+const compactNavigation = computed(() => narrowWindow.value || preferenceStore.config.sidebarCollapsed)
+function toggleSidebar() {
+  preferenceStore.updateAndSave({ sidebarCollapsed: !preferenceStore.config.sidebarCollapsed })
+}
 const taskDestinations = useTaskDestinations()
 const pageTitle = computed(() =>
   isTaskPage.value
@@ -772,7 +777,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div id="container">
+  <div id="container" :class="{ 'nav-compact': compactNavigation }">
     <!-- Minimal progress bar during engine initialization / restart -->
     <Transition name="engine-slide">
       <div v-if="engineStore.isBusy" class="engine-banner">
@@ -783,16 +788,18 @@ onUnmounted(() => {
     <div class="sidebar-heading" data-tauri-drag-region>
       <!-- The brand sits where the sidebar begins; its mark lines up with the navigation icons. -->
       <h2 class="sidebar-brand" data-tauri-drag-region>
-        <img class="sidebar-brand-mark" src="/logo.svg" alt="" width="22" height="22" draggable="false" />
+        <img class="sidebar-brand-mark" src="/logo.svg" alt="" width="25" height="25" draggable="false" />
         <span class="sidebar-brand-name">Rayburst</span>
       </h2>
     </div>
     <AppSidebar
       :compact="compactNavigation"
+      :collapsible="!narrowWindow"
       :extensions-open="showExtensions"
       class="sidebar-slot"
       @show-about="openAbout"
       @show-extensions="showExtensions = true"
+      @toggle-collapsed="toggleSidebar"
     />
     <header class="page-header" data-tauri-drag-region>
       <div class="page-title-slot" data-tauri-drag-region>
@@ -941,11 +948,7 @@ onUnmounted(() => {
 .window-chrome {
   grid-column: 1 / -1;
   grid-row: 1;
-  background: linear-gradient(
-    to right,
-    var(--sidebar-bg) 0 var(--sidebar-width),
-    var(--main-bg) var(--sidebar-width) 100%
-  );
+  background: var(--main-bg);
 }
 .sidebar-heading {
   grid-column: 1;
@@ -953,6 +956,9 @@ onUnmounted(() => {
   padding-inline: 15px;
   overflow: hidden;
   background: var(--sidebar-bg);
+  /* Colours the title bar above the sidebar at the column's animated width;
+     a gradient stop at --sidebar-width would jump ahead of the column. */
+  box-shadow: 0 -32px 0 var(--sidebar-bg);
   transition: padding var(--navigation-duration) var(--navigation-easing);
 }
 .sidebar-heading,
@@ -983,11 +989,13 @@ onUnmounted(() => {
 .sidebar-brand-mark {
   flex: none;
   display: block;
-  width: 22px;
-  height: 22px;
+  width: 25px;
+  height: 25px;
 }
 .sidebar-brand-name {
   overflow: clip visible;
+  font-size: 19px;
+  line-height: 25px;
   font-weight: 650;
   letter-spacing: -0.01em;
   text-overflow: ellipsis;
@@ -1145,14 +1153,17 @@ onUnmounted(() => {
   }
 }
 
+/* The compact rail keeps the mark, centred over its icons. */
+#container.nav-compact {
+  --sidebar-width: 76px;
+}
+.nav-compact .sidebar-heading {
+  padding-inline: calc((var(--sidebar-width) - 25px) / 2);
+}
+.nav-compact .sidebar-brand-name {
+  opacity: 0;
+}
 @media (max-width: 699px) {
-  /* The compact rail keeps the mark, centred over its icons. */
-  .sidebar-heading {
-    padding-inline: calc((var(--sidebar-width) - 22px) / 2);
-  }
-  .sidebar-brand-name {
-    opacity: 0;
-  }
   .page-header {
     gap: 8px;
   }
