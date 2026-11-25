@@ -8,7 +8,7 @@
     "chip": "Motrix NextはRayburstになりました"
   },
   "hero": {
-    "tagline": "オープンソースのダウンロードマネージャーを再定義する",
+    "tagline": "オープンソースのダウンロードマネージャーを再定義",
     "description": "ファイル、トレント、ライブ配信に対応したオープンソースのダウンロードマネージャー。macOS、Windows、Linuxでネイティブに動作します。",
     "download": "ダウンロード",
     "github": "GitHub",
@@ -48,7 +48,7 @@
   },
   "proto": {
     "title": "すべてのプロトコルを、ひとつのリストに",
-    "sub": "HTTPSからマグネット、ライブHLSまで。貼り付ければ、そのまま届きます",
+    "sub": "HTTPSからマグネット、ライブHLSまで。貼り付けるだけで、手元に届きます",
     "magnet": "マグネット",
     "k": {
       "files": "ファイル",
@@ -65,7 +65,7 @@
   },
   "d1": {
     "title": "64本の接続を同時に",
-    "sub": "各ダウンロードを既定で最大64本の接続に分割し、止まった場所からそのまま再開します"
+    "sub": "各ダウンロードを既定で最大64本の接続に分割し、中断した箇所からそのまま再開します"
   },
   "d2": {
     "title": "すべてのピースを、届くたびに",
@@ -76,8 +76,8 @@
     "sub": "トラックを選んで、HLSやDASHをMP4またはMKVに直接保存"
   },
   "connect": {
-    "tagline": "連携ブラウザ拡張機能を再定義する",
-    "preview": "ダウンロード前にプレビューして、必要な映像・音声・字幕トラックだけを残せます。Rayburstデスクトップアプリと連携して動作します。",
+    "tagline": "連携ブラウザ拡張機能を再定義",
+    "preview": "ダウンロード前にプレビューして、必要な映像・音声・字幕トラックだけを選べます。Rayburstデスクトップアプリと連携して動作します。",
     "pageTitle": "フィヨルドのオーロラ・4K",
     "channel": "北極光アーカイブ",
     "add": "{browser}に追加",
@@ -89,10 +89,10 @@
     "offline": "GitHubのオフラインパッケージ"
   },
   "engine": {
-    "description": "{aria2Next}はRayburstを支えるオープンソースのエンジンです。積極的にメンテナンスされているaria2をベースに、本家で長年残っていた数多くの不具合を修正し、初めてED2Kに対応しました。HTTP、HTTPS、SFTP、Metalink、ED2K、BitTorrentを、コマンドラインやJSON-RPC経由で利用できます。",
+    "description": "{aria2Next}はRayburstを支えるオープンソースのエンジンです。aria2を積極的にメンテナンスし、本家で長年残っていた数多くの不具合を修正して、初めてED2Kに対応しました。HTTP、HTTPS、SFTP、Metalink、ED2K、BitTorrentを、コマンドラインやJSON-RPC経由で利用できます。",
     "media": "HLSとDASHにもネイティブ対応。トラックを選び、ライブ配信を録画し、再エンコードなしでMP4やMKVに保存します。",
     "over": "搭載エンジン",
-    "tag": "次世代のaria2を再定義する",
+    "tag": "次世代のaria2を再定義",
     "getAny": "Aria2 Nextをダウンロード",
     "more": "ほかのビルド",
     "checksums": "チェックサム",
@@ -152,7 +152,7 @@
     "progress": "進行中",
     "failed": "失敗",
     "completed": "完了",
-    "about": "このアプリについて",
+    "about": "アプリ情報",
     "settings": "設定",
     "remaining": "残り",
     "h": "時間",
@@ -179,7 +179,7 @@
     },
     "d": {
       "progress": "進捗",
-      "size": "ファイルサイズ",
+      "size": "サイズ",
       "down": "ダウンロード速度",
       "up": "アップロード速度",
       "uploaded": "アップロード済み",
@@ -215,7 +215,7 @@
   },
   "cx": {
     "connected": "接続済み",
-    "intercepting": "インターセプト中",
+    "intercepting": "引き継ぎ中",
     "downloads": "ダウンロード",
     "sniffer": "検出",
     "current": "現在のページ",
@@ -233,10 +233,10 @@
     "subs": "字幕",
     "format": "出力形式",
     "start": "開始位置（秒）",
-    "end": "終了位置（0：末尾）",
+    "end": "終了位置（0：最後まで）",
     "cancel": "キャンセル",
     "download": "ダウンロード",
-    "submitted": "Rayburstでダウンロードを作成しました。"
+    "submitted": "Rayburstにダウンロードを作成しました。"
   },
   "film": {
     "watch": "動画を見る",
