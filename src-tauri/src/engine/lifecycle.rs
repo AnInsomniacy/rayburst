@@ -34,6 +34,29 @@ fn sanitized_engine_proxy_env() -> Vec<(&'static str, &'static str)> {
     PROXY_ENV_VARS.iter().map(|key| (*key, "")).collect()
 }
 
+#[cfg(unix)]
+fn raise_file_descriptor_limit() -> std::io::Result<()> {
+    let mut limits = libc::rlimit {
+        rlim_cur: 0,
+        rlim_max: 0,
+    };
+    // SAFETY: `limits` is valid writable storage for getrlimit.
+    if unsafe { libc::getrlimit(libc::RLIMIT_NOFILE, &mut limits) } != 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    let target = limits.rlim_max.min(8192);
+    if limits.rlim_cur < target {
+        let previous = limits.rlim_cur;
+        limits.rlim_cur = target;
+        // SAFETY: Only the soft limit changes, within the existing hard limit.
+        if unsafe { libc::setrlimit(libc::RLIMIT_NOFILE, &limits) } != 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+        log::info!("engine: raised inherited file descriptor limit from {previous} to {target}");
+    }
+    Ok(())
+}
+
 fn read_aria2_log_level(app: &tauri::AppHandle) -> String {
     let Some(store) = app.store("config.json").ok() else {
         return DEFAULT_ARIA2_LOG_LEVEL.to_string();
@@ -173,6 +196,11 @@ fn spawn_engine(
     app: &tauri::AppHandle,
     args: &[String],
 ) -> Result<(Receiver<CommandEvent>, CommandChild), String> {
+    // Finder launches with only 256 descriptors; downloads can exhaust them and block RPC.
+    #[cfg(unix)]
+    if let Err(error) = raise_file_descriptor_limit() {
+        log::warn!("engine: could not raise inherited file descriptor limit: {error}");
+    }
     log::info!(target: "engine", event = "engine_spawn_started", argument_count = args.len(); "engine_spawn_started");
     app.shell()
         .sidecar(ENGINE_SIDECAR_NAME)
@@ -391,6 +419,48 @@ pub fn stop_engine(app: &tauri::AppHandle, graceful: bool) -> Result<(), String>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn engine_inherits_descriptor_headroom_within_the_hard_limit() {
+        const CHILD: &str = "RAYBURST_TEST_DESCRIPTOR_LIMIT";
+        if std::env::var_os(CHILD).is_some() {
+            let limits = libc::rlimit {
+                rlim_cur: 256,
+                rlim_max: 512,
+            };
+            // SAFETY: This isolated test process changes only its own limits.
+            assert_eq!(unsafe { libc::setrlimit(libc::RLIMIT_NOFILE, &limits) }, 0);
+            raise_file_descriptor_limit().unwrap();
+            raise_file_descriptor_limit().unwrap();
+            let files: Vec<_> = (0..300)
+                .map(|_| std::fs::File::open("/dev/null").expect("headroom beyond 256 descriptors"))
+                .collect();
+            let child = std::process::Command::new("/bin/sh")
+                .args(["-c", "ulimit -n"])
+                .output()
+                .unwrap();
+            assert!(child.status.success());
+            assert_eq!(String::from_utf8(child.stdout).unwrap().trim(), "512");
+            drop(files);
+            return;
+        }
+        let child = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "engine::lifecycle::tests::engine_inherits_descriptor_headroom_within_the_hard_limit",
+                "--nocapture",
+            ])
+            .env(CHILD, "1")
+            .output()
+            .unwrap();
+        assert!(
+            child.status.success(),
+            "{}\n{}",
+            String::from_utf8_lossy(&child.stdout),
+            String::from_utf8_lossy(&child.stderr)
+        );
+    }
 
     #[test]
     fn windows_session_shutdown_codes_are_classified_by_unsigned_value() {
