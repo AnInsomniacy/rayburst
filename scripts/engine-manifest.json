@@ -1,0 +1,30 @@
+{
+  "repository": "AnInsomniacy/aria2-next",
+  "version": "3.1.2",
+  "targets": {
+    "aarch64-apple-darwin": {
+      "asset": "aria2-next-3.1.2-macos-arm64",
+      "sha256": "d85ce293bdfeb85b070aed88bd8fb391fd0fc11cd3d574af2788d4b52b2ca38c"
+    },
+    "x86_64-apple-darwin": {
+      "asset": "aria2-next-3.1.2-macos-x86_64",
+      "sha256": "c7303ab80b286819f335cac09fa961eabc0bd47c8d8a0e6d9cbebe84510b4585"
+    },
+    "aarch64-pc-windows-msvc": {
+      "asset": "aria2-next-3.1.2-windows-arm64.exe",
+      "sha256": "2d86bf8b6384efbf70406b1e50be05061a3ced4b653ebbb230d900c344aa301e"
+    },
+    "x86_64-pc-windows-msvc": {
+      "asset": "aria2-next-3.1.2-windows-x86_64.exe",
+      "sha256": "94edc284cd84dec26a16ae9431378c5ab9e5cde8011482566483f4f0cb20c03f"
+    },
+    "aarch64-unknown-linux-gnu": {
+      "asset": "aria2-next-3.1.2-linux-aarch64",
+      "sha256": "99efd3319eb7a3010dbe72953378c1b6f6be9a4b4302dcb8135314dd084d4845"
+    },
+    "x86_64-unknown-linux-gnu": {
+      "asset": "aria2-next-3.1.2-linux-x86_64",
+      "sha256": "6f7e33935a80a2561b9748ebe03da718f9ee9f0a1ae636e8e5975a45b7ab98b7"
+    }
+  }
+}

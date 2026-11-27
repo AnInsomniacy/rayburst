@@ -28,11 +28,21 @@ fresh installation in the README and website migration notices.
 
 ## Bundled engine
 
-Release builds use the six platform engine binaries committed under
-`src-tauri/binaries`. Update those files from a published aria2-next release before
-the desktop release, then review their SHA-256 values. The checkout is the single
-source used by local and release builds; CI does not download or replace the
-engine during packaging.
+`scripts/engine-manifest.json` pins the Aria2 Next release, platform assets and
+SHA-256 values. Update this manifest from a published engine release before the
+desktop release, reviewing all six platform checksums against the release assets.
+Do not commit downloaded engine files.
+
+`pnpm build:native-launcher` prepares the engine as well as the browser launcher.
+Local development, standalone Rust checks and release builds use the same
+preparation step. It downloads only the selected Rust target into
+`src-tauri/binaries`, verifies its SHA-256 and reuses matching local files. Tauri
+passes the target during cross-compilation; direct preparation accepts a target
+with `node scripts/prepare-engine.mjs <target-triple>`.
+
+The first preparation needs access to GitHub Releases. Download or checksum
+failures stop the build before replacing the existing file. Installed applications
+still include the engine and do not download it on first launch.
 
 ## Browser identities
 
