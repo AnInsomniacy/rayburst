@@ -701,13 +701,13 @@ async fn delete_task(
                 .find(|record| record.gid == gid)
                 .map(history_task)
         });
-    let paths = task
-        .as_ref()
-        .map(|task| with_unfinished_copies(content_paths(&task.files, false)))
-        .unwrap_or_default();
     let root = task
         .as_ref()
         .map(|task| PathBuf::from(&task.dir))
+        .unwrap_or_default();
+    let paths = task
+        .as_ref()
+        .map(|task| with_unfinished_copies(content_paths(&task.files, false, &root)))
         .unwrap_or_default();
     let mut protected_directories: HashSet<_> = snapshot
         .iter()
@@ -732,7 +732,7 @@ async fn delete_task(
                 .iter(),
         )
         .filter(|task| task.gid != gid)
-        .flat_map(|task| content_paths(&task.files, false))
+        .flat_map(|task| content_paths(&task.files, false, Path::new(&task.dir)))
         .collect::<Vec<_>>();
     protected_directories.extend(protected_roots.iter().cloned());
     protected_directories.extend(

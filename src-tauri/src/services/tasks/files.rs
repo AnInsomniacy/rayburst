@@ -25,16 +25,35 @@ pub enum FileState {
     Unknown,
 }
 
-pub fn content_paths(files: &[Aria2File], selected_only: bool) -> Vec<PathBuf> {
+pub fn content_paths(files: &[Aria2File], selected_only: bool, root: &Path) -> Vec<PathBuf> {
     files
         .iter()
         .filter(|file| !selected_only || file.selected == "true")
         .filter(|file| !file.path.is_empty())
-        .map(|file| PathBuf::from(&file.path))
-        .filter(|path| path.is_absolute())
+        .filter_map(|file| resolve_content_path(Path::new(&file.path), root))
         .collect::<HashSet<_>>()
         .into_iter()
         .collect()
+}
+
+fn resolve_content_path(path: &Path, root: &Path) -> Option<PathBuf> {
+    if path.is_absolute() {
+        return Some(path.to_path_buf());
+    }
+    if !root.is_absolute()
+        || path
+            .components()
+            .any(|component| matches!(component, std::path::Component::ParentDir))
+    {
+        return None;
+    }
+
+    let rooted = Path::new("/").join(path);
+    if rooted.starts_with(root) {
+        return Some(rooted);
+    }
+
+    Some(root.join(path))
 }
 
 /// The engine's `incomplete-suffix` while the matching preference is on: an
@@ -152,7 +171,7 @@ impl FileMonitor {
                 self.entries.remove(&task.gid);
                 continue;
             }
-            let mut paths = content_paths(&task.files, true);
+            let mut paths = content_paths(&task.files, true, Path::new(&task.dir));
             paths.sort();
             let entry = self.entries.entry(task.gid.clone()).or_insert_with(|| {
                 dirty = true;
@@ -377,6 +396,39 @@ pub async fn inspect(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn content_paths_resolve_relative_and_slash_stripped_engine_paths() {
+        let dir = tempfile::tempdir().unwrap();
+        let stripped = dir
+            .path()
+            .strip_prefix("/")
+            .unwrap()
+            .join("nested/file.bin");
+        let files = [
+            Aria2File {
+                path: stripped.to_string_lossy().into_owned(),
+                selected: "true".into(),
+                ..Default::default()
+            },
+            Aria2File {
+                path: "nested/other.bin".into(),
+                selected: "true".into(),
+                ..Default::default()
+            },
+            Aria2File {
+                path: "../outside.bin".into(),
+                selected: "true".into(),
+                ..Default::default()
+            },
+        ];
+
+        let paths = content_paths(&files, true, dir.path());
+        assert!(paths.contains(&dir.path().join("nested/file.bin")));
+        assert!(paths.contains(&dir.path().join("nested/other.bin")));
+        assert_eq!(paths.len(), 2);
+    }
+
     #[test]
     fn deletion_prunes_only_empty_task_directories_and_can_retry_missing_files() {
         let dir = tempfile::tempdir().unwrap();
@@ -463,7 +515,11 @@ mod tests {
         .is_err());
         let record: HistoryRecord = serde_json::from_value(serde_json::json!({"gid":"g", "name":"files", "status":"complete", "meta":serde_json::json!({"files":[{"path":shared,"selected":"true","uris":["https://example.test/file"]}]}).to_string()})).unwrap();
         assert_eq!(
-            content_paths(&history_task(&record).files, true),
+            content_paths(
+                &history_task(&record).files,
+                true,
+                Path::new(record.dir.as_deref().unwrap_or_default()),
+            ),
             vec![shared]
         );
     }
