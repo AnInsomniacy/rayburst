@@ -216,6 +216,11 @@ pnpm tauri dev
 pnpm tauri build
 ```
 
+Development and production builds download the pinned Aria2 Next engine for the
+selected platform on demand and verify its SHA-256. The first build needs access
+to GitHub Releases; subsequent builds reuse the verified local file. See the
+[Contributing Guide](docs/CONTRIBUTING.md) for standalone Rust checks and other targets.
+
 ### Project Structure
 
 ```
@@ -253,7 +258,7 @@ rayburst/
 │   │   ├── webkit.rs           #   Linux WebKitGTK rendering setup
 │   │   └── lib.rs              #   Tauri builder & plugin registration
 │   ├── native-messaging/       #   Browser Native Messaging launcher
-│   └── binaries/               #   Aria2 Next sidecar binaries (6 platforms)
+│   └── binaries/               #   Aria2 Next defaults and downloaded target sidecar
 ├── scripts/                    # bump-version.sh, release.sh
 ├── .github/workflows/          # CI (ci.yml) + Release (release.yml)
 └── website/                    # Website (Vue 3, TypeScript, Vite, GSAP)

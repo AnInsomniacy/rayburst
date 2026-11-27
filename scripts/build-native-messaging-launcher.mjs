@@ -4,6 +4,7 @@ import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, statSync 
 import { execFileSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { prepareEngine } from './prepare-engine.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const tauriDir = join(root, 'src-tauri')
@@ -11,6 +12,8 @@ const targetTriple =
   process.env.TAURI_ENV_TARGET_TRIPLE || execFileSync('rustc', ['--print', 'host-tuple'], { encoding: 'utf8' }).trim()
 const extension = targetTriple.includes('windows') ? '.exe' : ''
 const binaryName = `rayburst-browser-launcher${extension}`
+
+await prepareEngine(targetTriple)
 
 execFileSync(
   'cargo',

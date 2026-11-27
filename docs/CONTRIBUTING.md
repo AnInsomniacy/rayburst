@@ -26,6 +26,10 @@ associations. Start the desktop manually when testing the extension API. Test
 browser activation with an installed build; development must not replace its
 system registrations. This uses Tauri's development mode, not the Rust debug profile.
 
+Development and production builds automatically prepare the engine for their Rust
+target from `scripts/engine-manifest.json`. The first build needs access to GitHub
+Releases; subsequent builds reuse the local file after SHA-256 verification.
+
 Rust backend (standalone):
 
 ```bash
@@ -34,6 +38,11 @@ cd src-tauri
 cargo check --workspace --all-targets
 cargo test --workspace --all-targets
 ```
+
+For engine-only preparation, run `node scripts/prepare-engine.mjs`. Pass a Rust
+target triple to prepare another platform, for example
+`node scripts/prepare-engine.mjs aarch64-pc-windows-msvc`. Run the downloader tests
+with `node --test scripts/prepare-engine.test.mjs`; they use local fixtures.
 
 ## ✅ Code Quality
 

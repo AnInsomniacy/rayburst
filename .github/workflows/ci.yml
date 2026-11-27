@@ -75,6 +75,9 @@ jobs:
         working-directory: src-tauri
         run: cargo fmt --all -- --check
 
+      - name: Test engine preparation
+        run: node --test scripts/prepare-engine.test.mjs
+
       - name: Build native messaging launcher
         run: node scripts/build-native-messaging-launcher.mjs
 
