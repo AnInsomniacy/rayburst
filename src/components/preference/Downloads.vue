@@ -13,6 +13,7 @@ import { logger } from '@shared/logger'
 import { getErrorMessage } from '@shared/utils/errorMessage'
 import { resolveUserVisibleDownloadDir } from '@shared/utils/userVisibleDirectory'
 import { toggleSpeedLimit } from '@/composables/useSpeedLimiter'
+import { triggerHistoryMaintenance } from '@/composables/useHistoryMaintenance'
 import { changeGlobalOption, isEngineReady } from '@/api/aria2'
 import { FILE_ALLOCATION_OPTIONS, INCOMPLETE_SUFFIX, SCHEDULE_DAY } from '@shared/constants'
 import { useAppMessage } from '@/composables/useAppMessage'
@@ -96,8 +97,11 @@ const { form, isDirty, handleSave, handleReset, resetSnapshot, commitInstant } =
       return false
     }
   },
-  afterSave: (f) => {
+  afterSave: (f, prevConfig) => {
     recordDownloadsDirectory(f, preferenceStore.recordHistoryDirectory)
+    if (f.autoDeleteStaleRecords && !prevConfig.autoDeleteStaleRecords) {
+      void triggerHistoryMaintenance()
+    }
   },
 })
 

@@ -14,6 +14,7 @@ import { isMetadataTask } from '@/composables/useTaskLifecycle'
 import { resolveTaskFilePath, requestFileRecheck } from '@/composables/useTaskPaths'
 import { handleTaskComplete, handleP2pDownloadComplete, handleTaskError } from '@/composables/useTaskNotifyHandlers'
 import { shouldDeleteTorrent, trashTorrentFile } from '@/composables/useDownloadCleanup'
+import { triggerHistoryMaintenance } from '@/composables/useHistoryMaintenance'
 import { getTaskName, resolveOpenTarget, checkTaskIsSharing, getTaskSharingKind } from '@shared/utils'
 import type { TaskSharingKind } from '@shared/utils/task'
 import type { Aria2Task, FloatWindowMode, TaskSnapshot } from '@shared/types'
@@ -648,6 +649,9 @@ onMounted(async () => {
     if (focused) {
       requestFileRecheck()
       void taskStore.fetchList()
+      if (preferenceStore.config.autoDeleteStaleRecords) {
+        void triggerHistoryMaintenance()
+      }
     }
   })
 

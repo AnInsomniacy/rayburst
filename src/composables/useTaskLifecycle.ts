@@ -33,7 +33,9 @@ export function parseHistoryMeta(record: HistoryRecord): HistoryMeta {
 export function extractHistoryFilePaths(record: HistoryRecord): string[] {
   const meta = parseHistoryMeta(record)
   if (meta.files && meta.files.length > 0) {
-    return meta.files.map((f) => f.path).filter(Boolean)
+    const selected = meta.files.filter((f) => f.selected !== 'false')
+    const source = selected.length > 0 ? selected : meta.files
+    return source.map((f) => f.path).filter(Boolean)
   }
   // Legacy fallback: single file path from dir + name
   if (record.dir && record.name) {

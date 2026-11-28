@@ -423,22 +423,8 @@ if (isFloatWindow) {
       .init()
       .then(() => {
         const runCleanup = async () => {
-          try {
-            const { runHistoryMaintenance } = await import('./composables/useStaleCleanup')
-            const { extractHistoryFilePaths } = await import('./composables/useTaskLifecycle')
-            await runHistoryMaintenance({
-              autoDeleteStaleRecords: !!preferenceStore.config?.autoDeleteStaleRecords,
-              completedRecordRetentionDays: Number(preferenceStore.config?.completedRecordRetentionDays ?? 0),
-              getRecords: historyStore.getRecords,
-              removeStaleRecords: historyStore.removeStaleRecords,
-              removeHistoryRecords: historyStore.removeStaleRecords,
-              removeTaskRecord: aria2Api.removeTaskRecord,
-              extractFilePaths: extractHistoryFilePaths,
-            })
-            await taskStore.fetchList()
-          } catch (e) {
-            logger.debug('HistoryMaintenance', e)
-          }
+          const { triggerHistoryMaintenance } = await import('./composables/useHistoryMaintenance')
+          await triggerHistoryMaintenance()
         }
         // First scan 30s after startup — not urgent.
         setTimeout(runCleanup, 30_000)

@@ -22,8 +22,12 @@ vi.mock('@tauri-apps/api/core', () => ({
   },
 }))
 
-const { getCompletedRecordRetentionCutoff, runCompletedRecordRetentionCleanup, runStaleRecordCleanup } =
-  await import('../useStaleCleanup')
+const {
+  getCompletedRecordRetentionCutoff,
+  runCompletedRecordRetentionCleanup,
+  runHistoryMaintenance,
+  runStaleRecordCleanup,
+} = await import('../useStaleCleanup')
 
 describe('runStaleRecordCleanup', () => {
   beforeEach(() => {
@@ -115,5 +119,94 @@ describe('completed record retention', () => {
     expect(result).toEqual({ scanned: 3, removed: 1 })
     expect(removeHistoryRecords).toHaveBeenCalledWith(['old'])
     expect(removeTaskRecord).toHaveBeenCalledWith({ gid: 'old' })
+  })
+})
+
+describe('runHistoryMaintenance', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('returns 0 without querying records when both cleanups are disabled', async () => {
+    const getRecords = vi.fn()
+    const removed = await runHistoryMaintenance({
+      autoDeleteStaleRecords: false,
+      completedRecordRetentionDays: 0,
+      getRecords,
+      removeStaleRecords: vi.fn(),
+      removeHistoryRecords: vi.fn(),
+      removeTaskRecord: vi.fn(),
+      extractFilePaths: () => [],
+    })
+
+    expect(removed).toBe(0)
+    expect(getRecords).not.toHaveBeenCalled()
+  })
+
+  it('removes stale records from both history and aria2 engine', async () => {
+    mockCheckPathExists.mockResolvedValueOnce(true).mockResolvedValueOnce(false)
+    const records = [
+      { gid: 'exists', name: 'exists.zip', dir: '/dl', status: 'complete' },
+      { gid: 'missing', name: 'missing.zip', dir: '/dl', status: 'complete' },
+    ]
+    const getRecords = vi.fn().mockResolvedValue(records)
+    const removeStaleRecords = vi.fn().mockResolvedValue(undefined)
+    const removeTaskRecord = vi.fn().mockResolvedValue('OK')
+
+    const removed = await runHistoryMaintenance({
+      autoDeleteStaleRecords: true,
+      completedRecordRetentionDays: 0,
+      getRecords,
+      removeStaleRecords,
+      removeHistoryRecords: removeStaleRecords,
+      removeTaskRecord,
+      extractFilePaths: (record) => [`${record.dir}/${record.name}`],
+    })
+
+    expect(removed).toBe(1)
+    expect(getRecords).toHaveBeenCalledWith('complete')
+    expect(removeStaleRecords).toHaveBeenCalledWith(['missing'])
+    expect(removeTaskRecord).toHaveBeenCalledTimes(1)
+    expect(removeTaskRecord).toHaveBeenCalledWith({ gid: 'missing' })
+  })
+
+  it('does not re-delete stale-removed records during retention cleanup', async () => {
+    mockCheckPathExists.mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+    const records = [
+      {
+        gid: 'stale-and-old',
+        name: 'gone.zip',
+        dir: '/dl',
+        status: 'complete',
+        completed_at: '2020-01-01T00:00:00.000Z',
+      },
+      {
+        gid: 'kept-but-old',
+        name: 'old.zip',
+        dir: '/dl',
+        status: 'complete',
+        completed_at: '2020-01-01T00:00:00.000Z',
+      },
+    ]
+    const removeStaleRecords = vi.fn().mockResolvedValue(undefined)
+    const removeHistoryRecords = vi.fn().mockResolvedValue(undefined)
+    const removeTaskRecord = vi.fn().mockResolvedValue('OK')
+
+    const removed = await runHistoryMaintenance({
+      autoDeleteStaleRecords: true,
+      completedRecordRetentionDays: 7,
+      getRecords: vi.fn().mockResolvedValue(records),
+      removeStaleRecords,
+      removeHistoryRecords,
+      removeTaskRecord,
+      extractFilePaths: (record) => [`${record.dir}/${record.name}`],
+    })
+
+    expect(removed).toBe(2)
+    expect(removeStaleRecords).toHaveBeenCalledWith(['stale-and-old'])
+    expect(removeHistoryRecords).toHaveBeenCalledWith(['kept-but-old'])
+    expect(removeTaskRecord).toHaveBeenCalledTimes(2)
+    expect(removeTaskRecord).toHaveBeenNthCalledWith(1, { gid: 'stale-and-old' })
+    expect(removeTaskRecord).toHaveBeenNthCalledWith(2, { gid: 'kept-but-old' })
   })
 })
