@@ -337,6 +337,17 @@ describe('extractHistoryFilePaths', () => {
     expect(paths).toEqual(['/dl/a.zip', '/dl/b.zip', '/dl/c.zip'])
   })
 
+  it('excludes unselected files from meta.files', () => {
+    const meta = JSON.stringify({
+      files: [
+        { path: '/dl/selected.zip', selected: 'true', uris: [] },
+        { path: '/dl/skipped.zip', selected: 'false', uris: [] },
+      ],
+    })
+    const paths = extractHistoryFilePaths(makeRecord({ meta }))
+    expect(paths).toEqual(['/dl/selected.zip'])
+  })
+
   it('falls back to dir + name when meta.files is absent', () => {
     const paths = extractHistoryFilePaths(makeRecord({ dir: '/dl', name: 'file.zip', meta: undefined }))
     expect(paths).toEqual(['/dl/file.zip'])

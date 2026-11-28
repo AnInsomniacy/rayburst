@@ -79,31 +79,46 @@ export async function runCompletedRecordRetentionCleanup(
   return { scanned: options.records.length, removed: expiredGids.length }
 }
 
-export async function runHistoryMaintenance(options: HistoryMaintenanceOptions): Promise<void> {
+export async function runHistoryMaintenance(options: HistoryMaintenanceOptions): Promise<number> {
   const needsStaleCleanup = options.autoDeleteStaleRecords
   const needsRetentionCleanup = options.completedRecordRetentionDays > 0
-  if (!needsStaleCleanup && !needsRetentionCleanup) return
+  if (!needsStaleCleanup && !needsRetentionCleanup) return 0
 
   const records = await options.getRecords('complete')
+  let remainingRecords = records
+  let totalRemoved = 0
 
   if (needsStaleCleanup) {
-    await runStaleRecordCleanup(
+    const removedGids = new Set<string>()
+    const staleResult = await runStaleRecordCleanup(
       records.map((record) => ({
         gid: record.gid,
         name: record.name,
         dir: record.dir ?? '',
         filePaths: options.extractFilePaths(record),
       })),
-      options.removeStaleRecords,
+      async (gids) => {
+        await options.removeStaleRecords(gids)
+        // Finished downloads the engine still lists would show again in the next snapshot.
+        await Promise.allSettled(gids.map((gid) => options.removeTaskRecord({ gid })))
+        for (const gid of gids) removedGids.add(gid)
+      },
     )
+    totalRemoved += staleResult.removed
+    if (removedGids.size > 0) {
+      remainingRecords = records.filter((record) => !removedGids.has(record.gid))
+    }
   }
 
   if (needsRetentionCleanup) {
-    await runCompletedRecordRetentionCleanup({
+    const retentionResult = await runCompletedRecordRetentionCleanup({
       retentionDays: options.completedRecordRetentionDays,
-      records,
+      records: remainingRecords,
       removeHistoryRecords: options.removeHistoryRecords,
       removeTaskRecord: options.removeTaskRecord,
     })
+    totalRemoved += retentionResult.removed
   }
+
+  return totalRemoved
 }
