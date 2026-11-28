@@ -13,6 +13,7 @@ import { logger } from '@shared/logger'
 import { isMetadataTask } from '@/composables/useTaskLifecycle'
 import { resolveTaskFilePath, requestFileRecheck } from '@/composables/useTaskPaths'
 import { handleTaskComplete, handleP2pDownloadComplete, handleTaskError } from '@/composables/useTaskNotifyHandlers'
+import { useNotificationSound } from '@/composables/useNotificationSound'
 import { shouldDeleteTorrent, trashTorrentFile } from '@/composables/useDownloadCleanup'
 import { getTaskName, resolveOpenTarget, checkTaskIsSharing, getTaskSharingKind } from '@shared/utils'
 import type { TaskSharingKind } from '@shared/utils/task'
@@ -565,6 +566,8 @@ onMounted(async () => {
     }
   }
 
+  const playNotificationSound = useNotificationSound()
+
   async function onTaskError(task: Aria2Task): Promise<void> {
     if (isMetadataTask(task)) return
     taskStore.fetchList().catch((e) => logger.debug('Lifecycle.taskCounts.error', e))
@@ -573,6 +576,7 @@ onMounted(async () => {
     handleTaskError(task, errorText, {
       messageError: message.error,
       t,
+      playSound: playNotificationSound,
     })
   }
 
@@ -585,6 +589,7 @@ onMounted(async () => {
       t,
       onOpenFile: openFileFromNotification,
       onShowInFolder: showInFolderFromNotification,
+      playSound: playNotificationSound,
     })
 
     // ── Auto-shutdown: check after task completion ──
@@ -601,6 +606,7 @@ onMounted(async () => {
       t,
       onOpenFile: openFileFromNotification,
       onShowInFolder: showInFolderFromNotification,
+      playSound: playNotificationSound,
     })
 
     // ── Auto-shutdown: check after P2P download completion ──
