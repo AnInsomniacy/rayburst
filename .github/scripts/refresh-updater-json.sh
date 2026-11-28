@@ -27,6 +27,10 @@ fi
 RELEASE=$(gh release view "$TAG" -R "$REPO" --json body,assets,isDraft)
 jq -e '.isDraft == false' <<< "$RELEASE" >/dev/null
 NOTES=$(jq -r '.body' <<< "$RELEASE")
+# Motrix Next still reads these manifests and can skip the 4.0 release notes.
+NOTES=$(printf '%s\n\n%s' \
+  '**Upgrading from Motrix Next?** Rayburst uses a new data directory. Settings, active tasks, and download history are not imported. Finish active downloads and back up unfinished work before installing. [Find or recover your old history on macOS](https://github.com/AnInsomniacy/rayburst/blob/main/docs/MOTRIX_HISTORY.md).' \
+  "$NOTES")
 SIG_DIR=$(mktemp -d)
 trap 'rm -f "$SIG_DIR"/*.sig "$SIG_DIR"/*.json; rmdir "$SIG_DIR"' EXIT
 gh release download "$TAG" -R "$REPO" -p "*.sig" -D "$SIG_DIR"
